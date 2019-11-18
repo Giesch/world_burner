@@ -1,37 +1,65 @@
+#[derive(Debug, PartialEq, Eq, DbEnum)]
+pub enum BookType {
+    GoldRevised,
+    Codex,
+}
+
+#[derive(Debug, PartialEq, Eq, DbEnum)]
+pub enum StatModType {
+    Physical,
+    Mental,
+    Either,
+    Both,
+}
+
 table! {
-    books (id) {
-        id -> Int4,
+    use diesel::sql_types::*;
+    use super::BookTypeMapping;
+
+    books (book) {
+        book -> BookTypeMapping,
+        abbrev -> Text,
         title -> Text,
-        abbreviation -> Text,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
 }
 
 table! {
+    use diesel::sql_types::*;
+    use super::BookTypeMapping;
+    use super::StatModTypeMapping;
+
     lifepaths (id) {
         id -> Int4,
-        book_id -> Int4,
+        book -> BookTypeMapping,
         lifepath_setting_id -> Int4,
-        page_number -> Int4,
+        page -> Int4,
         name -> Text,
         years -> Nullable<Int4>,
+        years_min -> Nullable<Int4>,
+        years_max -> Nullable<Int4>,
+        gen_skill_pts -> Int4,
         skill_pts -> Int4,
         trait_pts -> Int4,
-        physical_modifier -> Int4,
-        mental_modifier -> Int4,
-        optional_modifier -> Int4,
+        stat_mod -> Nullable<StatModTypeMapping>,
+        stat_mod_val -> Nullable<Int4>,
+        res -> Nullable<Int4>,
+        res_calc -> Nullable<Text>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
 }
 
 table! {
+    use diesel::sql_types::*;
+    use super::BookTypeMapping;
+
     lifepath_settings (id) {
         id -> Int4,
-        book_id -> Int4,
+        book -> BookTypeMapping,
         stock_id -> Int4,
-        page_number -> Int4,
+        page -> Int4,
         name -> Text,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
@@ -39,6 +67,8 @@ table! {
 }
 
 table! {
+    use diesel::sql_types::*;
+
     lifepath_skill_lists (lifepath_id, list_position, skill_id) {
         lifepath_id -> Int4,
         list_position -> Int4,
@@ -49,6 +79,8 @@ table! {
 }
 
 table! {
+    use diesel::sql_types::*;
+
     lifepath_trait_lists (lifepath_id, list_position, trait_id) {
         lifepath_id -> Int4,
         list_position -> Int4,
@@ -59,10 +91,13 @@ table! {
 }
 
 table! {
+    use diesel::sql_types::*;
+    use super::BookTypeMapping;
+
     skills (id) {
         id -> Int4,
-        book_id -> Int4,
-        page_number -> Int4,
+        book -> BookTypeMapping,
+        page -> Int4,
         name -> Text,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
@@ -70,21 +105,27 @@ table! {
 }
 
 table! {
+    use diesel::sql_types::*;
+    use super::BookTypeMapping;
+
     stocks (id) {
         id -> Int4,
-        book_id -> Int4,
+        book -> BookTypeMapping,
         name -> Text,
-        page_number -> Int4,
+        page -> Int4,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
 }
 
 table! {
+    use diesel::sql_types::*;
+    use super::BookTypeMapping;
+
     traits (id) {
         id -> Int4,
-        book_id -> Int4,
-        page_number -> Int4,
+        book -> BookTypeMapping,
+        page -> Int4,
         name -> Text,
         cost -> Nullable<Int4>,
         created_at -> Timestamptz,
@@ -92,17 +133,12 @@ table! {
     }
 }
 
-joinable!(lifepath_settings -> books (book_id));
 joinable!(lifepath_settings -> stocks (stock_id));
 joinable!(lifepath_skill_lists -> lifepaths (lifepath_id));
 joinable!(lifepath_skill_lists -> skills (skill_id));
 joinable!(lifepath_trait_lists -> lifepaths (lifepath_id));
 joinable!(lifepath_trait_lists -> traits (trait_id));
-joinable!(lifepaths -> books (book_id));
 joinable!(lifepaths -> lifepath_settings (lifepath_setting_id));
-joinable!(skills -> books (book_id));
-joinable!(stocks -> books (book_id));
-joinable!(traits -> books (book_id));
 
 allow_tables_to_appear_in_same_query!(
     books,

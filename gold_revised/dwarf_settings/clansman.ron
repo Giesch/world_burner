@@ -1,0 +1,25 @@
+DwarfSetting(
+  name: "clansman",
+  page: 110,
+  lifepaths: [
+    DwarfLifepath(
+      name: "born clansman",
+      years: 20,
+      res: 10,
+      general_skill_pts: 3,
+      trait_pts: 1,
+      leads: [Guilder]
+    ),
+    DwarfLifepath(
+      name: "tender",
+      years: 20,
+      res: 7,
+      stat: Physical(1),
+      leads: [Guilder, Host],
+      skill_pts: 5,
+      trait_pts: 2,
+      skills: ["farming", "crop-wise", "hills-wise"],
+      traits: ["cursing"]
+    )
+  ]
+)

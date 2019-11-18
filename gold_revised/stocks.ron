@@ -1,0 +1,18 @@
+Stocks(stocks: [
+  Stock(
+    name: "dwarves",
+    page: 110,
+  ),
+  Stock(
+    name: "elves",
+    page: 131,
+  ),
+  Stock(
+    name: "humanity",
+    page: 163,
+  ),
+  Stock(
+    name: "orcs",
+    page: 228,
+  ),
+])

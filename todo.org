@@ -1,0 +1,32 @@
+* TODO convert from csv to ron
+* TODO ron for skills
+* TODO ron for traits
+* TODO ron for clansman setting
+
+* db changes
+** think about a nice way to ensure list_position correctness (can't use check)
+** TODO make everything polymorphic on pageref vs user_id
+** TODO leads table (constraint for same stock?)
+** think about how to do wises and weapon skills
+*** entries for -wise and appropriate weapons, linked by the others
+** think about how to do lifepath requirements
+*** store predicates as data
+*** types of predicates:
+**** and, or, any of
+**** has specific lp, has specific trait
+**** second lp, second or third lp
+**** final age (thinker), current age (crazy old sailor)
+**** lifepath from a setting (military order)
+***** can't just list them, not good for user lifepath settings
+**** specific trait (two parts)
+***** they must have access to that trait
+***** they must purchase that trait when actually making the character
+**** a wife lifepath's husband lp (lady, dame)
+** TODO unique index on names within same stock/setting
+** TODO skill roots table, skill types, skill restrictions (elves only, etc)
+
+* TODO have the app run pending migrations on startup
+* TODO have the app seed book data in a smart way
+** add a 'migration' tracking table for book seeds?
+  ie, diesel migration adds a todo list row to the seed table,
+  then seed fn looks at that table

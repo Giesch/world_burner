@@ -1,0 +1,26 @@
+DwarfSettings(settings: [
+  Setting(
+    name: "clansman",
+    page: 110,
+  ),
+  Setting(
+    name: "guilder",
+    page: 111,
+  ),
+  Setting(
+    name: "artificer",
+    page: 112,
+  ),
+  Setting(
+    name: "dwarven noble",
+    page: 113,
+  ),
+  Setting(
+    name: "dwarven host",
+    page: 114,
+  ),
+  Setting(
+    name: "dwarven outcast",
+    page: 116,
+  )
+])
