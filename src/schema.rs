@@ -1,15 +1,29 @@
+#[PgType = "book_type"]
+#[DieselType = "BookTypeMapping"]
 #[derive(Debug, PartialEq, Eq, DbEnum)]
 pub enum BookType {
     GoldRevised,
     Codex,
 }
 
-#[derive(Debug, PartialEq, Eq, DbEnum)]
+#[PgType = "stat_mod_type"]
+#[DieselType = "StatModTypeMapping"]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
 pub enum StatModType {
     Physical,
     Mental,
     Either,
     Both,
+}
+
+#[PgType = "tool_req"]
+#[DieselType = "ToolRequirementMapping"]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
+pub enum ToolRequirement {
+    Yes,
+    No,
+    Expendable,
+    Workshop,
 }
 
 table! {
@@ -93,12 +107,16 @@ table! {
 table! {
     use diesel::sql_types::*;
     use super::BookTypeMapping;
+    use super::ToolRequirementMapping;
 
     skills (id) {
         id -> Int4,
         book -> BookTypeMapping,
         page -> Int4,
         name -> Text,
+        magical -> Bool,
+        tools -> ToolRequirementMapping,
+        wise -> Bool,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
