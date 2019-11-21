@@ -32,3 +32,9 @@
 ** add a 'migration' tracking table for book seeds?
   ie, diesel migration adds a todo list row to the seed table,
   then seed fn looks at that table
+* TODO find a way to seed the test database one time
+** make a custom test runner
+   https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html
+** bin for recreating test database?
+*** ie recreate in the runner every time, or just run pending migrations in the runner?
+** use diesel's test_transaction

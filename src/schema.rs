@@ -1,7 +1,7 @@
 #[PgType = "book_type"]
 #[DieselType = "BookTypeMapping"]
 #[derive(Debug, PartialEq, Eq, DbEnum)]
-pub enum BookType {
+pub enum Book {
     GoldRevised,
     Codex,
 }
@@ -9,7 +9,7 @@ pub enum BookType {
 #[PgType = "stat_mod_type"]
 #[DieselType = "StatModTypeMapping"]
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
-pub enum StatModType {
+pub enum StatMod {
     Physical,
     Mental,
     Either,

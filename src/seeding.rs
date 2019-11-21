@@ -3,7 +3,10 @@
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
-use crate::schema::{lifepath_settings, stocks, BookType};
+use crate::schema::{lifepath_settings, skills, stocks, Book, ToolRequirement};
+
+mod deserialize;
+use deserialize::*;
 
 type StdResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -20,12 +23,11 @@ pub fn seed_book_data() -> StdResult<()> {
     Ok(())
 }
 
-pub fn seed_stocks(db: &PgConnection) -> StdResult<()> {
+fn seed_stocks(db: &PgConnection) -> StdResult<()> {
     let stocks: Vec<_> = read_stocks()?
-        .stocks
         .into_iter()
         .map(|stock| NewStock {
-            book: BookType::GoldRevised,
+            book: Book::GoldRevised,
             name: stock.name,
             page: stock.page,
         })
@@ -38,20 +40,39 @@ pub fn seed_stocks(db: &PgConnection) -> StdResult<()> {
     Ok(())
 }
 
-fn read_stocks() -> ron::de::Result<Stocks> {
-    let stocks = include_str!("../gold_revised/stocks.ron");
-    ron::de::from_str(stocks)
+fn seed_skills(db: &PgConnection) -> StdResult<()> {
+    let skills: Vec<_> = read_skills()?.iter().map(new_skill).collect();
+    Ok(())
+}
+
+fn new_skill(skill: &Skill) -> NewSkill {
+    NewSkill {
+        name: skill.name.clone(),
+        page: skill.page,
+        tools: skill.tools,
+        magical: skill.magical,
+        wise: skill.name.ends_with("-wise"),
+    }
+}
+
+#[derive(Insertable, Debug, PartialEq, Eq)]
+#[table_name = "skills"]
+struct NewSkill {
+    name: String,
+    page: i32,
+    magical: bool,
+    tools: ToolRequirement,
+    wise: bool,
 }
 
 pub fn seed_dwarf_settings(db: &PgConnection) -> StdResult<()> {
     let stock_id = dwarves_id(db)?;
 
     let settings: Vec<_> = read_dwarf_settings()?
-        .settings
         .into_iter()
         .map(|setting| NewSetting {
             stock_id,
-            book: BookType::GoldRevised,
+            book: Book::GoldRevised,
             page: setting.page.into(),
             name: setting.name,
         })
@@ -71,92 +92,19 @@ fn dwarves_id(db: &PgConnection) -> QueryResult<i32> {
         .first(db)
 }
 
-fn read_dwarf_settings() -> ron::de::Result<DwarfSettings> {
-    let dwarf_settings = include_str!("../gold_revised/dwarf_settings.ron");
-    ron::de::from_str(dwarf_settings)
-}
-
-#[derive(Deserialize, Debug, PartialEq, Eq)]
-struct Stock {
-    pub name: String,
-    pub page: i32,
-}
-
-#[derive(Deserialize, Debug, PartialEq, Eq)]
-struct Stocks {
-    pub stocks: Vec<Stock>,
-}
-
-#[derive(Deserialize, Debug, PartialEq, Eq)]
-pub struct DwarfSettings {
-    settings: Vec<Setting>,
-}
-
-#[derive(Deserialize, Debug, PartialEq, Eq)]
-pub struct Setting {
-    name: String,
-    page: u16,
-}
-
 #[derive(Insertable, Debug, PartialEq, Eq)]
 #[table_name = "stocks"]
 pub struct NewStock {
     name: String,
-    book: BookType,
+    book: Book,
     page: i32,
 }
 
 #[derive(Insertable, Debug, PartialEq, Eq)]
 #[table_name = "lifepath_settings"]
 pub struct NewSetting {
-    book: BookType,
+    book: Book,
     page: i32,
     stock_id: i32,
     name: String,
-}
-
-#[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
-pub struct DwarfLifepath {
-    name: String,
-    years: u32,
-    res: u32,
-    #[serde(default)]
-    stat: StatMod,
-    #[serde(default)]
-    leads: Vec<DwarfLead>,
-    #[serde(default)]
-    general_skill_pts: u8,
-    #[serde(default)]
-    skill_pts: u8,
-    #[serde(default)]
-    trait_pts: u8,
-    #[serde(default)]
-    skills: Vec<String>,
-    #[serde(default)]
-    traits: Vec<String>,
-}
-
-#[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
-pub enum DwarfLead {
-    Any,
-    Clansman,
-    Guilder,
-    Artificer,
-    Noble,
-    Host,
-    Outcast,
-}
-
-#[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
-pub enum StatMod {
-    Physical(i8),
-    Mental(i8),
-    Either(i8),
-    Both(i8),
-}
-
-impl Default for StatMod {
-    fn default() -> Self {
-        StatMod::Either(0)
-    }
 }
