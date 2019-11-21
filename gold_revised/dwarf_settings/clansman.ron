@@ -7,6 +7,7 @@ DwarfSetting(
       years: 20,
       res: 10,
       general_skill_pts: 3,
+      skill_pts: 0,
       trait_pts: 1,
       leads: [Guilder]
     ),

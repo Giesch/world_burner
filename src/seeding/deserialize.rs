@@ -62,7 +62,6 @@ pub struct DwarfLifepath {
     leads: Vec<DwarfLead>,
     #[serde(default)]
     general_skill_pts: u8,
-    #[serde(default)]
     skill_pts: u8,
     #[serde(default)]
     trait_pts: u8,
