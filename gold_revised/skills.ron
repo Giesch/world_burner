@@ -1,0 +1,178 @@
+Skills(skills=[
+  Skill(
+    name: "animal husbandry",
+    page: 255,
+    root: Will,
+    skill_type: Peasant,
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "beer appraisal",
+    page: 259,
+    root: WillPer,
+    forks: ["grain appraisal", "nogger"],
+    skill_type: Craftsman,
+    tools: No,
+    restrictions: [CB(Dwarves)],
+  ),
+
+  Skill(
+    name: "brewer",
+    page: 262,
+    root: Perception
+    forks: ["miller"],
+    skill_type: Craftsman,
+    tools: Workshop,
+  ),
+
+  Skill(
+    name: "coarse persuasion",
+    page: 264,
+    root: Perception,
+    skill_type: Academic,
+    tools: No,
+    restrictions: [CB(Dwarves)],
+  ),
+
+  Skill(
+    name: "climbing",
+    page: 264,
+    root: Speed,
+    forks: ["knots", "rigging"],
+    skill_type: Physical,
+    tools: Expendable,
+  ),
+
+  Skill(
+    name: "engineering",
+    page: 270,
+    root: Perception,
+    forks: ["architect", "mason", "carpenter"],
+    skill_type: Artisan,
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "excavation",
+    page: 271,
+    magical: true,
+    root: PerPow,
+    forks: ["mining", "prospecting", "engineering"],
+    skill_type: Craftsman,
+    tools: Yes,
+    restrictions: [Only(Dwarves)],
+  ),
+
+  Skill(
+    name: "farming",
+    page: 272,
+    root: Perception,
+    skill_type: Peasant,
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "fence building",
+    page: 272,
+    root: Perception,
+    forks: ["chronology of kings", "mason", "accounting", "carpenter"]
+    skill_type: Special,
+    tools: Expendable,
+    restrictions: [CB(Dwarves)],
+  ),
+
+  Skill(
+    name: "grain appraisal",
+    page: 276,
+    root: Perception,
+    forks: ["nogger"],
+    skill_type: Craftsman,
+    tools: No,
+    restrictions: [CB(Dwarves)],
+  ),
+
+  Skill(
+    name: "haggling",
+    page: 276,
+    root: Will,
+    forks: ["persuasion", "soothing platitudes"],
+    skill_type: Social,
+    tools: No,
+  ),
+
+  Skill(
+    name: "mending",
+    page: 283,
+    root: PerAgi,
+    forks: ["any appropriate craftsman skill could suffice"],
+    skill_type: Craftsman,
+    tools: Expendable,
+  ),
+
+  Skill(
+    name: "miller",
+    page: 284,
+    root: Perception,
+    forks: ["brewer"],
+    skill_type: Peasant,
+    tools: Workshop,
+  ),
+
+  Skill(
+    name: "nogger",
+    page: 284,
+    root: WillPer,
+    magical: true,
+    forks: ["grain appraisal"],
+    skill_type: Craftsman,
+    tools: Workshop,
+    restrictions: [Only(Dwarves)],
+  ),
+
+  Skill(
+    name: "scavenging",
+    page: 294,
+    root: Perception,
+    forks: ["foraging", "appropriate wises"],
+    skill_type: Peasant,
+    tools: No,
+  ),
+
+  Skill(
+    name: "soothing platitudes",
+    page: 299,
+    root: Will,
+    forks: ["persuasion", "falsehood"],
+    skill_type: Social,
+    tools: No,
+  ),
+
+  Skill(
+    name: "stuff-wise",
+    page: 302,
+    root: Perception,
+    forks: ["dwarf-wise", "scavenging"],
+    skill_type: Special,
+    tools: No,
+    restrictions: [CB(Dwarves)],
+  ),
+
+  Skill(
+    name: "tunnel-wise",
+    page: 306,
+    root: Perception,
+    forks: ["excavation", "mining"],
+    skill_type: Special,
+    tools: No,
+  ),
+
+  Skill(
+    name: "ugly truth",
+    page: 306,
+    root: Perception,
+    forks: ["falsehood", "intimidation"],
+    skill_type: Social,
+    tools: No,
+  ),
+])
