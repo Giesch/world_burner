@@ -14,5 +14,5 @@ fn test_seed_book_data() {
     let db = test_connection().expect("get test db conn");
     embedded_migrations::run(&db).expect("running migrations");
 
-    seed_book_data().expect("seeding book data");
+    seed_book_data(&db).expect("seeding book data");
 }

@@ -13,12 +13,9 @@ type StdResult<T> = Result<T, Box<dyn std::error::Error>>;
 /// This is the function for loading all RON files in both dev and prod.
 /// It expects that the environment variable DATABASE_URL is set,
 /// and that migrations have been run.
-pub fn seed_book_data() -> StdResult<()> {
-    let url = std::env::var("DATABASE_URL")?;
-    let db = PgConnection::establish(&url)?;
-
-    seed_stocks(&db)?;
-    seed_dwarf_settings(&db)?;
+pub fn seed_book_data(db: &PgConnection) -> StdResult<()> {
+    seed_stocks(db)?;
+    seed_dwarf_settings(db)?;
 
     Ok(())
 }
