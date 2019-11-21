@@ -112,11 +112,23 @@ table! {
     skills (id) {
         id -> Int4,
         book -> BookTypeMapping,
+        skill_type_id -> Int4,
         page -> Int4,
         name -> Text,
         magical -> Bool,
         tools -> ToolRequirementMapping,
         wise -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+
+    skill_types (id) {
+        id -> Int4,
+        name -> Text,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
@@ -157,6 +169,7 @@ joinable!(lifepath_skill_lists -> skills (skill_id));
 joinable!(lifepath_trait_lists -> lifepaths (lifepath_id));
 joinable!(lifepath_trait_lists -> traits (trait_id));
 joinable!(lifepaths -> lifepath_settings (lifepath_setting_id));
+joinable!(skills -> skill_types (skill_type_id));
 
 allow_tables_to_appear_in_same_query!(
     books,
@@ -165,6 +178,7 @@ allow_tables_to_appear_in_same_query!(
     lifepath_skill_lists,
     lifepath_trait_lists,
     skills,
+    skill_types,
     stocks,
     traits,
 );
