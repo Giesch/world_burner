@@ -32,10 +32,8 @@ CREATE TABLE lifepaths (
   -- https://hashrocket.com/blog/posts/modeling-polymorphic-associations-in-a-relational-database
 
   CONSTRAINT valid_res CHECK (
-    (
-      (res IS NOT NULL)::INTEGER +
-      (res_calc IS NOT NULL)::INTEGER
-    ) = 1
+    (res IS NOT NULL)::INTEGER +
+    (res_calc IS NOT NULL)::INTEGER = 1
   ),
 
   CONSTRAINT valid_stat_mod CHECK (

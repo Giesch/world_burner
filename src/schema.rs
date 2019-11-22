@@ -26,6 +26,18 @@ pub enum ToolRequirement {
     Workshop,
 }
 
+#[PgType = "stat_type"]
+#[DieselType = "StatTypeMapping"]
+#[derive(Debug, PartialEq, Eq, DbEnum)]
+pub enum Stat {
+    Will,
+    Perception,
+    Power,
+    Agility,
+    Speed,
+    Forte,
+}
+
 table! {
     use diesel::sql_types::*;
     use super::BookTypeMapping;
@@ -106,18 +118,30 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use super::StatTypeMapping;
+
+    skill_roots (skill_id) {
+        skill_id -> Int4,
+        first_stat_root -> Nullable<StatTypeMapping>,
+        second_stat_root -> Nullable<StatTypeMapping>,
+        attribute_root -> Nullable<Text>,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
     use super::BookTypeMapping;
     use super::ToolRequirementMapping;
 
     skills (id) {
         id -> Int4,
-        book -> BookTypeMapping,
         skill_type_id -> Int4,
+        book -> BookTypeMapping,
         page -> Int4,
         name -> Text,
         magical -> Bool,
-        tools -> ToolRequirementMapping,
         wise -> Bool,
+        tools -> ToolRequirementMapping,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
@@ -169,6 +193,7 @@ joinable!(lifepath_skill_lists -> skills (skill_id));
 joinable!(lifepath_trait_lists -> lifepaths (lifepath_id));
 joinable!(lifepath_trait_lists -> traits (trait_id));
 joinable!(lifepaths -> lifepath_settings (lifepath_setting_id));
+joinable!(skill_roots -> skills (skill_id));
 joinable!(skills -> skill_types (skill_type_id));
 
 allow_tables_to_appear_in_same_query!(
@@ -177,6 +202,7 @@ allow_tables_to_appear_in_same_query!(
     lifepath_settings,
     lifepath_skill_lists,
     lifepath_trait_lists,
+    skill_roots,
     skills,
     skill_types,
     stocks,

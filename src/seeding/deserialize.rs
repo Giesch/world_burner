@@ -39,15 +39,16 @@ pub struct Skill {
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
 pub enum StatMod {
-    Physical(i8),
-    Mental(i8),
-    Either(i8),
-    Both(i8),
+    Physical(i32),
+    Mental(i32),
+    Either(i32),
+    Both(i32),
+    None,
 }
 
 impl Default for StatMod {
     fn default() -> Self {
-        StatMod::Either(0)
+        StatMod::None
     }
 }
 
@@ -104,8 +105,6 @@ pub struct Setting {
     pub page: u16,
 }
 
-// make this an enum and put it in schema?
-// or seed it as a table of strings
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub enum SkillType {
     Academic,
@@ -124,6 +123,30 @@ pub enum SkillType {
     Social,
     Sorcerous,
     Special,
+}
+
+impl SkillType {
+    pub fn db_name(&self) -> &str {
+        use SkillType::*;
+        match self {
+            Academic => "academic",
+            Artisan => "artisan",
+            Artist => "artist",
+            Craftsman => "craftsman",
+            Forester => "forester",
+            Martial => "martial",
+            Medicinal => "medicinal",
+            Military => "military",
+            Musical => "musical",
+            Peasant => "peasant",
+            Physical => "physical",
+            SchoolOfThought => "school_of_thought",
+            Seafaring => "seafaring",
+            Social => "social",
+            Sorcerous => "sorcerous",
+            Special => "special",
+        }
+    }
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]

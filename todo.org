@@ -2,8 +2,11 @@
   CLOSED: [2019-11-19 Tue 19:05]
 * DONE ron for clansman skills
   CLOSED: [2019-11-19 Tue 20:55]
+* TODO seed skills from ron
 * TODO ron for clansman traits
+* TODO seed traits from ron
 * TODO ron for clansman lifepaths
+* TODO seed lifepaths from ron
 
 * db changes
 ** think about a nice way to ensure list_position correctness (can't use check)
@@ -26,6 +29,7 @@
 **** a wife lifepath's husband lp (lady, dame)
 ** TODO unique index on names within same stock/setting
 ** TODO skill roots table, skill types, skill restrictions (elves only, etc)
+** TODO change book back to just a table instead of an enum
 
 * TODO have the app run pending migrations on startup
 * TODO have the app seed book data in a smart way
@@ -38,3 +42,4 @@
 ** bin for recreating test database?
 *** ie recreate in the runner every time, or just run pending migrations in the runner?
 ** use diesel's test_transaction
+
