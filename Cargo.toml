@@ -9,10 +9,11 @@ default-run = "world_burner"
 # https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-diesel = { version = "1.4.3", features = ["postgres"] }
+diesel = { version = "1.4.3", features = ["postgres", "chrono"] }
 dotenv = "0.15.0"
 diesel_migrations = "1.4.0"
 diesel-derive-enum = { version = "0.4.4", features = ["postgres"] }
 serde = "1.0.102"
 serde_derive = "1.0.102"
 ron = "0.5.1"
+chrono = "0.4.9"

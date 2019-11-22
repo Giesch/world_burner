@@ -1,9 +1,13 @@
 //! Functions for loading book data.
 
+use chrono::NaiveDateTime;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
-use crate::schema::{lifepath_settings, skill_types, skills, stocks, Book, ToolRequirement};
+use crate::schema::{
+    lifepath_settings, skill_roots, skill_types, skills, stocks, Book, Stat, StatMod,
+    ToolRequirement,
+};
 
 mod deserialize;
 use deserialize::*;
@@ -16,7 +20,7 @@ type StdResult<T> = Result<T, Box<dyn std::error::Error>>;
 pub fn seed_book_data(db: &PgConnection) -> StdResult<()> {
     seed_stocks(db)?;
     seed_dwarf_settings(db)?;
-    // seed_skills(db)?;
+    seed_skills(db)?;
 
     Ok(())
 }
@@ -54,27 +58,34 @@ fn seed_skills(db: &PgConnection) -> StdResult<()> {
         .map(|(id, name)| (name, id))
         .collect();
 
-    let new_skill = |skill: &Skill| NewSkill {
-        name: skill.name.clone(),
-        page: skill.page,
-        tools: skill.tools,
-        magical: skill.magical,
-        wise: skill.name.ends_with("-wise"),
-        skill_type_id: *skill_type_ids
+    let mut new_skills = Vec::new();
+
+    for skill in read_skills()? {
+        let skill_type_id = *skill_type_ids
             .get(skill.skill_type.db_name())
-            .expect("failed to find skill type id"),
-    };
+            .ok_or("unknown skill type")?;
 
-    let new_skills: Vec<_> = read_skills()?.iter().map(new_skill).collect();
+        let new_skill = NewSkill {
+            name: skill.name.clone(),
+            book: Book::GoldRevised,
+            page: skill.page,
+            tools: skill.tools,
+            magical: skill.magical,
+            wise: skill.name.ends_with("-wise"),
+            skill_type_id,
+        };
 
-    diesel::insert_into(skills::table)
+        new_skills.push(new_skill);
+    }
+
+    let created_skills: Vec<CreatedSkill> = diesel::insert_into(skills::table)
         .values(new_skills)
-        .execute(db)?;
+        .get_results(db)?;
 
     // TODO skill roots
-    // skill roots table with multiple entries allowed; make a stat db enum
-    // either stat or custom attribute string?
-    // need constraint for not more than two?
+    // create a hashmap of skill name to serialized root
+    // go through all the created skills
+    // look up their root, and convert it to a db root
 
     // TODO forks
     // have a forks table, with target skill, forks, and fork_descriptions?
@@ -82,10 +93,35 @@ fn seed_skills(db: &PgConnection) -> StdResult<()> {
     Ok(())
 }
 
+#[derive(Queryable, Insertable, Debug, PartialEq, Eq)]
+#[table_name = "skills"]
+struct CreatedSkill {
+    id: i32,
+    skill_type_id: i32,
+    book: Book,
+    page: i32,
+    name: String,
+    magical: bool,
+    wise: bool,
+    tools: ToolRequirement,
+    created_at: NaiveDateTime,
+    updated_at: NaiveDateTime,
+}
+
+#[derive(Insertable, Debug, PartialEq, Eq)]
+#[table_name = "skill_roots"]
+struct NewSkillRoot {
+    skill_id: i32,
+    first_stat_root: Option<Stat>,
+    second_stat_root: Option<Stat>,
+    attribute_root: Option<String>,
+}
+
 #[derive(Insertable, Debug, PartialEq, Eq)]
 #[table_name = "skills"]
 struct NewSkill {
     name: String,
+    book: Book,
     page: i32,
     magical: bool,
     tools: ToolRequirement,

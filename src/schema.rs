@@ -1,6 +1,6 @@
 #[PgType = "book_type"]
 #[DieselType = "BookTypeMapping"]
-#[derive(Debug, PartialEq, Eq, DbEnum)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
 pub enum Book {
     GoldRevised,
     Codex,
@@ -28,7 +28,7 @@ pub enum ToolRequirement {
 
 #[PgType = "stat_type"]
 #[DieselType = "StatTypeMapping"]
-#[derive(Debug, PartialEq, Eq, DbEnum)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
 pub enum Stat {
     Will,
     Perception,

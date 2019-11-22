@@ -37,7 +37,7 @@ CREATE TABLE skills (
   name TEXT NOT NULL,
   magical BOOLEAN NOT NULL DEFAULT false,
   wise BOOLEAN NOT NULL DEFAULT false,
-  tools tool_req NOT NULL DEFAULT 'no',
+  tools tool_req NOT NULL,
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

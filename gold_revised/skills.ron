@@ -1,4 +1,4 @@
-Skills(skills=[
+Skills(skills: [
   Skill(
     name: "animal husbandry",
     page: 255,
@@ -20,7 +20,7 @@ Skills(skills=[
   Skill(
     name: "brewer",
     page: 262,
-    root: Perception
+    root: Perception,
     forks: ["miller"],
     skill_type: Craftsman,
     tools: Workshop,
@@ -76,7 +76,7 @@ Skills(skills=[
     name: "fence building",
     page: 272,
     root: Perception,
-    forks: ["chronology of kings", "mason", "accounting", "carpenter"]
+    forks: ["chronology of kings", "mason", "accounting", "carpenter"],
     skill_type: Special,
     tools: Expendable,
     restrictions: [CB(Dwarves)],
@@ -174,5 +174,5 @@ Skills(skills=[
     forks: ["falsehood", "intimidation"],
     skill_type: Social,
     tools: No,
-  ),
+  )
 ])

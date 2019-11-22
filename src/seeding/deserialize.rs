@@ -159,6 +159,7 @@ pub enum SkillRoot {
     Agility,
     WillPer,
     PerAgi,
+    PerPow,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -168,7 +169,7 @@ pub enum Restriction {
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
-enum StockRestriction {
+pub enum StockRestriction {
     Dwarves,
     Elves,
     Humans,
