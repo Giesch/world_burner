@@ -11,11 +11,13 @@ CREATE TABLE skill_roots (
   second_stat_root stat_type,
   attribute_root TEXT,
 
+  CONSTRAINT skill_roots_attr_or_stat_check
   CHECK (
     (first_stat_root IS NOT NULL AND attribute_root IS NULL) OR
     (attribute_root IS NOT NULL AND first_stat_root IS NULL AND second_stat_root IS NULL)
   ),
 
+  CONSTRAINT skill_roots_unique_stat_check
   CHECK (first_stat_root != second_stat_root),
 
   PRIMARY KEY (skill_id)

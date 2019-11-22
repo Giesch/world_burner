@@ -5,8 +5,7 @@ use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
 use crate::schema::{
-    lifepath_settings, skill_roots, skill_types, skills, stocks, Book, Stat, StatMod,
-    ToolRequirement,
+    lifepath_settings, skill_roots, skill_types, skills, stocks, Book, Stat, ToolRequirement,
 };
 
 mod deserialize;
@@ -59,7 +58,6 @@ fn seed_skills(db: &PgConnection) -> StdResult<()> {
         .collect();
 
     let mut new_skills = Vec::new();
-
     for skill in read_skills()? {
         let skill_type_id = *skill_type_ids
             .get(skill.skill_type.db_name())
@@ -82,15 +80,92 @@ fn seed_skills(db: &PgConnection) -> StdResult<()> {
         .values(new_skills)
         .get_results(db)?;
 
-    // TODO skill roots
-    // create a hashmap of skill name to serialized root
-    // go through all the created skills
-    // look up their root, and convert it to a db root
+    let mut config_roots: HashMap<String, deserialize::SkillRoot> = HashMap::new();
+    for skill in read_skills()? {
+        config_roots.insert(skill.name, skill.root);
+    }
+
+    let mut new_skill_roots = Vec::new();
+    for skill in created_skills {
+        let config_root = config_roots
+            .get(&skill.name)
+            .ok_or("missing config skill root")?;
+
+        let new_skill_root = new_skill_root(skill.id, config_root);
+
+        new_skill_roots.push(new_skill_root);
+    }
+
+    diesel::insert_into(skill_roots::table)
+        .values(new_skill_roots)
+        .execute(db)?;
 
     // TODO forks
     // have a forks table, with target skill, forks, and fork_descriptions?
 
     Ok(())
+}
+
+// TODO do this in a less dumb way
+// just use the final user representation of a root in the ron config
+fn new_skill_root(skill_id: i32, root: &deserialize::SkillRoot) -> NewSkillRoot {
+    use deserialize::SkillRoot::*;
+    match root {
+        Will => NewSkillRoot {
+            skill_id,
+            first_stat_root: Some(Stat::Will),
+            second_stat_root: None,
+            attribute_root: None,
+        },
+        Perception => NewSkillRoot {
+            skill_id,
+            first_stat_root: Some(Stat::Perception),
+            second_stat_root: None,
+            attribute_root: None,
+        },
+        Forte => NewSkillRoot {
+            skill_id,
+            first_stat_root: Some(Stat::Forte),
+            second_stat_root: None,
+            attribute_root: None,
+        },
+        Power => NewSkillRoot {
+            skill_id,
+            first_stat_root: Some(Stat::Power),
+            second_stat_root: None,
+            attribute_root: None,
+        },
+        Speed => NewSkillRoot {
+            skill_id,
+            first_stat_root: Some(Stat::Speed),
+            second_stat_root: None,
+            attribute_root: None,
+        },
+        Agility => NewSkillRoot {
+            skill_id,
+            first_stat_root: Some(Stat::Agility),
+            second_stat_root: None,
+            attribute_root: None,
+        },
+        WillPer => NewSkillRoot {
+            skill_id,
+            first_stat_root: Some(Stat::Will),
+            second_stat_root: Some(Stat::Perception),
+            attribute_root: None,
+        },
+        PerAgi => NewSkillRoot {
+            skill_id,
+            first_stat_root: Some(Stat::Perception),
+            second_stat_root: Some(Stat::Agility),
+            attribute_root: None,
+        },
+        PerPow => NewSkillRoot {
+            skill_id,
+            first_stat_root: Some(Stat::Perception),
+            second_stat_root: Some(Stat::Power),
+            attribute_root: None,
+        },
+    }
 }
 
 #[derive(Queryable, Insertable, Debug, PartialEq, Eq)]
@@ -130,7 +205,10 @@ struct NewSkill {
 }
 
 pub fn seed_dwarf_settings(db: &PgConnection) -> StdResult<()> {
-    let stock_id = dwarves_id(db)?;
+    let stock_id = stocks::table
+        .select(stocks::id)
+        .filter(&stocks::name.eq("dwarves"))
+        .first(db)?;
 
     let settings: Vec<_> = read_dwarf_settings()?
         .into_iter()
@@ -147,13 +225,6 @@ pub fn seed_dwarf_settings(db: &PgConnection) -> StdResult<()> {
         .execute(db)?;
 
     Ok(())
-}
-
-fn dwarves_id(db: &PgConnection) -> QueryResult<i32> {
-    stocks::table
-        .select(stocks::id)
-        .filter(&stocks::name.eq("dwarves"))
-        .first(db)
 }
 
 #[derive(Insertable, Debug, PartialEq, Eq)]

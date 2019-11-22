@@ -31,22 +31,22 @@ CREATE TABLE lifepaths (
   -- these are roll-your-own tagged unions
   -- https://hashrocket.com/blog/posts/modeling-polymorphic-associations-in-a-relational-database
 
-  CONSTRAINT valid_res CHECK (
+  CONSTRAINT lifepaths_res_or_res_calc_check CHECK (
     (res IS NOT NULL)::INTEGER +
     (res_calc IS NOT NULL)::INTEGER = 1
   ),
 
-  CONSTRAINT valid_stat_mod CHECK (
+  CONSTRAINT lifepaths_stat_mod_and_stat_mod_val_check CHECK (
     (stat_mod IS NOT NULL AND stat_mod_val IS NOT NULL) OR
     (stat_mod IS NULL AND stat_mod_val IS NULL)
   ),
 
-  CONSTRAINT valid_years CHECK (
+  CONSTRAINT lifepaths_years_or_years_range_check CHECK (
     (years IS NOT NULL AND years_min IS NULL AND years_max IS NULL) OR
     (years IS NULL AND years_min IS NOT NULL AND years_max IS NOT NULL)
   ),
 
-  CONSTRAINT valid_years_range CHECK (years_min < years_max)
+  CONSTRAINT lifepaths_valid_years_range_check CHECK (years_min < years_max)
 );
 
 SELECT diesel_manage_updated_at('lifepaths');
