@@ -25,6 +25,8 @@ pub fn seed_book_data(db: &PgConnection) -> StdResult<()> {
         seed_dwarf_settings(db)?;
         seed_skills(db)?;
 
+        read_traits()?;
+
         Ok(())
     })
 }

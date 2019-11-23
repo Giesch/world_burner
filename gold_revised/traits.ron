@@ -1,0 +1,64 @@
+Traits(traits: [
+  Trait(
+    name: "affinity for sheep and goats",
+    type: Die,
+    page: 311,
+    cost: Some(4),
+  ),
+
+  Trait(
+    name: "booming voice",
+    type: CallOn,
+    page: 316,
+    cost: Some(2),
+  ),
+
+  Trait(
+    name: "curious",
+    type: Char,
+  ),
+
+  Trait(
+    name: "cursing",
+    type: Char,
+  ),
+
+  Trait(
+    name: "deep sense",
+    type: Die,
+    page: 321,
+    cost: None,
+  ),
+
+  Trait(
+    name: "dispute-settler",
+    type: CallOn,
+    page: 321,
+    cost: None,
+  ),
+
+  Trait(
+    name: "folksy wisdom",
+    type: Char,
+  ),
+
+  Trait(
+    name: "oathswearer",
+    type: Die,
+    page: 338,
+    cost: None,
+  ),
+
+  Trait(
+    name: "pragmatic outlook",
+    type: Char,
+  ),
+
+  Trait(
+    name: "tinkerer",
+    type: CallOn,
+    page: 350,
+    cost: None,
+  ),
+
+])

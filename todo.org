@@ -1,4 +1,5 @@
 * TODO ron for clansman traits
+* TODO think of how to handle common traits
 * TODO seed traits from ron
 * TODO ron for clansman lifepaths
 * TODO seed lifepaths from ron
@@ -41,4 +42,3 @@
 ** bin for recreating test database?
 *** ie recreate in the runner every time, or just run pending migrations in the runner?
 ** use diesel's test_transaction
-

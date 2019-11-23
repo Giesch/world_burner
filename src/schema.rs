@@ -38,6 +38,15 @@ pub enum Stat {
     Forte,
 }
 
+#[PgType = "trait_type"]
+#[DieselType = "TraitTypeMapping"]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
+pub enum TraitType {
+    Char,
+    CallOn,
+    Die,
+}
+
 table! {
     use diesel::sql_types::*;
     use super::BookTypeMapping;
@@ -121,7 +130,6 @@ table! {
 
     skill_forks (skill_id, fork_id) {
         skill_id -> Int4,
-        fork_desc -> Nullable<Text>,
         fork_id -> Int4,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
@@ -187,13 +195,15 @@ table! {
 table! {
     use diesel::sql_types::*;
     use super::BookTypeMapping;
+    use super::TraitTypeMapping;
 
     traits (id) {
         id -> Int4,
         book -> BookTypeMapping,
-        page -> Int4,
+        page -> Nullable<Int4>,
         name -> Text,
         cost -> Nullable<Int4>,
+        typ -> TraitTypeMapping,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }

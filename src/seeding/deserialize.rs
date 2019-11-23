@@ -3,6 +3,11 @@ use ron::de;
 use crate::schema::Stat;
 use crate::schema::ToolRequirement;
 
+pub fn read_traits() -> de::Result<Vec<Trait>> {
+    let traits = include_str!("../../gold_revised/traits.ron");
+    de::from_str(traits).map(|traits: Traits| traits.traits)
+}
+
 pub fn read_skills() -> de::Result<Vec<Skill>> {
     let skills = include_str!("../../gold_revised/skills.ron");
     de::from_str(skills).map(|skills: Skills| skills.skills)
@@ -169,4 +174,31 @@ pub enum StockRestriction {
     Elves,
     Humans,
     Roden,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+pub struct Traits {
+    traits: Vec<Trait>,
+}
+
+#[serde(tag = "type")]
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+pub enum Trait {
+    Die(FullTrait),
+    CallOn(FullTrait),
+    Char(CharTrait),
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+pub struct FullTrait {
+    name: String,
+    page: i32,
+    cost: Option<i32>,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+pub struct CharTrait {
+    name: String,
+    #[serde(default)]
+    page: Option<i32>,
 }
