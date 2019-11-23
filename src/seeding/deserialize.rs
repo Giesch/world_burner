@@ -181,24 +181,23 @@ pub struct Traits {
     traits: Vec<Trait>,
 }
 
-#[serde(tag = "type")]
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub enum Trait {
-    Die(FullTrait),
-    CallOn(FullTrait),
-    Char(CharTrait),
-}
-
-#[derive(Deserialize, Debug, PartialEq, Eq)]
-pub struct FullTrait {
-    name: String,
-    page: i32,
-    cost: Option<i32>,
-}
-
-#[derive(Deserialize, Debug, PartialEq, Eq)]
-pub struct CharTrait {
-    name: String,
-    #[serde(default)]
-    page: Option<i32>,
+    Die {
+        name: String,
+        page: i32,
+        #[serde(default)]
+        cost: Option<i32>,
+    },
+    CallOn {
+        name: String,
+        page: i32,
+        #[serde(default)]
+        cost: Option<i32>,
+    },
+    Char {
+        name: String,
+        #[serde(default)]
+        page: Option<i32>,
+    },
 }
