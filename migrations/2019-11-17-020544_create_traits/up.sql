@@ -6,7 +6,7 @@ CREATE TABLE traits (
 
   -- char traits (only) are allowed to not have a page
   page INTEGER CHECK (page > 0),
-  name TEXT NOT NULL,
+  name TEXT UNIQUE NOT NULL,
   cost INTEGER, -- null means the trait is lifepath-only
   typ trait_type NOT NULL,
 

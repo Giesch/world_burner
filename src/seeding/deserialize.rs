@@ -1,27 +1,65 @@
 use ron::de;
+use std::fs;
+use std::path::Path;
 
+use super::StdResult;
+use crate::schema;
 use crate::schema::Stat;
 use crate::schema::ToolRequirement;
 use crate::schema::TraitType;
 
-pub fn read_traits() -> de::Result<Vec<Trait>> {
-    let traits = include_str!("../../gold_revised/traits.ron");
-    de::from_str(traits).map(|traits: Traits| traits.traits)
-}
+const GOLD_SKILLS_PATH: &str = "gold_revised/skills.ron";
+const GOLD_TRAITS_PATH: &str = "gold_revised/traits.ron";
+const GOLD_STOCKS_PATH: &str = "gold_revised/stocks.ron";
 
 pub fn read_skills() -> de::Result<Vec<Skill>> {
-    let skills = include_str!("../../gold_revised/skills.ron");
-    de::from_str(skills).map(|skills: Skills| skills.skills)
+    let skills = fs::read_to_string(GOLD_SKILLS_PATH)?;
+    de::from_str(&skills).map(|skills: Skills| skills.skills)
 }
 
-pub fn read_dwarf_settings() -> de::Result<Vec<Setting>> {
-    let dwarf_settings = include_str!("../../gold_revised/dwarf_settings.ron");
-    de::from_str(dwarf_settings).map(|settings: LifepathSettings| settings.settings)
+pub fn read_traits() -> de::Result<Vec<Trait>> {
+    let traits = fs::read_to_string(GOLD_TRAITS_PATH)?;
+    de::from_str(&traits).map(|traits: Traits| traits.traits)
+}
+
+pub fn read_stock_settings(book_dir: &str, stock_prefix: &str) -> StdResult<Vec<LifepathSetting>> {
+    let dir = format!("{}/{}_settings", book_dir, stock_prefix);
+    let dir = Path::new(&dir);
+
+    let rons = all_ron_files(dir)?;
+
+    let mut settings = Vec::new();
+    for input in rons {
+        let setting = de::from_str::<LifepathSetting>(&input)?;
+        settings.push(setting);
+    }
+
+    Ok(settings)
+}
+
+fn all_ron_files(dir: &Path) -> StdResult<Vec<String>> {
+    let mut result = Vec::new();
+    if !dir.is_dir() {
+        println!("no directory found at: {:#?}", dir);
+        return Ok(vec![]);
+    }
+
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        let is_ron = !path.is_dir() && path.extension().and_then(|s| s.to_str()) == Some("ron");
+        if is_ron {
+            let ron = fs::read_to_string(path)?;
+            result.push(ron);
+        }
+    }
+
+    Ok(result)
 }
 
 pub fn read_stocks() -> de::Result<Vec<Stock>> {
-    let stocks = include_str!("../../gold_revised/stocks.ron");
-    de::from_str(stocks).map(|stocks: Stocks| stocks.stocks)
+    let gold_stocks = fs::read_to_string(GOLD_STOCKS_PATH)?;
+    de::from_str(&gold_stocks).map(|stocks: Stocks| stocks.stocks)
 }
 
 #[derive(Deserialize, Debug)]
@@ -53,34 +91,68 @@ pub enum StatMod {
     None,
 }
 
+impl StatMod {
+    pub fn stat_mod_type(&self) -> Option<schema::StatMod> {
+        match self {
+            Self::Physical(_) => Some(schema::StatMod::Physical),
+            Self::Mental(_) => Some(schema::StatMod::Mental),
+            Self::Either(_) => Some(schema::StatMod::Either),
+            Self::Both(_) => Some(schema::StatMod::Both),
+            Self::None => None,
+        }
+    }
+
+    pub fn stat_mod_val(&self) -> Option<i32> {
+        match self {
+            Self::Physical(val) => Some(*val),
+            Self::Mental(val) => Some(*val),
+            Self::Either(val) => Some(*val),
+            Self::Both(val) => Some(*val),
+            Self::None => None,
+        }
+    }
+}
+
 impl Default for StatMod {
     fn default() -> Self {
         StatMod::None
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
+/// This is specific to book data, don't use it elsewhere
+#[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct Lifepath {
-    name: String,
-    years: u32,
-    res: u32,
+    pub name: String,
+    pub page: i32,
+
+    // for these two, None means the one special lifepath
+    pub years: Option<i32>,
+    pub res: Option<i32>,
+
     #[serde(default)]
-    stat: StatMod,
+    pub stat_mod: StatMod,
     #[serde(default)]
-    leads: Vec<DwarfLead>,
+    pub leads: Vec<Lead>,
     #[serde(default)]
-    general_skill_pts: u8,
-    skill_pts: u8,
+    pub general_skill_pts: i32,
+    pub skill_pts: i32,
     #[serde(default)]
-    trait_pts: u8,
+    pub trait_pts: i32,
     #[serde(default)]
-    skills: Vec<String>,
+    pub skills: Vec<String>,
     #[serde(default)]
-    traits: Vec<String>,
+    pub traits: Vec<String>,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+pub struct LifepathSetting {
+    pub name: String,
+    pub page: i32,
+    pub lifepaths: Vec<Lifepath>,
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
-pub enum DwarfLead {
+pub enum Lead {
     Any,
     Clansman,
     Guilder,
@@ -93,6 +165,7 @@ pub enum DwarfLead {
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct Stock {
     pub name: String,
+    pub singular: String,
     pub page: i32,
 }
 

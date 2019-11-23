@@ -1,9 +1,13 @@
+#![enable(unwrap_newtypes)]
+#![enable(implicit_some)]
+
 LifepathSetting(
   name: "clansman",
   page: 110,
   lifepaths: [
     Lifepath(
       name: "born clansman",
+      page: 110,
       years: 20,
       res: 10,
       general_skill_pts: 3,
@@ -14,9 +18,10 @@ LifepathSetting(
 
     Lifepath(
       name: "tender",
+      page: 110,
       years: 20,
       res: 7,
-      stat: Physical(1),
+      stat_mod: Physical(1),
       leads: [Guilder, Host],
       skill_pts: 5,
       trait_pts: 2,

@@ -31,6 +31,8 @@ CREATE TABLE lifepaths (
   -- these are roll-your-own tagged unions
   -- https://hashrocket.com/blog/posts/modeling-polymorphic-associations-in-a-relational-database
 
+  UNIQUE (lifepath_setting_id, name),
+
   CONSTRAINT lifepaths_res_or_res_calc_check CHECK (
     (res IS NOT NULL)::INTEGER +
     (res_calc IS NOT NULL)::INTEGER = 1

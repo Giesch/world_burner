@@ -186,6 +186,7 @@ table! {
         id -> Int4,
         book -> BookTypeMapping,
         name -> Text,
+        singular -> Text,
         page -> Int4,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,

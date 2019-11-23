@@ -1,14 +1,16 @@
-* TODO think about how to handle common traits & born lifepaths
-** and fey blood
-** need a table of common traits by stock?
-* TODO seed traits from ron
 * TODO ron for clansman lifepaths
-* TODO seed lifepaths from ron
-* TODO make a table (two?) for non-skill skil forks
+
+* TODO make a table (two?) for non-skill skill forks
 ** arbitrary text
 ** wises
 ** think about making these separate in the ron
 * TODO think about how to handle skill trainings
+* TODO think about how to handle common traits & born lifepaths
+** and fey blood
+** need a table of common traits by stock?
+* TODO move the HALF_PREVIOUS constant to a repo module and make it private
+** db_string method on ResCalc enum
+* TODO make the lead names used in ron files stock specific
 
 * db changes
 ** think about a nice way to ensure list_position correctness (can't use check)
