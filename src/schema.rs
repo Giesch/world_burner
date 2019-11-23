@@ -118,6 +118,17 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+
+    skill_forks (skill_id) {
+        skill_id -> Int4,
+        fork_id -> Int4,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
     use super::StatTypeMapping;
 
     skill_roots (skill_id) {
@@ -202,6 +213,7 @@ allow_tables_to_appear_in_same_query!(
     lifepath_settings,
     lifepath_skill_lists,
     lifepath_trait_lists,
+    skill_forks,
     skill_roots,
     skills,
     skill_types,
