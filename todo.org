@@ -1,9 +1,25 @@
-* TODO ron for clansman lifepaths
+* TODO schema changes for handling unlisted char traits & wises
+* TODO seed skill lists
+* TODO seed trait lists
+* TODO add more dwarf settings
+** resolve config todos first
+*** leads with stock-distinct names
+*** unit tests for broken skill & trait links
+** settings:
+  - [ ] guilder
+  - [ ] artificer
+  - [ ] noble
+  - [ ] host
+  - [ ] outcast
 
 * TODO make a table (two?) for non-skill skill forks
 ** arbitrary text
 ** wises
 ** think about making these separate in the ron
+** make a wise variant in the skills ron? what for, typos?
+*** checks typos in the lifepaths
+*** should have a unit test for that
+*** or an error in seeding?
 * TODO think about how to handle skill trainings
 * TODO think about how to handle common traits & born lifepaths
 ** and fey blood
