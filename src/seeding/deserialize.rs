@@ -2,6 +2,7 @@ use ron::de;
 
 use crate::schema::Stat;
 use crate::schema::ToolRequirement;
+use crate::schema::TraitType;
 
 pub fn read_traits() -> de::Result<Vec<Trait>> {
     let traits = include_str!("../../gold_revised/traits.ron");
@@ -15,7 +16,7 @@ pub fn read_skills() -> de::Result<Vec<Skill>> {
 
 pub fn read_dwarf_settings() -> de::Result<Vec<Setting>> {
     let dwarf_settings = include_str!("../../gold_revised/dwarf_settings.ron");
-    de::from_str(dwarf_settings).map(|settings: DwarfSettings| settings.settings)
+    de::from_str(dwarf_settings).map(|settings: LifepathSettings| settings.settings)
 }
 
 pub fn read_stocks() -> de::Result<Vec<Stock>> {
@@ -59,7 +60,7 @@ impl Default for StatMod {
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
-pub struct DwarfLifepath {
+pub struct Lifepath {
     name: String,
     years: u32,
     res: u32,
@@ -101,7 +102,7 @@ struct Stocks {
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
-struct DwarfSettings {
+struct LifepathSettings {
     settings: Vec<Setting>,
 }
 
@@ -200,4 +201,38 @@ pub enum Trait {
         #[serde(default)]
         page: Option<i32>,
     },
+}
+
+impl Trait {
+    pub fn page(&self) -> Option<i32> {
+        match self {
+            Self::Die { page, .. } => Some(*page),
+            Self::CallOn { page, .. } => Some(*page),
+            Self::Char { page, .. } => *page,
+        }
+    }
+
+    pub fn name(&self) -> String {
+        match self {
+            Self::Die { name, .. } => name.to_string(),
+            Self::CallOn { name, .. } => name.to_string(),
+            Self::Char { name, .. } => name.to_string(),
+        }
+    }
+
+    pub fn cost(&self) -> Option<i32> {
+        match self {
+            Self::Die { cost, .. } => *cost,
+            Self::CallOn { cost, .. } => *cost,
+            Self::Char { .. } => Some(1),
+        }
+    }
+
+    pub fn trait_type(&self) -> TraitType {
+        match self {
+            Self::Die { .. } => TraitType::Die,
+            Self::CallOn { .. } => TraitType::CallOn,
+            Self::Char { .. } => TraitType::Char,
+        }
+    }
 }

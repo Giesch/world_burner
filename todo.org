@@ -1,5 +1,6 @@
-* TODO ron for clansman traits
-* TODO think of how to handle common traits
+* TODO think about how to handle common traits & born lifepaths
+** and fey blood
+** need a table of common traits by stock?
 * TODO seed traits from ron
 * TODO ron for clansman lifepaths
 * TODO seed lifepaths from ron
@@ -7,6 +8,7 @@
 ** arbitrary text
 ** wises
 ** think about making these separate in the ron
+* TODO think about how to handle skill trainings
 
 * db changes
 ** think about a nice way to ensure list_position correctness (can't use check)

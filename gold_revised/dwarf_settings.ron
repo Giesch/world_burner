@@ -1,4 +1,4 @@
-DwarfSettings(settings: [
+LifepathSettings(settings: [
   Setting(
     name: "clansman",
     page: 110,

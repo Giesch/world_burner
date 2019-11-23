@@ -1,8 +1,8 @@
-DwarfSetting(
+LifepathSetting(
   name: "clansman",
   page: 110,
   lifepaths: [
-    DwarfLifepath(
+    Lifepath(
       name: "born clansman",
       years: 20,
       res: 10,
@@ -11,7 +11,8 @@ DwarfSetting(
       trait_pts: 1,
       leads: [Guilder]
     ),
-    DwarfLifepath(
+
+    Lifepath(
       name: "tender",
       years: 20,
       res: 7,

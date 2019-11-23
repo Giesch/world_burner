@@ -6,8 +6,8 @@ use diesel::prelude::*;
 use std::collections::HashMap;
 
 use crate::schema::{
-    lifepath_settings, skill_forks, skill_roots, skill_types, skills, stocks, Book, Stat,
-    ToolRequirement,
+    lifepath_settings, skill_forks, skill_roots, skill_types, skills, stocks, traits, Book, Stat,
+    ToolRequirement, TraitType,
 };
 
 mod deserialize;
@@ -17,22 +17,48 @@ type StdError = Box<dyn std::error::Error>;
 type StdResult<T> = Result<T, StdError>;
 
 /// This is the function for loading all RON files in both dev and prod.
-/// It expects that the environment variable DATABASE_URL is set,
-/// and that migrations have been run.
+/// It relies on migrations have been run.
 pub fn seed_book_data(db: &PgConnection) -> StdResult<()> {
     db.transaction(|| {
         seed_stocks(db)?;
         seed_dwarf_settings(db)?;
         seed_skills(db)?;
-
-        read_traits()?;
+        seed_traits(db)?;
 
         Ok(())
     })
 }
 
+fn seed_traits(db: &PgConnection) -> StdResult<()> {
+    let new_trait = |tr: Trait| NewTrait {
+        book: Book::GoldRevised,
+        page: tr.page(),
+        name: tr.name(),
+        cost: tr.cost(),
+        typ: tr.trait_type(),
+    };
+
+    let new_traits: Vec<_> = read_traits()?.into_iter().map(new_trait).collect();
+
+    diesel::insert_into(traits::table)
+        .values(new_traits)
+        .execute(db)?;
+
+    Ok(())
+}
+
+#[derive(Insertable, Debug, PartialEq, Eq)]
+#[table_name = "traits"]
+struct NewTrait {
+    book: Book,
+    page: Option<i32>,
+    name: String,
+    cost: Option<i32>,
+    typ: TraitType,
+}
+
 fn seed_stocks(db: &PgConnection) -> StdResult<()> {
-    let new_stock = |stock: deserialize::Stock| NewStock {
+    let new_stock = |stock: Stock| NewStock {
         book: Book::GoldRevised,
         name: stock.name,
         page: stock.page,
@@ -91,7 +117,7 @@ fn seed_skills(db: &PgConnection) -> StdResult<()> {
         skill_ids.insert(skill.name.clone(), skill.id);
     }
 
-    let mut config_roots: HashMap<String, deserialize::SkillRoot> = HashMap::new();
+    let mut config_roots: HashMap<String, SkillRoot> = HashMap::new();
     for skill in &config_skills {
         config_roots.insert(skill.name.clone(), skill.root.clone());
     }
@@ -137,8 +163,8 @@ struct NewSkillFork {
     fork_id: i32,
 }
 
-fn new_skill_root(skill_id: i32, root: &deserialize::SkillRoot) -> NewSkillRoot {
-    use deserialize::SkillRoot::*;
+fn new_skill_root(skill_id: i32, root: &SkillRoot) -> NewSkillRoot {
+    use SkillRoot::*;
 
     match root {
         Single(stat) => NewSkillRoot {
@@ -206,7 +232,7 @@ pub fn seed_dwarf_settings(db: &PgConnection) -> StdResult<()> {
         .filter(&stocks::name.eq("dwarves"))
         .first(db)?;
 
-    let new_setting = |setting: deserialize::Setting| NewSetting {
+    let new_setting = |setting: Setting| NewSetting {
         stock_id,
         book: Book::GoldRevised,
         page: setting.page.into(),
