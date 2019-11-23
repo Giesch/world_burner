@@ -3,6 +3,7 @@
 use chrono::NaiveDateTime;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
+use std::collections::HashMap;
 
 use crate::schema::{
     lifepath_settings, skill_forks, skill_roots, skill_types, skills, stocks, Book, Stat,
@@ -26,14 +27,13 @@ pub fn seed_book_data(db: &PgConnection) -> StdResult<()> {
 }
 
 fn seed_stocks(db: &PgConnection) -> StdResult<()> {
-    let stocks: Vec<_> = read_stocks()?
-        .into_iter()
-        .map(|stock| NewStock {
-            book: Book::GoldRevised,
-            name: stock.name,
-            page: stock.page,
-        })
-        .collect();
+    let new_stock = |stock: deserialize::Stock| NewStock {
+        book: Book::GoldRevised,
+        name: stock.name,
+        page: stock.page,
+    };
+
+    let stocks: Vec<_> = read_stocks()?.into_iter().map(new_stock).collect();
 
     diesel::insert_into(stocks::table)
         .values(stocks)
@@ -41,8 +41,6 @@ fn seed_stocks(db: &PgConnection) -> StdResult<()> {
 
     Ok(())
 }
-
-use std::collections::HashMap;
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 struct SkillType {
@@ -64,7 +62,7 @@ fn seed_skills(db: &PgConnection) -> StdResult<()> {
     for skill in &config_skills {
         let skill_type_id = *skill_type_ids
             .get(skill.skill_type.db_name())
-            .ok_or("unknown skill type")?;
+            .ok_or_else(|| format!("unknown skill type: {:?}", skill.skill_type))?;
 
         let new_skill = NewSkill {
             name: skill.name.clone(),
@@ -97,7 +95,7 @@ fn seed_skills(db: &PgConnection) -> StdResult<()> {
     for skill in &config_skills {
         let skill_id = skill_ids
             .get(&skill.name)
-            .ok_or(format!("unknown skill: {}", skill.name))?;
+            .ok_or_else(|| format!("unknown skill: {}", skill.name))?;
         let new_skill_root = new_skill_root(*skill_id, &skill.root);
 
         new_skill_roots.push(new_skill_root);
@@ -111,7 +109,7 @@ fn seed_skills(db: &PgConnection) -> StdResult<()> {
     for skill in &config_skills {
         let &skill_id = skill_ids
             .get(&skill.name)
-            .ok_or(format!("unknown skill: {}", skill.name))?;
+            .ok_or_else(|| format!("unknown skill: {}", skill.name))?;
         for fork in &skill.forks {
             if let Some(&fork_id) = skill_ids.get(fork) {
                 let new_fork = NewSkillFork { skill_id, fork_id };
@@ -135,7 +133,7 @@ struct NewSkillFork {
 }
 
 // TODO do this in a less dumb way
-// just use the final user representation of a root in the ron config
+// just use the final single/pair representation of a root in the ron config
 fn new_skill_root(skill_id: i32, root: &deserialize::SkillRoot) -> NewSkillRoot {
     use deserialize::SkillRoot::*;
     match root {
@@ -238,14 +236,16 @@ pub fn seed_dwarf_settings(db: &PgConnection) -> StdResult<()> {
         .filter(&stocks::name.eq("dwarves"))
         .first(db)?;
 
+    let new_setting = |setting: deserialize::Setting| NewSetting {
+        stock_id,
+        book: Book::GoldRevised,
+        page: setting.page.into(),
+        name: setting.name,
+    };
+
     let settings: Vec<_> = read_dwarf_settings()?
         .into_iter()
-        .map(|setting| NewSetting {
-            stock_id,
-            book: Book::GoldRevised,
-            page: setting.page.into(),
-            name: setting.name,
-        })
+        .map(new_setting)
         .collect();
 
     diesel::insert_into(lifepath_settings::table)
