@@ -149,7 +149,7 @@ impl SkillType {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum SkillRoot {
     Will,
     Perception,

@@ -5,7 +5,8 @@ use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
 use crate::schema::{
-    lifepath_settings, skill_roots, skill_types, skills, stocks, Book, Stat, ToolRequirement,
+    lifepath_settings, skill_forks, skill_roots, skill_types, skills, stocks, Book, Stat,
+    ToolRequirement,
 };
 
 mod deserialize;
@@ -57,8 +58,10 @@ fn seed_skills(db: &PgConnection) -> StdResult<()> {
         .map(|(id, name)| (name, id))
         .collect();
 
+    let config_skills = read_skills()?;
+
     let mut new_skills = Vec::new();
-    for skill in read_skills()? {
+    for skill in &config_skills {
         let skill_type_id = *skill_type_ids
             .get(skill.skill_type.db_name())
             .ok_or("unknown skill type")?;
@@ -80,18 +83,22 @@ fn seed_skills(db: &PgConnection) -> StdResult<()> {
         .values(new_skills)
         .get_results(db)?;
 
+    let mut skill_ids: HashMap<String, i32> = HashMap::new();
+    for skill in &created_skills {
+        skill_ids.insert(skill.name.clone(), skill.id);
+    }
+
     let mut config_roots: HashMap<String, deserialize::SkillRoot> = HashMap::new();
-    for skill in read_skills()? {
-        config_roots.insert(skill.name, skill.root);
+    for skill in &config_skills {
+        config_roots.insert(skill.name.clone(), skill.root);
     }
 
     let mut new_skill_roots = Vec::new();
-    for skill in created_skills {
-        let config_root = config_roots
+    for skill in &config_skills {
+        let skill_id = skill_ids
             .get(&skill.name)
-            .ok_or("missing config skill root")?;
-
-        let new_skill_root = new_skill_root(skill.id, config_root);
+            .ok_or(format!("unknown skill: {}", skill.name))?;
+        let new_skill_root = new_skill_root(*skill_id, &skill.root);
 
         new_skill_roots.push(new_skill_root);
     }
@@ -100,10 +107,31 @@ fn seed_skills(db: &PgConnection) -> StdResult<()> {
         .values(new_skill_roots)
         .execute(db)?;
 
-    // TODO forks
-    // have a forks table, with target skill, forks, and fork_descriptions?
+    let mut new_forks = Vec::new();
+    for skill in &config_skills {
+        let &skill_id = skill_ids
+            .get(&skill.name)
+            .ok_or(format!("unknown skill: {}", skill.name))?;
+        for fork in &skill.forks {
+            if let Some(&fork_id) = skill_ids.get(fork) {
+                let new_fork = NewSkillFork { skill_id, fork_id };
+                new_forks.push(new_fork);
+            }
+        }
+    }
+
+    diesel::insert_into(skill_forks::table)
+        .values(new_forks)
+        .execute(db)?;
 
     Ok(())
+}
+
+#[derive(Insertable, Debug, PartialEq, Eq)]
+#[table_name = "skill_forks"]
+struct NewSkillFork {
+    skill_id: i32,
+    fork_id: i32,
 }
 
 // TODO do this in a less dumb way

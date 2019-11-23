@@ -119,8 +119,9 @@ table! {
 table! {
     use diesel::sql_types::*;
 
-    skill_forks (skill_id) {
+    skill_forks (skill_id, fork_id) {
         skill_id -> Int4,
+        fork_desc -> Nullable<Text>,
         fork_id -> Int4,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
