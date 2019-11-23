@@ -1,5 +1,6 @@
 use ron::de;
 
+use crate::schema::Stat;
 use crate::schema::ToolRequirement;
 
 pub fn read_skills() -> de::Result<Vec<Skill>> {
@@ -17,12 +18,12 @@ pub fn read_stocks() -> de::Result<Vec<Stock>> {
     de::from_str(stocks).map(|stocks: Stocks| stocks.stocks)
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
 struct Skills {
     skills: Vec<Skill>,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug)]
 pub struct Skill {
     pub name: String,
     pub page: i32,
@@ -149,17 +150,11 @@ impl SkillType {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Deserialize, Debug, Clone)]
 pub enum SkillRoot {
-    Will,
-    Perception,
-    Forte,
-    Power,
-    Speed,
-    Agility,
-    WillPer,
-    PerAgi,
-    PerPow,
+    Single(Stat),
+    Pair(Stat, Stat),
+    Attribute(String),
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]

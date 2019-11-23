@@ -13,17 +13,20 @@ use crate::schema::{
 mod deserialize;
 use deserialize::*;
 
-type StdResult<T> = Result<T, Box<dyn std::error::Error>>;
+type StdError = Box<dyn std::error::Error>;
+type StdResult<T> = Result<T, StdError>;
 
 /// This is the function for loading all RON files in both dev and prod.
 /// It expects that the environment variable DATABASE_URL is set,
 /// and that migrations have been run.
 pub fn seed_book_data(db: &PgConnection) -> StdResult<()> {
-    seed_stocks(db)?;
-    seed_dwarf_settings(db)?;
-    seed_skills(db)?;
+    db.transaction(|| {
+        seed_stocks(db)?;
+        seed_dwarf_settings(db)?;
+        seed_skills(db)?;
 
-    Ok(())
+        Ok(())
+    })
 }
 
 fn seed_stocks(db: &PgConnection) -> StdResult<()> {
@@ -88,7 +91,7 @@ fn seed_skills(db: &PgConnection) -> StdResult<()> {
 
     let mut config_roots: HashMap<String, deserialize::SkillRoot> = HashMap::new();
     for skill in &config_skills {
-        config_roots.insert(skill.name.clone(), skill.root);
+        config_roots.insert(skill.name.clone(), skill.root.clone());
     }
 
     let mut new_skill_roots = Vec::new();
@@ -132,64 +135,29 @@ struct NewSkillFork {
     fork_id: i32,
 }
 
-// TODO do this in a less dumb way
-// just use the final single/pair representation of a root in the ron config
 fn new_skill_root(skill_id: i32, root: &deserialize::SkillRoot) -> NewSkillRoot {
     use deserialize::SkillRoot::*;
+
     match root {
-        Will => NewSkillRoot {
+        Single(stat) => NewSkillRoot {
             skill_id,
-            first_stat_root: Some(Stat::Will),
+            first_stat_root: Some(*stat),
             second_stat_root: None,
             attribute_root: None,
         },
-        Perception => NewSkillRoot {
+
+        Pair(first, second) => NewSkillRoot {
             skill_id,
-            first_stat_root: Some(Stat::Perception),
+            first_stat_root: Some(*first),
+            second_stat_root: Some(*second),
+            attribute_root: None,
+        },
+
+        Attribute(attr) => NewSkillRoot {
+            skill_id,
+            first_stat_root: None,
             second_stat_root: None,
-            attribute_root: None,
-        },
-        Forte => NewSkillRoot {
-            skill_id,
-            first_stat_root: Some(Stat::Forte),
-            second_stat_root: None,
-            attribute_root: None,
-        },
-        Power => NewSkillRoot {
-            skill_id,
-            first_stat_root: Some(Stat::Power),
-            second_stat_root: None,
-            attribute_root: None,
-        },
-        Speed => NewSkillRoot {
-            skill_id,
-            first_stat_root: Some(Stat::Speed),
-            second_stat_root: None,
-            attribute_root: None,
-        },
-        Agility => NewSkillRoot {
-            skill_id,
-            first_stat_root: Some(Stat::Agility),
-            second_stat_root: None,
-            attribute_root: None,
-        },
-        WillPer => NewSkillRoot {
-            skill_id,
-            first_stat_root: Some(Stat::Will),
-            second_stat_root: Some(Stat::Perception),
-            attribute_root: None,
-        },
-        PerAgi => NewSkillRoot {
-            skill_id,
-            first_stat_root: Some(Stat::Perception),
-            second_stat_root: Some(Stat::Agility),
-            attribute_root: None,
-        },
-        PerPow => NewSkillRoot {
-            skill_id,
-            first_stat_root: Some(Stat::Perception),
-            second_stat_root: Some(Stat::Power),
-            attribute_root: None,
+            attribute_root: Some(attr.to_string()),
         },
     }
 }

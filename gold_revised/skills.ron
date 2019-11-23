@@ -2,7 +2,7 @@ Skills(skills: [
   Skill(
     name: "animal husbandry",
     page: 255,
-    root: Will,
+    root: Single(Will),
     skill_type: Peasant,
     tools: Yes,
   ),
@@ -10,7 +10,7 @@ Skills(skills: [
   Skill(
     name: "beer appraisal",
     page: 259,
-    root: WillPer,
+    root: Pair(Will, Perception),
     forks: ["grain appraisal", "nogger"],
     skill_type: Craftsman,
     tools: No,
@@ -20,7 +20,7 @@ Skills(skills: [
   Skill(
     name: "brewer",
     page: 262,
-    root: Perception,
+    root: Single(Perception),
     forks: ["miller"],
     skill_type: Craftsman,
     tools: Workshop,
@@ -29,7 +29,7 @@ Skills(skills: [
   Skill(
     name: "coarse persuasion",
     page: 264,
-    root: Perception,
+    root: Single(Perception),
     skill_type: Academic,
     tools: No,
     restrictions: [CB(Dwarves)],
@@ -38,7 +38,7 @@ Skills(skills: [
   Skill(
     name: "climbing",
     page: 264,
-    root: Speed,
+    root: Single(Speed),
     forks: ["knots", "rigging"],
     skill_type: Physical,
     tools: Expendable,
@@ -47,7 +47,7 @@ Skills(skills: [
   Skill(
     name: "engineering",
     page: 270,
-    root: Perception,
+    root: Single(Perception),
     forks: ["architect", "mason", "carpenter"],
     skill_type: Artisan,
     tools: Yes,
@@ -57,7 +57,7 @@ Skills(skills: [
     name: "excavation",
     page: 271,
     magical: true,
-    root: PerPow,
+    root: Pair(Perception, Power),
     forks: ["mining", "prospecting", "engineering"],
     skill_type: Craftsman,
     tools: Yes,
@@ -67,7 +67,7 @@ Skills(skills: [
   Skill(
     name: "farming",
     page: 272,
-    root: Perception,
+    root: Single(Perception),
     skill_type: Peasant,
     tools: Yes,
   ),
@@ -75,7 +75,7 @@ Skills(skills: [
   Skill(
     name: "fence building",
     page: 272,
-    root: Perception,
+    root: Single(Perception),
     forks: ["chronology of kings", "mason", "accounting", "carpenter"],
     skill_type: Special,
     tools: Expendable,
@@ -85,7 +85,7 @@ Skills(skills: [
   Skill(
     name: "grain appraisal",
     page: 276,
-    root: Perception,
+    root: Single(Perception),
     forks: ["nogger"],
     skill_type: Craftsman,
     tools: No,
@@ -95,7 +95,7 @@ Skills(skills: [
   Skill(
     name: "haggling",
     page: 276,
-    root: Will,
+    root: Single(Will),
     forks: ["persuasion", "soothing platitudes"],
     skill_type: Social,
     tools: No,
@@ -104,7 +104,7 @@ Skills(skills: [
   Skill(
     name: "mending",
     page: 283,
-    root: PerAgi,
+    root: Pair(Perception, Agility),
     forks: ["any appropriate craftsman skill could suffice"],
     skill_type: Craftsman,
     tools: Expendable,
@@ -113,7 +113,7 @@ Skills(skills: [
   Skill(
     name: "miller",
     page: 284,
-    root: Perception,
+    root: Single(Perception),
     forks: ["brewer"],
     skill_type: Peasant,
     tools: Workshop,
@@ -122,7 +122,7 @@ Skills(skills: [
   Skill(
     name: "nogger",
     page: 284,
-    root: WillPer,
+    root: Pair(Will, Perception),
     magical: true,
     forks: ["grain appraisal"],
     skill_type: Craftsman,
@@ -133,7 +133,7 @@ Skills(skills: [
   Skill(
     name: "scavenging",
     page: 294,
-    root: Perception,
+    root: Single(Perception),
     forks: ["foraging", "appropriate wises"],
     skill_type: Peasant,
     tools: No,
@@ -142,7 +142,7 @@ Skills(skills: [
   Skill(
     name: "soothing platitudes",
     page: 299,
-    root: Will,
+    root: Single(Will),
     forks: ["persuasion", "falsehood"],
     skill_type: Social,
     tools: No,
@@ -151,7 +151,7 @@ Skills(skills: [
   Skill(
     name: "stuff-wise",
     page: 302,
-    root: Perception,
+    root: Single(Perception),
     forks: ["dwarf-wise", "scavenging"],
     skill_type: Special,
     tools: No,
@@ -161,7 +161,7 @@ Skills(skills: [
   Skill(
     name: "tunnel-wise",
     page: 306,
-    root: Perception,
+    root: Single(Perception),
     forks: ["excavation", "mining"],
     skill_type: Special,
     tools: No,
@@ -170,7 +170,7 @@ Skills(skills: [
   Skill(
     name: "ugly truth",
     page: 306,
-    root: Perception,
+    root: Single(Perception),
     forks: ["falsehood", "intimidation"],
     skill_type: Social,
     tools: No,
