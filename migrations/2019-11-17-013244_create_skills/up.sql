@@ -36,6 +36,7 @@ CREATE TABLE skills (
   page INTEGER NOT NULL CHECK (page > 0),
   name TEXT UNIQUE NOT NULL,
   magical BOOLEAN NOT NULL DEFAULT false,
+  training BOOLEAN NOT NULL DEFAULT false,
   wise BOOLEAN NOT NULL DEFAULT false,
   tools tool_req NOT NULL,
 

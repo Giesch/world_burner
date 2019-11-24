@@ -1,15 +1,19 @@
 //! Functions for loading book data.
 
-use chrono::NaiveDateTime;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use std::collections::HashMap;
 
-use crate::schema;
 use crate::schema::*;
 
 mod deserialize;
 use deserialize::*;
+
+mod insertable;
+use insertable::*;
+
+mod queryable;
+use queryable::*;
 
 type StdError = Box<dyn std::error::Error>;
 type StdResult<T> = Result<T, StdError>;
@@ -34,29 +38,6 @@ pub fn seed_book_data(db: &PgConnection) -> StdResult<()> {
     })
 }
 
-#[derive(Insertable, Debug, PartialEq, Eq)]
-#[table_name = "lifepaths"]
-struct NewLifepath {
-    book: Book,
-    lifepath_setting_id: i32,
-    page: i32,
-    name: String,
-
-    years: Option<i32>,
-    years_min: Option<i32>,
-    years_max: Option<i32>,
-
-    gen_skill_pts: i32,
-    skill_pts: i32,
-    trait_pts: i32,
-
-    stat_mod: Option<schema::StatMod>,
-    stat_mod_val: Option<i32>,
-
-    res: Option<i32>,
-    res_calc: Option<String>,
-}
-
 fn seed_traits(db: &PgConnection) -> StdResult<()> {
     let new_trait = |tr: Trait| NewTrait {
         book: Book::GoldRevised,
@@ -75,16 +56,6 @@ fn seed_traits(db: &PgConnection) -> StdResult<()> {
     Ok(())
 }
 
-#[derive(Insertable, Debug, PartialEq, Eq)]
-#[table_name = "traits"]
-struct NewTrait {
-    book: Book,
-    page: i32,
-    name: String,
-    cost: Option<i32>,
-    typ: TraitType,
-}
-
 fn seed_stocks(db: &PgConnection) -> StdResult<Vec<CreatedStock>> {
     let gold_stock = |stock: Stock| NewStock {
         book: Book::GoldRevised,
@@ -100,12 +71,6 @@ fn seed_stocks(db: &PgConnection) -> StdResult<Vec<CreatedStock>> {
         .get_results::<CreatedStock>(db)?;
 
     Ok(stocks)
-}
-
-#[derive(Deserialize, Debug, PartialEq, Eq)]
-struct SkillType {
-    id: i32,
-    name: String,
 }
 
 fn seed_skills(db: &PgConnection) -> StdResult<()> {
@@ -165,31 +130,7 @@ fn seed_skills(db: &PgConnection) -> StdResult<()> {
         .values(new_skill_roots)
         .execute(db)?;
 
-    let mut new_forks = Vec::new();
-    for skill in &config_skills {
-        let &skill_id = skill_ids
-            .get(&skill.name)
-            .ok_or_else(|| format!("unknown skill: {}", skill.name))?;
-        for fork in &skill.forks {
-            if let Some(&fork_id) = skill_ids.get(fork) {
-                let new_fork = NewSkillFork { skill_id, fork_id };
-                new_forks.push(new_fork);
-            }
-        }
-    }
-
-    diesel::insert_into(skill_forks::table)
-        .values(new_forks)
-        .execute(db)?;
-
     Ok(())
-}
-
-#[derive(Insertable, Debug, PartialEq, Eq)]
-#[table_name = "skill_forks"]
-struct NewSkillFork {
-    skill_id: i32,
-    fork_id: i32,
 }
 
 fn new_skill_root(skill_id: i32, root: &SkillRoot) -> NewSkillRoot {
@@ -219,41 +160,6 @@ fn new_skill_root(skill_id: i32, root: &SkillRoot) -> NewSkillRoot {
     }
 }
 
-#[derive(Queryable, Debug, PartialEq, Eq)]
-struct CreatedSkill {
-    id: i32,
-    skill_type_id: i32,
-    book: Book,
-    page: i32,
-    name: String,
-    magical: bool,
-    wise: bool,
-    tools: ToolRequirement,
-    created_at: NaiveDateTime,
-    updated_at: NaiveDateTime,
-}
-
-#[derive(Insertable, Debug, PartialEq, Eq)]
-#[table_name = "skill_roots"]
-struct NewSkillRoot {
-    skill_id: i32,
-    first_stat_root: Option<Stat>,
-    second_stat_root: Option<Stat>,
-    attribute_root: Option<String>,
-}
-
-#[derive(Insertable, Debug, PartialEq, Eq)]
-#[table_name = "skills"]
-struct NewSkill {
-    name: String,
-    book: Book,
-    page: i32,
-    magical: bool,
-    tools: ToolRequirement,
-    wise: bool,
-    skill_type_id: i32,
-}
-
 fn seed_settings(db: &PgConnection, stocks: &[CreatedStock]) -> StdResult<()> {
     let mut settings_by_stock_id = HashMap::new();
     for stock in stocks {
@@ -261,22 +167,7 @@ fn seed_settings(db: &PgConnection, stocks: &[CreatedStock]) -> StdResult<()> {
         settings_by_stock_id.insert(stock.id, stock_settings);
     }
 
-    let mut new_settings = Vec::new();
-    for stock in stocks {
-        let stock_settings = settings_by_stock_id
-            .get(&stock.id)
-            .ok_or_else(|| format!("unexpected stock: {} with id: {}", stock.name, stock.id))?;
-        for setting in stock_settings {
-            let new_setting = NewSetting {
-                stock_id: stock.id,
-                book: Book::GoldRevised,
-                page: setting.page,
-                name: setting.name.clone(),
-            };
-
-            new_settings.push(new_setting);
-        }
-    }
+    let new_settings = new_settings(&settings_by_stock_id, stocks)?;
 
     let setting_ids_by_name: HashMap<String, i32> = diesel::insert_into(lifepath_settings::table)
         .values(new_settings)
@@ -285,6 +176,49 @@ fn seed_settings(db: &PgConnection, stocks: &[CreatedStock]) -> StdResult<()> {
         .map(|setting| (setting.name, setting.id))
         .collect();
 
+    let new_lifepaths = new_lifepaths(&settings_by_stock_id, &setting_ids_by_name, stocks)?;
+
+    diesel::insert_into(lifepaths::table)
+        .values(new_lifepaths)
+        .execute(db)?;
+
+    // TODO skill lists and trait lists
+
+    Ok(())
+}
+
+fn new_settings(
+    settings_by_stock_id: &HashMap<i32, Vec<LifepathSetting>>,
+    stocks: &[CreatedStock],
+) -> StdResult<Vec<NewSetting>> {
+    let mut new_settings = Vec::new();
+    for stock in stocks {
+        let stock_settings = settings_by_stock_id
+            .get(&stock.id)
+            .ok_or_else(|| format!("unexpected stock: {} with id: {}", stock.name, stock.id))?;
+        for setting in stock_settings {
+            let new_setting = new_setting(stock.id, setting);
+            new_settings.push(new_setting);
+        }
+    }
+
+    Ok(new_settings)
+}
+
+fn new_setting(stock_id: i32, setting: &deserialize::LifepathSetting) -> NewSetting {
+    NewSetting {
+        stock_id,
+        book: Book::GoldRevised,
+        page: setting.page,
+        name: setting.name.clone(),
+    }
+}
+
+fn new_lifepaths(
+    settings_by_stock_id: &HashMap<i32, Vec<LifepathSetting>>,
+    setting_ids_by_name: &HashMap<String, i32>,
+    stocks: &[CreatedStock],
+) -> StdResult<Vec<NewLifepath>> {
     let mut new_lifepaths = Vec::new();
     for stock in stocks {
         let stock_settings = settings_by_stock_id
@@ -297,89 +231,48 @@ fn seed_settings(db: &PgConnection, stocks: &[CreatedStock]) -> StdResult<()> {
                 .ok_or_else(|| format!("unexpected setting: {}", setting.name))?;
 
             for lifepath in &setting.lifepaths {
-                // prince of the blood
-                let (years_min, years_max) = if lifepath.years.is_some() {
-                    (None, None)
-                } else {
-                    (Some(PRINCE_YEARS_MIN), Some(PRINCE_YEARS_MAX))
-                };
-
-                // hostage
-                let (res, res_calc) = if let Some(r) = lifepath.res {
-                    (Some(r), None)
-                } else {
-                    (None, Some(HALF_PREVIOUS.to_string()))
-                };
-
-                let new_lifepath = NewLifepath {
-                    lifepath_setting_id,
-                    book: Book::GoldRevised,
-                    page: lifepath.page,
-                    name: lifepath.name.clone(),
-
-                    years: lifepath.years,
-                    years_min,
-                    years_max,
-
-                    gen_skill_pts: lifepath.general_skill_pts,
-                    skill_pts: lifepath.skill_pts,
-                    trait_pts: lifepath.trait_pts,
-
-                    stat_mod: lifepath.stat_mod.stat_mod_type(),
-                    stat_mod_val: lifepath.stat_mod.stat_mod_val(),
-
-                    res,
-                    res_calc,
-                };
-
+                let new_lifepath = new_lifepath(lifepath, lifepath_setting_id);
                 new_lifepaths.push(new_lifepath);
             }
         }
     }
 
-    diesel::insert_into(lifepaths::table)
-        .values(new_lifepaths)
-        .execute(db)?;
-
-    Ok(())
+    Ok(new_lifepaths)
 }
 
-#[derive(Insertable, Debug, PartialEq, Eq)]
-#[table_name = "stocks"]
-pub struct NewStock {
-    name: String,
-    book: Book,
-    page: i32,
-    singular: String,
-}
+fn new_lifepath(lifepath: &deserialize::Lifepath, lifepath_setting_id: i32) -> NewLifepath {
+    // prince of the blood
+    let (years_min, years_max) = if lifepath.years.is_some() {
+        (None, None)
+    } else {
+        (Some(PRINCE_YEARS_MIN), Some(PRINCE_YEARS_MAX))
+    };
 
-#[derive(Queryable, Debug, PartialEq, Eq)]
-pub struct CreatedStock {
-    id: i32,
-    book: Book,
-    name: String,
-    singular: String,
-    page: i32,
-    created_at: NaiveDateTime,
-    updated_at: NaiveDateTime,
-}
+    // hostage
+    let (res, res_calc) = if let Some(r) = lifepath.res {
+        (Some(r), None)
+    } else {
+        (None, Some(HALF_PREVIOUS.to_string()))
+    };
 
-#[derive(Insertable, Debug, PartialEq, Eq)]
-#[table_name = "lifepath_settings"]
-pub struct NewSetting {
-    book: Book,
-    page: i32,
-    stock_id: i32,
-    name: String,
-}
+    NewLifepath {
+        lifepath_setting_id,
+        book: Book::GoldRevised,
+        page: lifepath.page,
+        name: lifepath.name.clone(),
 
-#[derive(Queryable, Debug, PartialEq, Eq)]
-struct CreatedSetting {
-    id: i32,
-    book: Book,
-    stock_id: i32,
-    page: i32,
-    name: String,
-    created_at: NaiveDateTime,
-    updated_at: NaiveDateTime,
+        years: lifepath.years,
+        years_min,
+        years_max,
+
+        gen_skill_pts: lifepath.general_skill_pts,
+        skill_pts: lifepath.skill_pts,
+        trait_pts: lifepath.trait_pts,
+
+        stat_mod: lifepath.stat_mod.stat_mod_type(),
+        stat_mod_val: lifepath.stat_mod.stat_mod_val(),
+
+        res,
+        res_calc,
+    }
 }

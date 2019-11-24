@@ -79,7 +79,7 @@ pub struct Skill {
     pub skill_type: SkillType,
     pub tools: ToolRequirement,
     #[serde(default)]
-    pub restrictions: Vec<Restriction>,
+    pub restrictions: Vec<StockRestriction>,
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
@@ -154,12 +154,12 @@ pub struct LifepathSetting {
 #[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
 pub enum Lead {
     Any,
-    Clansman,
-    Guilder,
-    Artificer,
-    Noble,
-    Host,
-    Outcast,
+    DwarfClansman,
+    DwarfGuilder,
+    DwarfArtificer,
+    DwarfNoble,
+    DwarfHost,
+    DwarfOutcast,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -237,17 +237,17 @@ pub enum SkillRoot {
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
-pub enum Restriction {
-    CB(StockRestriction),
-    Only(StockRestriction),
+pub enum StockRestriction {
+    Dwarves(Restriction),
+    Elves(Restriction),
+    Humans(Restriction),
+    Roden(Restriction),
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
-pub enum StockRestriction {
-    Dwarves,
-    Elves,
-    Humans,
-    Roden,
+pub enum Restriction {
+    Only,
+    CharBurning,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]

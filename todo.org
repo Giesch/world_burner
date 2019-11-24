@@ -1,4 +1,3 @@
-* TODO schema changes for handling unlisted char traits & wises
 * TODO seed skill lists
 * TODO seed trait lists
 * TODO add more dwarf settings
@@ -12,28 +11,15 @@
   - [ ] host
   - [ ] outcast
 
-* TODO make a table (two?) for non-skill skill forks
-** arbitrary text
-** wises
-** think about making these separate in the ron
-** make a wise variant in the skills ron? what for, typos?
-*** checks typos in the lifepaths
-*** should have a unit test for that
-*** or an error in seeding?
-* TODO think about how to handle skill trainings
 * TODO think about how to handle common traits & born lifepaths
 ** and fey blood
 ** need a table of common traits by stock?
-* TODO move the HALF_PREVIOUS constant to a repo module and make it private
-** db_string method on ResCalc enum
-* TODO make the lead names used in ron files stock specific
 
 * db changes
 ** think about a nice way to ensure list_position correctness (can't use check)
 ** TODO make everything polymorphic on pageref vs user_id
 ** TODO leads table (constraint for same stock?)
-** think about how to do wises and weapon skills
-*** entries for -wise and appropriate weapons, linked by the others
+** TODO think about how to do appropriate weapons
 ** think about how to do lifepath requirements
 *** store predicates as data
 *** types of predicates:
@@ -47,8 +33,6 @@
 ***** they must have access to that trait
 ***** they must purchase that trait when actually making the character
 **** a wife lifepath's husband lp (lady, dame)
-** TODO unique index on names within same stock/setting
-** TODO skill roots table, skill types, skill restrictions (elves only, etc)
 ** TODO change book back to just a table instead of an enum
 
 * TODO have the app run pending migrations on startup
@@ -62,3 +46,9 @@
 ** bin for recreating test database?
 *** ie recreate in the runner every time, or just run pending migrations in the runner?
 ** use diesel's test_transaction
+
+* TODO move the HALF_PREVIOUS constant to a repo module and make it private
+** db_string method on ResCalc enum
+* TODO think about skill forks
+** maybe just leave them out
+* TODO skill restrictions (elves only, etc)

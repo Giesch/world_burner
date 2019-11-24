@@ -104,7 +104,7 @@ table! {
 table! {
     use diesel::sql_types::*;
 
-    lifepath_skill_lists (lifepath_id, list_position, skill_id) {
+    lifepath_skill_lists (lifepath_id, list_position) {
         lifepath_id -> Int4,
         list_position -> Int4,
         skill_id -> Int4,
@@ -117,7 +117,7 @@ table! {
 table! {
     use diesel::sql_types::*;
 
-    lifepath_trait_lists (lifepath_id, list_position, trait_id) {
+    lifepath_trait_lists (lifepath_id, list_position) {
         lifepath_id -> Int4,
         list_position -> Int4,
         trait_id -> Nullable<Int4>,
@@ -162,6 +162,7 @@ table! {
         page -> Int4,
         name -> Text,
         magical -> Bool,
+        training -> Bool,
         wise -> Bool,
         tools -> ToolRequirementMapping,
         created_at -> Timestamptz,

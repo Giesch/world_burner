@@ -14,7 +14,7 @@ Skills(skills: [
     forks: ["grain appraisal", "nogger"],
     skill_type: Craftsman,
     tools: No,
-    restrictions: [CB(Dwarves)],
+    restrictions: [Dwarves(CharBurning)],
   ),
 
   Skill(
@@ -32,7 +32,7 @@ Skills(skills: [
     root: Single(Perception),
     skill_type: Academic,
     tools: No,
-    restrictions: [CB(Dwarves)],
+    restrictions: [Dwarves(CharBurning)],
   ),
 
   Skill(
@@ -61,7 +61,7 @@ Skills(skills: [
     forks: ["mining", "prospecting", "engineering"],
     skill_type: Craftsman,
     tools: Yes,
-    restrictions: [Only(Dwarves)],
+    restrictions: [Dwarves(Only)],
   ),
 
   Skill(
@@ -79,7 +79,7 @@ Skills(skills: [
     forks: ["chronology of kings", "mason", "accounting", "carpenter"],
     skill_type: Special,
     tools: Expendable,
-    restrictions: [CB(Dwarves)],
+    restrictions: [Dwarves(CharBurning)],
   ),
 
   Skill(
@@ -89,7 +89,7 @@ Skills(skills: [
     forks: ["nogger"],
     skill_type: Craftsman,
     tools: No,
-    restrictions: [CB(Dwarves)],
+    restrictions: [Dwarves(CharBurning)],
   ),
 
   Skill(
@@ -136,7 +136,7 @@ Skills(skills: [
     forks: ["grain appraisal"],
     skill_type: Craftsman,
     tools: Workshop,
-    restrictions: [Only(Dwarves)],
+    restrictions: [Dwarves(Only)],
   ),
 
   Skill(
@@ -164,7 +164,7 @@ Skills(skills: [
     forks: ["dwarf-wise", "scavenging"],
     skill_type: Special,
     tools: No,
-    restrictions: [CB(Dwarves)],
+    restrictions: [Dwarves(CharBurning)],
   ),
 
   Skill(
