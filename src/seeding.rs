@@ -112,11 +112,6 @@ fn seed_skills(db: &PgConnection) -> StdResult<Vec<CreatedSkill>> {
         skill_ids.insert(skill.name.clone(), skill.id);
     }
 
-    let mut config_roots: HashMap<String, SkillRoot> = HashMap::new();
-    for skill in &config_skills {
-        config_roots.insert(skill.name.clone(), skill.root.clone());
-    }
-
     let mut new_skill_roots = Vec::new();
     for skill in &config_skills {
         let skill_id = skill_ids
@@ -188,7 +183,7 @@ fn seed_settings(
         .values(new_lifepaths)
         .get_results::<CreatedLifepath>(db)?;
 
-    // lifepath skill lists
+    // skill lists
 
     let lifepath_ids_by_name: HashMap<_, _> = created_lifepaths
         .iter()
@@ -200,19 +195,36 @@ fn seed_settings(
         .map(|skill| (skill.name.clone(), skill))
         .collect();
 
-    let all_lifepaths = settings_by_stock_id
+    let all_lifepaths: Vec<_> = settings_by_stock_id
         .values()
         .flatten()
-        .flat_map(|setting| &setting.lifepaths);
+        .flat_map(|setting| &setting.lifepaths)
+        .collect();
 
-    let mut new_lifepath_skill_lists = Vec::new();
+    let new_lifepath_skill_lists =
+        new_lifepath_skill_lists(&all_lifepaths, &lifepath_ids_by_name, &skills_by_name)?;
+
+    diesel::insert_into(lifepath_skill_lists::table)
+        .values(new_lifepath_skill_lists)
+        .execute(db)?;
+
+    Ok(())
+}
+
+fn new_lifepath_skill_lists(
+    all_lifepaths: &[&deserialize::Lifepath],
+    lifepath_ids_by_name: &HashMap<String, i32>,
+    skills_by_name: &HashMap<String, &CreatedSkill>,
+) -> StdResult<Vec<NewLifepathSkillList>> {
+    let mut new_skill_lists = Vec::new();
+
     for lifepath in all_lifepaths {
         for (i, skill_name) in lifepath.skills.iter().enumerate() {
             let &lifepath_id = lifepath_ids_by_name
                 .get(&lifepath.name)
                 .ok_or_else(|| format!("missing lifepath: {}", lifepath.name))?;
 
-            let (skill_id, entryless_skill) = id_and_entryless_name(&skills_by_name, skill_name)?;
+            let (skill_id, entryless_skill) = id_and_entryless_name(skills_by_name, skill_name)?;
 
             let list_position = i.try_into()?;
 
@@ -223,15 +235,11 @@ fn seed_settings(
                 entryless_skill,
             };
 
-            new_lifepath_skill_lists.push(new_skill_list);
+            new_skill_lists.push(new_skill_list);
         }
     }
 
-    diesel::insert_into(lifepath_skill_lists::table)
-        .values(new_lifepath_skill_lists)
-        .execute(db)?;
-
-    Ok(())
+    Ok(new_skill_lists)
 }
 
 fn id_and_entryless_name(
