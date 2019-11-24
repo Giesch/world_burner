@@ -14,10 +14,6 @@ Traits(traits: [
     cost: 2,
   ),
 
-  Char(name: "curious"),
-
-  Char(name: "cursing"),
-
   Die(
     name: "deep sense",
     page: 321,
@@ -28,14 +24,10 @@ Traits(traits: [
     page: 321,
   ),
 
-  Char(name: "folksy wisdom"),
-
   Die(
     name: "oathswearer",
     page: 338,
   ),
-
-  Char(name: "pragmatic outlook"),
 
   CallOn(
     name: "tinkerer",

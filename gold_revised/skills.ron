@@ -102,6 +102,15 @@ Skills(skills: [
   ),
 
   Skill(
+    name: "history",
+    page: 277,
+    root: Single(Perception),
+    forks: ["research", "philosophy", "doctrine", "other history skills"],
+    skill_type: Academic,
+    tools: No,
+  ),
+
+  Skill(
     name: "mending",
     page: 283,
     root: Pair(Perception, Agility),
@@ -174,5 +183,13 @@ Skills(skills: [
     forks: ["falsehood", "intimidation"],
     skill_type: Social,
     tools: No,
-  )
+  ),
+
+  Skill(
+    name: "wises",
+    page: 309,
+    root: Single(Perception),
+    skill_type: Special,
+    tools: No,
+  ),
 ])

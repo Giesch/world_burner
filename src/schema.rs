@@ -108,6 +108,7 @@ table! {
         lifepath_id -> Int4,
         list_position -> Int4,
         skill_id -> Int4,
+        entryless_skill -> Nullable<Text>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
@@ -119,7 +120,8 @@ table! {
     lifepath_trait_lists (lifepath_id, list_position, trait_id) {
         lifepath_id -> Int4,
         list_position -> Int4,
-        trait_id -> Int4,
+        trait_id -> Nullable<Int4>,
+        char_trait -> Nullable<Text>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
@@ -201,7 +203,7 @@ table! {
     traits (id) {
         id -> Int4,
         book -> BookTypeMapping,
-        page -> Nullable<Int4>,
+        page -> Int4,
         name -> Text,
         cost -> Nullable<Int4>,
         typ -> TraitTypeMapping,

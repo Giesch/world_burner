@@ -271,16 +271,15 @@ pub enum Trait {
     },
     Char {
         name: String,
-        #[serde(default)]
-        page: Option<i32>,
+        page: i32,
     },
 }
 
 impl Trait {
-    pub fn page(&self) -> Option<i32> {
+    pub fn page(&self) -> i32 {
         match self {
-            Self::Die { page, .. } => Some(*page),
-            Self::CallOn { page, .. } => Some(*page),
+            Self::Die { page, .. } => *page,
+            Self::CallOn { page, .. } => *page,
             Self::Char { page, .. } => *page,
         }
     }

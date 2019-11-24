@@ -79,14 +79,13 @@ fn seed_traits(db: &PgConnection) -> StdResult<()> {
 #[table_name = "traits"]
 struct NewTrait {
     book: Book,
-    page: Option<i32>,
+    page: i32,
     name: String,
     cost: Option<i32>,
     typ: TraitType,
 }
 
-/// Returns stock ids by name.
-fn seed_stocks(db: &PgConnection) -> StdResult<HashMap<String, CreatedStock>> {
+fn seed_stocks(db: &PgConnection) -> StdResult<Vec<CreatedStock>> {
     let gold_stock = |stock: Stock| NewStock {
         book: Book::GoldRevised,
         name: stock.name,
@@ -96,12 +95,9 @@ fn seed_stocks(db: &PgConnection) -> StdResult<HashMap<String, CreatedStock>> {
 
     let stocks: Vec<_> = read_stocks()?.into_iter().map(gold_stock).collect();
 
-    let stocks: HashMap<_, _> = diesel::insert_into(stocks::table)
+    let stocks: Vec<_> = diesel::insert_into(stocks::table)
         .values(stocks)
-        .get_results::<CreatedStock>(db)?
-        .into_iter()
-        .map(|stock| (stock.name.clone(), stock))
-        .collect();
+        .get_results::<CreatedStock>(db)?;
 
     Ok(stocks)
 }
@@ -258,15 +254,15 @@ struct NewSkill {
     skill_type_id: i32,
 }
 
-fn seed_settings(db: &PgConnection, stocks: &HashMap<String, CreatedStock>) -> StdResult<()> {
+fn seed_settings(db: &PgConnection, stocks: &[CreatedStock]) -> StdResult<()> {
     let mut settings_by_stock_id = HashMap::new();
-    for stock in stocks.values() {
+    for stock in stocks {
         let stock_settings = read_stock_settings("gold_revised", &stock.singular)?;
         settings_by_stock_id.insert(stock.id, stock_settings);
     }
 
     let mut new_settings = Vec::new();
-    for stock in stocks.values() {
+    for stock in stocks {
         let stock_settings = settings_by_stock_id
             .get(&stock.id)
             .ok_or_else(|| format!("unexpected stock: {} with id: {}", stock.name, stock.id))?;
@@ -290,7 +286,7 @@ fn seed_settings(db: &PgConnection, stocks: &HashMap<String, CreatedStock>) -> S
         .collect();
 
     let mut new_lifepaths = Vec::new();
-    for stock in stocks.values() {
+    for stock in stocks {
         let stock_settings = settings_by_stock_id
             .get(&stock.id)
             .ok_or_else(|| format!("unexpected stock: {} with id: {}", stock.name, stock.id))?;
