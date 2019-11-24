@@ -172,16 +172,17 @@ fn seed_settings(
         settings_by_stock_id.insert(stock.id, stock_settings);
     }
 
-    let new_settings = new_settings(&settings_by_stock_id, stocks)?;
+    let new_settings = new_settings(&settings_by_stock_id)?;
 
-    let setting_ids_by_name: HashMap<String, i32> = diesel::insert_into(lifepath_settings::table)
+    let setting_ids_by_name: HashMap<_, _> = diesel::insert_into(lifepath_settings::table)
         .values(new_settings)
         .get_results::<CreatedSetting>(db)?
         .into_iter()
         .map(|setting| (setting.name, setting.id))
         .collect();
 
-    let new_lifepaths = new_lifepaths(&settings_by_stock_id, &setting_ids_by_name, stocks)?;
+    let all_settings: Vec<_> = settings_by_stock_id.values().flatten().collect();
+    let new_lifepaths = new_lifepaths(&all_settings, &setting_ids_by_name)?;
 
     let created_lifepaths = diesel::insert_into(lifepaths::table)
         .values(new_lifepaths)
@@ -189,7 +190,7 @@ fn seed_settings(
 
     // lifepath skill lists
 
-    let lifepath_ids_by_name: HashMap<String, i32> = created_lifepaths
+    let lifepath_ids_by_name: HashMap<_, _> = created_lifepaths
         .iter()
         .map(|lp| (lp.name.clone(), lp.id))
         .collect();
@@ -199,32 +200,30 @@ fn seed_settings(
         .map(|skill| (skill.name.clone(), skill))
         .collect();
 
+    let all_lifepaths = settings_by_stock_id
+        .values()
+        .flatten()
+        .flat_map(|setting| &setting.lifepaths);
+
     let mut new_lifepath_skill_lists = Vec::new();
+    for lifepath in all_lifepaths {
+        for (i, skill_name) in lifepath.skills.iter().enumerate() {
+            let &lifepath_id = lifepath_ids_by_name
+                .get(&lifepath.name)
+                .ok_or_else(|| format!("missing lifepath: {}", lifepath.name))?;
 
-    for stock in stocks {
-        let stock_settings = settings_by_stock_id
-            .get(&stock.id)
-            .ok_or("missing stock settings")?;
+            let (skill_id, entryless_skill) = id_and_entryless_name(&skills_by_name, skill_name)?;
 
-        for setting in stock_settings {
-            for lifepath in &setting.lifepaths {
-                for (i, skill_name) in lifepath.skills.iter().enumerate() {
-                    let (skill_id, entryless_skill) =
-                        id_and_entryless_name(&skills_by_name, skill_name)?;
-                    let &lifepath_id = lifepath_ids_by_name
-                        .get(&lifepath.name)
-                        .ok_or_else(|| format!("missing lifepath: {}", lifepath.name))?;
+            let list_position = i.try_into()?;
 
-                    let new_skill_list = NewLifepathSkillList {
-                        lifepath_id,
-                        list_position: i.try_into()?,
-                        skill_id,
-                        entryless_skill,
-                    };
+            let new_skill_list = NewLifepathSkillList {
+                lifepath_id,
+                list_position,
+                skill_id,
+                entryless_skill,
+            };
 
-                    new_lifepath_skill_lists.push(new_skill_list);
-                }
-            }
+            new_lifepath_skill_lists.push(new_skill_list);
         }
     }
 
@@ -260,51 +259,37 @@ fn id_and_entryless_name(
 
 fn new_settings(
     settings_by_stock_id: &HashMap<i32, Vec<LifepathSetting>>,
-    stocks: &[CreatedStock],
 ) -> StdResult<Vec<NewSetting>> {
     let mut new_settings = Vec::new();
-    for stock in stocks {
-        let stock_settings = settings_by_stock_id
-            .get(&stock.id)
-            .ok_or_else(|| format!("unexpected stock: {} with id: {}", stock.name, stock.id))?;
-        for setting in stock_settings {
-            let new_setting = new_setting(stock.id, setting);
-            new_settings.push(new_setting);
-        }
+
+    for (&stock_id, stock_settings) in settings_by_stock_id.iter() {
+        let new_setting = |setting: &deserialize::LifepathSetting| NewSetting {
+            stock_id,
+            book: Book::GoldRevised,
+            page: setting.page,
+            name: setting.name.clone(),
+        };
+
+        new_settings.extend(stock_settings.iter().map(new_setting))
     }
 
     Ok(new_settings)
 }
 
-fn new_setting(stock_id: i32, setting: &deserialize::LifepathSetting) -> NewSetting {
-    NewSetting {
-        stock_id,
-        book: Book::GoldRevised,
-        page: setting.page,
-        name: setting.name.clone(),
-    }
-}
-
 fn new_lifepaths(
-    settings_by_stock_id: &HashMap<i32, Vec<LifepathSetting>>,
+    all_settings: &[&LifepathSetting],
     setting_ids_by_name: &HashMap<String, i32>,
-    stocks: &[CreatedStock],
 ) -> StdResult<Vec<NewLifepath>> {
     let mut new_lifepaths = Vec::new();
-    for stock in stocks {
-        let stock_settings = settings_by_stock_id
-            .get(&stock.id)
-            .ok_or_else(|| format!("unexpected stock: {} with id: {}", stock.name, stock.id))?;
 
-        for setting in stock_settings {
-            let &lifepath_setting_id = setting_ids_by_name
-                .get(&setting.name)
-                .ok_or_else(|| format!("unexpected setting: {}", setting.name))?;
+    for setting in all_settings {
+        let &lifepath_setting_id = setting_ids_by_name
+            .get(&setting.name)
+            .ok_or_else(|| format!("uncreated setting: {}", setting.name))?;
 
-            for lifepath in &setting.lifepaths {
-                let new_lifepath = new_lifepath(lifepath, lifepath_setting_id);
-                new_lifepaths.push(new_lifepath);
-            }
+        for lifepath in &setting.lifepaths {
+            let new_lifepath = new_lifepath(lifepath, lifepath_setting_id);
+            new_lifepaths.push(new_lifepath);
         }
     }
 
