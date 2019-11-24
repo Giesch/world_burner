@@ -1,5 +1,5 @@
-* TODO seed skill lists
 * TODO seed trait lists
+  
 * TODO add more dwarf settings
 ** resolve config todos first
 *** leads with stock-distinct names
@@ -52,3 +52,4 @@
 * TODO think about skill forks
 ** maybe just leave them out
 * TODO skill restrictions (elves only, etc)
+* TODO try to remove string clones from seed script

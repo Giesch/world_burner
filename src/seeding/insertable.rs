@@ -71,3 +71,12 @@ pub struct NewSkillRoot {
     pub second_stat_root: Option<Stat>,
     pub attribute_root: Option<String>,
 }
+
+#[derive(Insertable, Debug, PartialEq, Eq)]
+#[table_name = "lifepath_skill_lists"]
+pub struct NewLifepathSkillList {
+    pub lifepath_id: i32,
+    pub list_position: i32,
+    pub skill_id: i32,
+    pub entryless_skill: Option<String>,
+}

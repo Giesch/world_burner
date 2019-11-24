@@ -37,3 +37,24 @@ pub struct CreatedSetting {
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
+
+#[derive(Queryable, Debug, PartialEq, Eq)]
+pub struct CreatedLifepath {
+    pub id: i32,
+    pub book: Book,
+    pub lifepath_setting_id: i32,
+    pub page: i32,
+    pub name: String,
+    pub years: Option<i32>,
+    pub years_min: Option<i32>,
+    pub years_max: Option<i32>,
+    pub gen_skill_pts: i32,
+    pub skill_pts: i32,
+    pub trait_pts: i32,
+    pub stat_mod: Option<StatMod>,
+    pub stat_mod_val: Option<i32>,
+    pub res: Option<i32>,
+    pub res_calc: Option<String>,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+}

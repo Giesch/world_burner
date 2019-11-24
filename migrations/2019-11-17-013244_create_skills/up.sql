@@ -34,11 +34,13 @@ CREATE TABLE skills (
   skill_type_id INTEGER NOT NULL REFERENCES skill_types (id),
   book book_type NOT NULL,
   page INTEGER NOT NULL CHECK (page > 0),
-  name TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
   magical BOOLEAN NOT NULL DEFAULT false,
   training BOOLEAN NOT NULL DEFAULT false,
   wise BOOLEAN NOT NULL DEFAULT false,
   tools tool_req NOT NULL,
+
+  UNIQUE (book, name),
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

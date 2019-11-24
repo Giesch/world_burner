@@ -3,6 +3,7 @@
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use std::collections::HashMap;
+use std::convert::TryInto;
 
 use crate::schema::*;
 
@@ -28,11 +29,11 @@ const PRINCE_YEARS_MAX: i32 = 20;
 /// It should not be used for user input.
 pub fn seed_book_data(db: &PgConnection) -> StdResult<()> {
     db.transaction(|| {
-        seed_skills(db)?;
+        let skills = seed_skills(db)?;
         seed_traits(db)?;
 
         let stocks = seed_stocks(db)?;
-        seed_settings(db, &stocks)?;
+        seed_settings(db, &stocks, &skills)?;
 
         Ok(())
     })
@@ -73,7 +74,7 @@ fn seed_stocks(db: &PgConnection) -> StdResult<Vec<CreatedStock>> {
     Ok(stocks)
 }
 
-fn seed_skills(db: &PgConnection) -> StdResult<()> {
+fn seed_skills(db: &PgConnection) -> StdResult<Vec<CreatedSkill>> {
     let skill_type_ids: HashMap<String, i32> = skill_types::table
         .select((skill_types::id, skill_types::name))
         .load::<(i32, String)>(db)?
@@ -130,7 +131,7 @@ fn seed_skills(db: &PgConnection) -> StdResult<()> {
         .values(new_skill_roots)
         .execute(db)?;
 
-    Ok(())
+    Ok(created_skills)
 }
 
 fn new_skill_root(skill_id: i32, root: &SkillRoot) -> NewSkillRoot {
@@ -160,7 +161,11 @@ fn new_skill_root(skill_id: i32, root: &SkillRoot) -> NewSkillRoot {
     }
 }
 
-fn seed_settings(db: &PgConnection, stocks: &[CreatedStock]) -> StdResult<()> {
+fn seed_settings(
+    db: &PgConnection,
+    stocks: &[CreatedStock],
+    skills: &[CreatedSkill],
+) -> StdResult<()> {
     let mut settings_by_stock_id = HashMap::new();
     for stock in stocks {
         let stock_settings = read_stock_settings("gold_revised", &stock.singular)?;
@@ -178,13 +183,79 @@ fn seed_settings(db: &PgConnection, stocks: &[CreatedStock]) -> StdResult<()> {
 
     let new_lifepaths = new_lifepaths(&settings_by_stock_id, &setting_ids_by_name, stocks)?;
 
-    diesel::insert_into(lifepaths::table)
+    let created_lifepaths = diesel::insert_into(lifepaths::table)
         .values(new_lifepaths)
+        .get_results::<CreatedLifepath>(db)?;
+
+    // lifepath skill lists
+
+    let lifepath_ids_by_name: HashMap<String, i32> = created_lifepaths
+        .iter()
+        .map(|lp| (lp.name.clone(), lp.id))
+        .collect();
+
+    let skills_by_name: HashMap<_, _> = skills
+        .iter()
+        .map(|skill| (skill.name.clone(), skill))
+        .collect();
+
+    let mut new_lifepath_skill_lists = Vec::new();
+
+    for stock in stocks {
+        let stock_settings = settings_by_stock_id
+            .get(&stock.id)
+            .ok_or("missing stock settings")?;
+
+        for setting in stock_settings {
+            for lifepath in &setting.lifepaths {
+                for (i, skill_name) in lifepath.skills.iter().enumerate() {
+                    let (skill_id, entryless_skill) =
+                        id_and_entryless_name(&skills_by_name, skill_name)?;
+                    let &lifepath_id = lifepath_ids_by_name
+                        .get(&lifepath.name)
+                        .ok_or_else(|| format!("missing lifepath: {}", lifepath.name))?;
+
+                    let new_skill_list = NewLifepathSkillList {
+                        lifepath_id,
+                        list_position: i.try_into()?,
+                        skill_id,
+                        entryless_skill,
+                    };
+
+                    new_lifepath_skill_lists.push(new_skill_list);
+                }
+            }
+        }
+    }
+
+    diesel::insert_into(lifepath_skill_lists::table)
+        .values(new_lifepath_skill_lists)
         .execute(db)?;
 
-    // TODO skill lists and trait lists
-
     Ok(())
+}
+
+fn id_and_entryless_name(
+    skills_by_name: &HashMap<String, &CreatedSkill>,
+    skill_name: &str,
+) -> StdResult<(i32, Option<String>)> {
+    if let Some(skill) = skills_by_name.get(skill_name) {
+        return Ok((skill.id, None));
+    }
+
+    if skill_name.ends_with("-wise") {
+        let wises = skills_by_name.get("wises").ok_or("wises skill missing")?;
+        return Ok((wises.id, Some(skill_name.to_string())));
+    }
+
+    if skill_name.ends_with("history") {
+        let history = skills_by_name
+            .get("history")
+            .ok_or("history skill missing")?;
+        return Ok((history.id, Some(skill_name.to_string())));
+    }
+
+    Err(format!("entryless non-knowledge skill: {}", skill_name))?
 }
 
 fn new_settings(
