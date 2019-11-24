@@ -13,6 +13,7 @@
 
 * TODO think about how to handle common traits & born lifepaths
 ** and fey blood
+** implement skill restrictions as requiring the specific common trait
 ** need a table of common traits by stock?
 
 * db changes

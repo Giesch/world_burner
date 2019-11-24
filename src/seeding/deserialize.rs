@@ -79,7 +79,7 @@ pub struct Skill {
     pub skill_type: SkillType,
     pub tools: ToolRequirement,
     #[serde(default)]
-    pub restrictions: Vec<StockRestriction>,
+    pub restrictions: Restriction,
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
@@ -237,17 +237,37 @@ pub enum SkillRoot {
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
-pub enum StockRestriction {
-    Dwarves(Restriction),
-    Elves(Restriction),
-    Humans(Restriction),
-    Roden(Restriction),
+pub enum Restriction {
+    None,
+    Only(StockRestriction, #[serde(default)] RestrictionTiming),
+    Any(Vec<StockRestriction>, #[serde(default)] RestrictionTiming),
+}
+
+impl Default for Restriction {
+    fn default() -> Self {
+        Self::None
+    }
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
-pub enum Restriction {
-    Only,
+pub enum RestrictionTiming {
     CharBurning,
+    Ever,
+}
+
+impl Default for RestrictionTiming {
+    fn default() -> Self {
+        Self::Ever
+    }
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+pub enum StockRestriction {
+    Dwarves,
+    Elves,
+    Humans,
+    Orcs,
+    Roden,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]

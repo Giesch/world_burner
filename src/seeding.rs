@@ -226,11 +226,9 @@ fn new_lifepath_skill_lists(
 
             let (skill_id, entryless_skill) = id_and_entryless_name(skills_by_name, skill_name)?;
 
-            let list_position = i.try_into()?;
-
             let new_skill_list = NewLifepathSkillList {
+                list_position: i.try_into()?,
                 lifepath_id,
-                list_position,
                 skill_id,
                 entryless_skill,
             };
@@ -262,7 +260,7 @@ fn id_and_entryless_name(
         return Ok((history.id, Some(skill_name.to_string())));
     }
 
-    Err(format!("entryless non-knowledge skill: {}", skill_name))?
+    Err(format!("entryless non-knowledge skill: {}", skill_name).into())
 }
 
 fn new_settings(
