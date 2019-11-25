@@ -55,8 +55,8 @@ fn seed_traits(db: &PgConnection) -> StdResult<HashMap<String, i32>> {
         .get_results::<CreatedTrait>(db)?;
 
     let trait_ids = created_traits
-        .iter()
-        .map(|tr| (tr.name.clone(), tr.id))
+        .into_iter()
+        .map(|tr| (tr.name, tr.id))
         .collect();
 
     Ok(trait_ids)
@@ -132,8 +132,8 @@ fn seed_skills(db: &PgConnection) -> StdResult<HashMap<String, i32>> {
         .execute(db)?;
 
     let skill_ids = created_skills
-        .iter()
-        .map(|skill| (skill.name.clone(), skill.id))
+        .into_iter()
+        .map(|skill| (skill.name, skill.id))
         .collect();
 
     Ok(skill_ids)
@@ -180,7 +180,7 @@ fn seed_settings(
 
     let new_settings = new_settings(&settings_by_stock_id)?;
 
-    let setting_ids_by_name: HashMap<_, _> = diesel::insert_into(lifepath_settings::table)
+    let setting_ids: HashMap<_, _> = diesel::insert_into(lifepath_settings::table)
         .values(new_settings)
         .get_results::<CreatedSetting>(db)?
         .into_iter()
@@ -188,7 +188,7 @@ fn seed_settings(
         .collect();
 
     let all_settings: Vec<_> = settings_by_stock_id.values().flatten().collect();
-    let new_lifepaths = new_lifepaths(&all_settings, &setting_ids_by_name)?;
+    let new_lifepaths = new_lifepaths(&all_settings, &setting_ids)?;
 
     let created_lifepaths = diesel::insert_into(lifepaths::table)
         .values(new_lifepaths)
@@ -197,8 +197,8 @@ fn seed_settings(
     // skill lists
 
     let lifepath_ids: HashMap<_, _> = created_lifepaths
-        .iter()
-        .map(|lp| (lp.name.clone(), lp.id))
+        .into_iter()
+        .map(|lp| (lp.name, lp.id))
         .collect();
 
     let all_lifepaths: Vec<_> = settings_by_stock_id
@@ -213,7 +213,47 @@ fn seed_settings(
         .values(new_skill_lists)
         .execute(db)?;
 
+    // trait lists
+
+    let new_trait_lists = new_trait_lists(&all_lifepaths, &lifepath_ids, &trait_ids)?;
+
+    diesel::insert_into(lifepath_trait_lists::table)
+        .values(new_trait_lists)
+        .execute(db)?;
+
     Ok(())
+}
+
+fn new_trait_lists(
+    all_lifepaths: &[&deserialize::Lifepath],
+    lifepath_ids: &HashMap<String, i32>,
+    trait_ids: &HashMap<String, i32>,
+) -> StdResult<Vec<NewTraitList>> {
+    let mut new_trait_lists = Vec::new();
+
+    for lifepath in all_lifepaths {
+        let &lifepath_id = lifepath_ids
+            .get(&lifepath.name)
+            .ok_or_else(|| format!("missing lifepath: {}", lifepath.name))?;
+        for (i, trait_name) in lifepath.traits.iter().enumerate() {
+            let (trait_id, char_trait) = if let Some(id) = trait_ids.get(trait_name) {
+                (Some(*id), None)
+            } else {
+                (None, Some(trait_name.to_string()))
+            };
+
+            let trait_list = NewTraitList {
+                list_position: i.try_into()?,
+                lifepath_id,
+                trait_id,
+                char_trait,
+            };
+
+            new_trait_lists.push(trait_list);
+        }
+    }
+
+    Ok(new_trait_lists)
 }
 
 fn new_skill_lists(
@@ -224,11 +264,11 @@ fn new_skill_lists(
     let mut new_skill_lists = Vec::new();
 
     for lifepath in all_lifepaths {
-        for (i, skill_name) in lifepath.skills.iter().enumerate() {
-            let &lifepath_id = lifepath_ids
-                .get(&lifepath.name)
-                .ok_or_else(|| format!("missing lifepath: {}", lifepath.name))?;
+        let &lifepath_id = lifepath_ids
+            .get(&lifepath.name)
+            .ok_or_else(|| format!("missing lifepath: {}", lifepath.name))?;
 
+        for (i, skill_name) in lifepath.skills.iter().enumerate() {
             let (skill_id, entryless_skill) = id_and_entryless_name(skill_ids, skill_name)?;
 
             let new_skill_list = NewSkillList {
@@ -287,12 +327,12 @@ fn new_settings(
 
 fn new_lifepaths(
     all_settings: &[&LifepathSetting],
-    setting_ids_by_name: &HashMap<String, i32>,
+    setting_ids: &HashMap<String, i32>,
 ) -> StdResult<Vec<NewLifepath>> {
     let mut new_lifepaths = Vec::new();
 
     for setting in all_settings {
-        let &lifepath_setting_id = setting_ids_by_name
+        let &lifepath_setting_id = setting_ids
             .get(&setting.name)
             .ok_or_else(|| format!("uncreated setting: {}", setting.name))?;
 
