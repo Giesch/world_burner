@@ -1,5 +1,4 @@
 * TODO add more dwarf settings
-** resolve config todos first
 ** settings:
   - [ ] guilder
   - [ ] artificer
@@ -56,7 +55,3 @@
 
 * TODO move the HALF_PREVIOUS constant to a repo module and make it private
 ** db_string method on ResCalc enum
-* TODO think about skill forks
-** maybe just leave them out
-* TODO skill restrictions (elves only, etc)
-* TODO try to remove string clones from seed script

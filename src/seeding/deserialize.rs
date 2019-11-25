@@ -74,8 +74,6 @@ pub struct Skill {
     pub root: SkillRoot,
     #[serde(default)]
     pub magical: bool,
-    #[serde(default)]
-    pub forks: Vec<String>,
     pub skill_type: SkillType,
     pub tools: ToolRequirement,
     #[serde(default)]
