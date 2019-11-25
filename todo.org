@@ -6,10 +6,19 @@
   - [ ] host
   - [ ] outcast
 
+* TODO think about making leads strings in the config
+** then could just look up the settings by name & stock
+
+* TODO enter skills list
+* TODO enter traits list
+
 * TODO add leads table (constraint for same stock?)
 * TODO seed leads table
 ** lifepath id
 ** setting id
+
+* TODO think about replacing the seeding code with sql
+
 * TODO think about how to handle stock common traits & born lifepaths
 ** need a table of common traits by stock?
 ** how to handle human cultural traits?

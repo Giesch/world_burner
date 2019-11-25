@@ -1,0 +1,122 @@
+#![enable(unwrap_newtypes)]
+#![enable(implicit_some)]
+
+LifepathSetting(
+  name: "guilder",
+  page: 111,
+  lifepaths: [
+    Lifepath(
+      name: "born guilder",
+      page: 111,
+      years: 21,
+      res: 5,
+      leads: [DwarfClansman],
+      gen_skill_pts: 4,
+      skill_pts: 0,
+      trait_pts: 1,
+    ),
+
+    Lifepath(
+      name: "wordbearer",
+      page: 111,
+      years: 15,
+      res: 10,
+      stat_mod: Physical(1),
+      leads: [DwarfClansman, DwarfHost],
+      skill_pts: 5,
+      trait_pts: 1,
+      skills: ["hold-wise", "rumor-wise", "oratory", "clan history"],
+      traits: ["quirky", "iron memory", "quick-step"],
+    ),
+
+    Lifepath(
+      name: "hauler",
+      page: 111,
+      years: 10,
+      res: 7,
+      stat_mod: Physical(1),
+      leads: [DwarfClansman, DwarfHost],
+      skill_pts: 5,
+      trait_pts: 2,
+      skills: ["hauling", "wagon-wise", "cargo-wise", "road-wise"],
+      traits: ["lifting heavy things"],
+    ),
+
+    Lifepath(
+      name: "carter",
+      page: 111,
+      years: 20,
+      res: 10,
+      stat_mod: Physical(1),
+      leads: [DwarfClansman, DwarfHost, DwarfOutcast],
+      skill_pts: 5,
+      trait_pts: 1,
+      skills: ["animal husbandry", "driving", "mending", "mule-wise"],
+      traits: ["patient", "iron nose"],
+    ),
+
+    Lifepath(
+      name: "hawker",
+      page: 111,
+      years: 15,
+      res: 15,
+      stat_mod: Mental(1),
+      leads: [DwarfClansman, DwarfHost, DwarfOutcast],
+      skill_pts: 6,
+      trait_pts: 1,
+      skills: ["inconspicuous", "conspicuous", "streetwise", "haggling", "spiel-wise"],
+    ),
+
+    Lifepath(
+      name: "apprentice",
+      page: 111,
+      years: 15,
+      res: 20,
+      stat_mod: Physical(1),
+      leads: [DwarfClansman, DwarfArtificer],
+      skill_pts: 4,
+      trait_pts: 1,
+      skills: ["carving", "tanner", "carpentry", "scutwork-wise"],
+      traits: ["seen not heard"],
+    ),
+
+    Lifepath(
+      name: "journeyman",
+      page: 111,
+      years: 25,
+      res: 25,
+      stat_mod: Either(1),
+      leads: [DwarfClansman, DwarfArtificer, DwarfHost],
+      skill_pts: 7,
+      trait_pts: 1,
+      skills: ["haggling", "reputation-wise", "cartwright", "mending",
+        "black-metal artifice"],
+      traits: ["hungry"],
+    ),
+
+    Lifepath(
+      name: "craftsman",
+      page: 111,
+      years: 45,
+      res: 45,
+      stat_mod: Either(1),
+      leads: [DwarfClansman, DwarfArtificer],
+      gen_skill_pts: 1,
+      skill_pts: 4,
+      trait_pts: 1,
+      skills: ["appraisal", "shipwright", "artificer-wise"],
+    ),
+
+    Lifepath(
+      name: "trader",
+      page: 111,
+      years: 45,
+      res: 70,
+      stat_mod: Mental(1),
+      leads: [DwarfClansman, DwarfOutcast],
+      skill_pts: 7,
+      trait_pts: 1,
+      skills: ["stentorious debate", "shrewd appraisal", "haggling", "persuasion"],
+    ),
+  ],
+)

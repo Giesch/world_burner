@@ -11,7 +11,7 @@ LifepathSetting(
       years: 20,
       res: 10,
       leads: [DwarfGuilder],
-      general_skill_pts: 3,
+      gen_skill_pts: 3,
       skill_pts: 0,
       trait_pts: 1,
     ),

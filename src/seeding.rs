@@ -382,7 +382,7 @@ fn new_lifepath(
         years_min,
         years_max,
 
-        gen_skill_pts: lifepath.general_skill_pts,
+        gen_skill_pts: lifepath.gen_skill_pts,
         skill_pts: lifepath.skill_pts,
         trait_pts: lifepath.trait_pts,
 

@@ -132,7 +132,7 @@ pub struct Lifepath {
     #[serde(default)]
     pub leads: Vec<Lead>,
     #[serde(default)]
-    pub general_skill_pts: i32,
+    pub gen_skill_pts: i32,
     pub skill_pts: i32,
     #[serde(default)]
     pub trait_pts: i32,
