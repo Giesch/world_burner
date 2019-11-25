@@ -3,8 +3,8 @@ use crate::schema::*;
 #[derive(Insertable, Debug, PartialEq, Eq)]
 #[table_name = "stocks"]
 pub struct NewStock {
+    pub book_id: i32,
     pub name: String,
-    pub book: Book,
     pub page: i32,
     pub singular: String,
 }
@@ -12,8 +12,8 @@ pub struct NewStock {
 #[derive(Insertable, Debug, PartialEq, Eq)]
 #[table_name = "skills"]
 pub struct NewSkill {
+    pub book_id: i32,
     pub name: String,
-    pub book: Book,
     pub page: i32,
     pub magical: bool,
     pub tools: ToolRequirement,
@@ -24,7 +24,7 @@ pub struct NewSkill {
 #[derive(Insertable, Debug, PartialEq, Eq)]
 #[table_name = "traits"]
 pub struct NewTrait {
-    pub book: Book,
+    pub book_id: i32,
     pub page: i32,
     pub name: String,
     pub cost: Option<i32>,
@@ -34,7 +34,7 @@ pub struct NewTrait {
 #[derive(Insertable, Debug, PartialEq, Eq)]
 #[table_name = "lifepath_settings"]
 pub struct NewSetting {
-    pub book: Book,
+    pub book_id: i32,
     pub page: i32,
     pub stock_id: i32,
     pub name: String,
@@ -43,7 +43,7 @@ pub struct NewSetting {
 #[derive(Insertable, Debug, PartialEq, Eq)]
 #[table_name = "lifepaths"]
 pub struct NewLifepath {
-    pub book: Book,
+    pub book_id: i32,
     pub lifepath_setting_id: i32,
     pub page: i32,
     pub name: String,

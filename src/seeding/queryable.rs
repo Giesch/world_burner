@@ -4,7 +4,7 @@ use chrono::NaiveDateTime;
 #[derive(Queryable, Debug, PartialEq, Eq)]
 pub struct CreatedStock {
     pub id: i32,
-    pub book: Book,
+    pub book_id: i32,
     pub name: String,
     pub singular: String,
     pub page: i32,
@@ -16,7 +16,7 @@ pub struct CreatedStock {
 pub struct CreatedSkill {
     pub id: i32,
     pub skill_type_id: i32,
-    pub book: Book,
+    pub book_id: i32,
     pub page: i32,
     pub name: String,
     pub magical: bool,
@@ -30,7 +30,7 @@ pub struct CreatedSkill {
 #[derive(Queryable, Debug, PartialEq, Eq)]
 pub struct CreatedTrait {
     pub id: i32,
-    pub book: Book,
+    pub book_id: i32,
     pub page: i32,
     pub name: String,
     pub cost: Option<i32>,
@@ -42,7 +42,7 @@ pub struct CreatedTrait {
 #[derive(Queryable, Debug, PartialEq, Eq)]
 pub struct CreatedSetting {
     pub id: i32,
-    pub book: Book,
+    pub book_id: i32,
     pub stock_id: i32,
     pub page: i32,
     pub name: String,
@@ -53,7 +53,7 @@ pub struct CreatedSetting {
 #[derive(Queryable, Debug, PartialEq, Eq)]
 pub struct CreatedLifepath {
     pub id: i32,
-    pub book: Book,
+    pub book_id: i32,
     pub lifepath_setting_id: i32,
     pub page: i32,
     pub name: String,

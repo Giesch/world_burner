@@ -1,11 +1,3 @@
-#[PgType = "book_type"]
-#[DieselType = "BookTypeMapping"]
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
-pub enum Book {
-    GoldRevised,
-    Codex,
-}
-
 #[PgType = "stat_mod_type"]
 #[DieselType = "StatModTypeMapping"]
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
@@ -49,10 +41,9 @@ pub enum TraitType {
 
 table! {
     use diesel::sql_types::*;
-    use super::BookTypeMapping;
 
-    books (book) {
-        book -> BookTypeMapping,
+    books (id) {
+        id -> Int4,
         abbrev -> Text,
         title -> Text,
         created_at -> Timestamptz,
@@ -62,12 +53,11 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use super::BookTypeMapping;
     use super::StatModTypeMapping;
 
     lifepaths (id) {
         id -> Int4,
-        book -> BookTypeMapping,
+        book_id -> Int4,
         lifepath_setting_id -> Int4,
         page -> Int4,
         name -> Text,
@@ -88,11 +78,10 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use super::BookTypeMapping;
 
     lifepath_settings (id) {
         id -> Int4,
-        book -> BookTypeMapping,
+        book_id -> Int4,
         stock_id -> Int4,
         page -> Int4,
         name -> Text,
@@ -152,13 +141,12 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use super::BookTypeMapping;
     use super::ToolRequirementMapping;
 
     skills (id) {
         id -> Int4,
         skill_type_id -> Int4,
-        book -> BookTypeMapping,
+        book_id -> Int4,
         page -> Int4,
         name -> Text,
         magical -> Bool,
@@ -183,11 +171,10 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use super::BookTypeMapping;
 
     stocks (id) {
         id -> Int4,
-        book -> BookTypeMapping,
+        book_id -> Int4,
         name -> Text,
         singular -> Text,
         page -> Int4,
@@ -198,12 +185,11 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use super::BookTypeMapping;
     use super::TraitTypeMapping;
 
     traits (id) {
         id -> Int4,
-        book -> BookTypeMapping,
+        book_id -> Int4,
         page -> Int4,
         name -> Text,
         cost -> Nullable<Int4>,
@@ -213,14 +199,19 @@ table! {
     }
 }
 
+joinable!(lifepath_settings -> books (book_id));
 joinable!(lifepath_settings -> stocks (stock_id));
 joinable!(lifepath_skill_lists -> lifepaths (lifepath_id));
 joinable!(lifepath_skill_lists -> skills (skill_id));
 joinable!(lifepath_trait_lists -> lifepaths (lifepath_id));
 joinable!(lifepath_trait_lists -> traits (trait_id));
+joinable!(lifepaths -> books (book_id));
 joinable!(lifepaths -> lifepath_settings (lifepath_setting_id));
 joinable!(skill_roots -> skills (skill_id));
+joinable!(skills -> books (book_id));
 joinable!(skills -> skill_types (skill_type_id));
+joinable!(stocks -> books (book_id));
+joinable!(traits -> books (book_id));
 
 allow_tables_to_appear_in_same_query!(
     books,

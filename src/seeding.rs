@@ -29,19 +29,24 @@ const PRINCE_YEARS_MAX: i32 = 20;
 /// It should not be used for user input.
 pub fn seed_book_data(db: &PgConnection) -> StdResult<()> {
     db.transaction(|| {
-        let skill_ids = seed_skills(db)?;
-        let trait_ids = seed_traits(db)?;
+        let gold_id = books::table
+            .select(books::id)
+            .filter(books::abbrev.eq("BWGR"))
+            .first(db)?;
 
-        let stocks = seed_stocks(db)?;
-        seed_settings(db, &stocks, &skill_ids, &trait_ids)?;
+        let skill_ids = seed_skills(db, gold_id)?;
+        let trait_ids = seed_traits(db, gold_id)?;
+
+        let stocks = seed_stocks(db, gold_id)?;
+        seed_settings(db, &stocks, &skill_ids, &trait_ids, gold_id)?;
 
         Ok(())
     })
 }
 
-fn seed_traits(db: &PgConnection) -> StdResult<HashMap<String, i32>> {
+fn seed_traits(db: &PgConnection, book_id: i32) -> StdResult<HashMap<String, i32>> {
     let new_trait = |tr: Trait| NewTrait {
-        book: Book::GoldRevised,
+        book_id,
         page: tr.page(),
         name: tr.name(),
         cost: tr.cost(),
@@ -62,9 +67,9 @@ fn seed_traits(db: &PgConnection) -> StdResult<HashMap<String, i32>> {
     Ok(trait_ids)
 }
 
-fn seed_stocks(db: &PgConnection) -> StdResult<Vec<CreatedStock>> {
+fn seed_stocks(db: &PgConnection, book_id: i32) -> StdResult<Vec<CreatedStock>> {
     let gold_stock = |stock: Stock| NewStock {
-        book: Book::GoldRevised,
+        book_id,
         name: stock.name,
         singular: stock.singular,
         page: stock.page,
@@ -79,7 +84,7 @@ fn seed_stocks(db: &PgConnection) -> StdResult<Vec<CreatedStock>> {
     Ok(stocks)
 }
 
-fn seed_skills(db: &PgConnection) -> StdResult<HashMap<String, i32>> {
+fn seed_skills(db: &PgConnection, book_id: i32) -> StdResult<HashMap<String, i32>> {
     let skill_type_ids: HashMap<String, i32> = skill_types::table
         .select((skill_types::id, skill_types::name))
         .load::<(i32, String)>(db)?
@@ -96,8 +101,8 @@ fn seed_skills(db: &PgConnection) -> StdResult<HashMap<String, i32>> {
             .ok_or_else(|| format!("unknown skill type: {:?}", skill.skill_type))?;
 
         let new_skill = NewSkill {
+            book_id,
             name: skill.name.clone(),
-            book: Book::GoldRevised,
             page: skill.page,
             tools: skill.tools,
             magical: skill.magical,
@@ -171,6 +176,7 @@ fn seed_settings(
     stocks: &[CreatedStock],
     skill_ids: &HashMap<String, i32>,
     trait_ids: &HashMap<String, i32>,
+    book_id: i32,
 ) -> StdResult<()> {
     let mut settings_by_stock_id = HashMap::new();
     for stock in stocks {
@@ -178,7 +184,7 @@ fn seed_settings(
         settings_by_stock_id.insert(stock.id, stock_settings);
     }
 
-    let new_settings = new_settings(&settings_by_stock_id)?;
+    let new_settings = new_settings(&settings_by_stock_id, book_id)?;
 
     let setting_ids: HashMap<_, _> = diesel::insert_into(lifepath_settings::table)
         .values(new_settings)
@@ -188,7 +194,7 @@ fn seed_settings(
         .collect();
 
     let all_settings: Vec<_> = settings_by_stock_id.values().flatten().collect();
-    let new_lifepaths = new_lifepaths(&all_settings, &setting_ids)?;
+    let new_lifepaths = new_lifepaths(&all_settings, &setting_ids, book_id)?;
 
     let created_lifepaths = diesel::insert_into(lifepaths::table)
         .values(new_lifepaths)
@@ -308,13 +314,14 @@ fn id_and_entryless_name(
 
 fn new_settings(
     settings_by_stock_id: &HashMap<i32, Vec<LifepathSetting>>,
+    book_id: i32,
 ) -> StdResult<Vec<NewSetting>> {
     let mut new_settings = Vec::new();
 
     for (&stock_id, stock_settings) in settings_by_stock_id.iter() {
         let new_setting = |setting: &deserialize::LifepathSetting| NewSetting {
+            book_id,
             stock_id,
-            book: Book::GoldRevised,
             page: setting.page,
             name: setting.name.clone(),
         };
@@ -328,6 +335,7 @@ fn new_settings(
 fn new_lifepaths(
     all_settings: &[&LifepathSetting],
     setting_ids: &HashMap<String, i32>,
+    book_id: i32,
 ) -> StdResult<Vec<NewLifepath>> {
     let mut new_lifepaths = Vec::new();
 
@@ -337,7 +345,7 @@ fn new_lifepaths(
             .ok_or_else(|| format!("uncreated setting: {}", setting.name))?;
 
         for lifepath in &setting.lifepaths {
-            let new_lifepath = new_lifepath(lifepath, lifepath_setting_id);
+            let new_lifepath = new_lifepath(lifepath, lifepath_setting_id, book_id);
             new_lifepaths.push(new_lifepath);
         }
     }
@@ -345,7 +353,11 @@ fn new_lifepaths(
     Ok(new_lifepaths)
 }
 
-fn new_lifepath(lifepath: &deserialize::Lifepath, lifepath_setting_id: i32) -> NewLifepath {
+fn new_lifepath(
+    lifepath: &deserialize::Lifepath,
+    lifepath_setting_id: i32,
+    book_id: i32,
+) -> NewLifepath {
     // prince of the blood
     let (years_min, years_max) = if lifepath.years.is_some() {
         (None, None)
@@ -361,8 +373,8 @@ fn new_lifepath(lifepath: &deserialize::Lifepath, lifepath_setting_id: i32) -> N
     };
 
     NewLifepath {
+        book_id,
         lifepath_setting_id,
-        book: Book::GoldRevised,
         page: lifepath.page,
         name: lifepath.name.clone(),
 

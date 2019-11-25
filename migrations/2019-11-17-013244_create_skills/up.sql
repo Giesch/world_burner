@@ -32,7 +32,7 @@ SELECT diesel_manage_updated_at('skill_types');
 CREATE TABLE skills (
   id SERIAL PRIMARY KEY,
   skill_type_id INTEGER NOT NULL REFERENCES skill_types (id),
-  book book_type NOT NULL,
+  book_id INTEGER NOT NULL REFERENCES books (id),
   page INTEGER NOT NULL CHECK (page > 0),
   name TEXT NOT NULL,
   magical BOOLEAN NOT NULL DEFAULT false,
@@ -40,7 +40,7 @@ CREATE TABLE skills (
   wise BOOLEAN NOT NULL DEFAULT false,
   tools tool_req NOT NULL,
 
-  UNIQUE (book, name),
+  UNIQUE (book_id, name),
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

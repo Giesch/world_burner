@@ -1,4 +1,4 @@
-INSERT INTO books (book, title, abbrev)
+INSERT INTO books (title, abbrev)
 VALUES
-  ('gold_revised', 'Burning Wheel Gold Revised', 'BWGR'),
-  ('codex', 'Burning Wheel Codex', 'BWC');
+  ('Burning Wheel Gold Revised', 'BWGR'),
+  ('Burning Wheel Codex', 'BWC');

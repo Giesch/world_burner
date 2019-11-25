@@ -1,6 +1,6 @@
 CREATE TABLE lifepath_settings (
   id SERIAL PRIMARY KEY,
-  book book_type NOT NULL,
+  book_id INTEGER NOT NULL REFERENCES books (id),
   stock_id INTEGER NOT NULL REFERENCES stocks (id),
   page INTEGER NOT NULL CHECK (page > 0),
   name TEXT NOT NULL,

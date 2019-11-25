@@ -2,7 +2,7 @@ CREATE TYPE stat_mod_type AS ENUM ('physical', 'mental', 'either', 'both');
 
 CREATE TABLE lifepaths (
   id SERIAL PRIMARY KEY,
-  book book_type NOT NULL,
+  book_id INTEGER NOT NULL REFERENCES books (id),
   lifepath_setting_id INTEGER NOT NULL REFERENCES lifepath_settings (id),
   page INTEGER NOT NULL CHECK (page > 0),
 

@@ -1,9 +1,5 @@
-* TODO seed trait lists
-  
 * TODO add more dwarf settings
 ** resolve config todos first
-*** leads with stock-distinct names
-*** unit tests for broken skill & trait links
 ** settings:
   - [ ] guilder
   - [ ] artificer
@@ -11,16 +7,27 @@
   - [ ] host
   - [ ] outcast
 
-* TODO think about how to handle common traits & born lifepaths
-** and fey blood
-** implement skill restrictions as requiring the specific common trait
+* TODO add leads table (constraint for same stock?)
+* TODO seed leads table
+** lifepath id
+** setting id
+* TODO think about how to handle stock common traits & born lifepaths
 ** need a table of common traits by stock?
+** how to handle human cultural traits?
+** and fey blood
+*** implement skill restrictions as requiring the specific common trait
 
 * db changes
-** think about a nice way to ensure list_position correctness (can't use check)
-** TODO make everything polymorphic on pageref vs user_id
-** TODO leads table (constraint for same stock?)
 ** TODO think about how to do appropriate weapons
+*** treat it as any other skill until the point buy phase
+**** also need to special case it for restrictions (ie counts as sword)
+**** add a step to the process where they're forced to choose weapon skills to replace it
+**** hardcode appropriate weapons into the specific skill restrictions
+***** ie now it requires sword or app. weap.
+** think about a nice way to ensure list_position correctness (can't use check)
+*** a trigger that checks if max list position is equal to count distinct?
+*** are triggers slow? fine for this project?
+** TODO make everything polymorphic on pageref vs user_id
 ** think about how to do lifepath requirements
 *** store predicates as data
 *** types of predicates:
@@ -34,9 +41,9 @@
 ***** they must have access to that trait
 ***** they must purchase that trait when actually making the character
 **** a wife lifepath's husband lp (lady, dame)
-** TODO change book back to just a table instead of an enum
 
-* TODO have the app run pending migrations on startup
+* TODO set up a deployment w/heroku or aws
+** test that the app runs pending migrations on startup
 * TODO have the app seed book data in a smart way
 ** add a 'migration' tracking table for book seeds?
   ie, diesel migration adds a todo list row to the seed table,
@@ -44,8 +51,7 @@
 * TODO find a way to seed the test database one time
 ** make a custom test runner
    https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html
-** bin for recreating test database?
-*** ie recreate in the runner every time, or just run pending migrations in the runner?
+** recreate the test db once every time
 ** use diesel's test_transaction
 
 * TODO move the HALF_PREVIOUS constant to a repo module and make it private

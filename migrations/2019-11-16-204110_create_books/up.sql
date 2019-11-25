@@ -1,7 +1,5 @@
-CREATE TYPE book_type AS ENUM ('gold_revised', 'codex');
-
 CREATE TABLE books (
-  book book_type PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   abbrev TEXT UNIQUE NOT NULL,
   title TEXT UNIQUE NOT NULL,
 
