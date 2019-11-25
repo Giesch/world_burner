@@ -74,9 +74,18 @@ pub struct NewSkillRoot {
 
 #[derive(Insertable, Debug, PartialEq, Eq)]
 #[table_name = "lifepath_skill_lists"]
-pub struct NewLifepathSkillList {
+pub struct NewSkillList {
     pub lifepath_id: i32,
     pub list_position: i32,
     pub skill_id: i32,
     pub entryless_skill: Option<String>,
+}
+
+#[derive(Insertable, Debug, PartialEq, Eq)]
+#[table_name = "lifepath_trait_lists"]
+pub struct NewTraitList {
+    pub lifepath_id: i32,
+    pub list_position: i32,
+    pub trait_id: Option<i32>,
+    pub char_trait: Option<String>,
 }

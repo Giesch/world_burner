@@ -28,6 +28,18 @@ pub struct CreatedSkill {
 }
 
 #[derive(Queryable, Debug, PartialEq, Eq)]
+pub struct CreatedTrait {
+    pub id: i32,
+    pub book: Book,
+    pub page: i32,
+    pub name: String,
+    pub cost: Option<i32>,
+    pub typ: TraitType,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+}
+
+#[derive(Queryable, Debug, PartialEq, Eq)]
 pub struct CreatedSetting {
     pub id: i32,
     pub book: Book,

@@ -2,7 +2,8 @@ CREATE TABLE lifepath_trait_lists (
   lifepath_id INTEGER NOT NULL REFERENCES lifepaths (id),
   list_position INTEGER NOT NULL CHECK (list_position >= 0),
 
-  -- either a trait (any type) with an entry, or a char trait without an entry
+  -- either a trait (any type) with an entry,
+  -- or a character trait without an entry
   trait_id INTEGER REFERENCES traits (id),
   char_trait TEXT,
 
