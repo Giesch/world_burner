@@ -130,7 +130,7 @@ pub struct Lifepath {
     #[serde(default)]
     pub stat_mod: StatMod,
     #[serde(default)]
-    pub leads: Vec<Lead>,
+    pub leads: Vec<String>,
     #[serde(default)]
     pub gen_skill_pts: i32,
     pub skill_pts: i32,
@@ -147,17 +147,6 @@ pub struct LifepathSetting {
     pub name: String,
     pub page: i32,
     pub lifepaths: Vec<Lifepath>,
-}
-
-#[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
-pub enum Lead {
-    Any,
-    DwarfClansman,
-    DwarfGuilder,
-    DwarfArtificer,
-    DwarfNoble,
-    DwarfHost,
-    DwarfOutcast,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]

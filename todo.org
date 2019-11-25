@@ -6,9 +6,6 @@
   - [ ] host
   - [ ] outcast
 
-* TODO think about making leads strings in the config
-** then could just look up the settings by name & stock
-
 * TODO enter skills list
 * TODO enter traits list
 
@@ -16,6 +13,7 @@
 * TODO seed leads table
 ** lifepath id
 ** setting id
+** look up settings by name & stock
 
 * TODO think about replacing the seeding code with sql
 
