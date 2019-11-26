@@ -15,7 +15,6 @@ pub struct CreatedStock {
 #[derive(Queryable, Debug, PartialEq, Eq)]
 pub struct CreatedSkill {
     pub id: i32,
-    pub skill_type_id: i32,
     pub book_id: i32,
     pub page: i32,
     pub name: String,

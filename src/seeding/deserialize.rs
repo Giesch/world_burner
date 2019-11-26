@@ -1,4 +1,5 @@
 use ron::de;
+use std::fmt;
 use std::fs;
 use std::path::Path;
 
@@ -74,7 +75,8 @@ pub struct Skill {
     pub root: SkillRoot,
     #[serde(default)]
     pub magical: bool,
-    pub skill_type: SkillType,
+    #[serde(default)]
+    pub training: bool,
     pub tools: ToolRequirement,
     #[serde(default)]
     pub restrictions: Restriction,
@@ -172,55 +174,25 @@ pub struct Setting {
     pub page: u16,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
-pub enum SkillType {
-    Academic,
-    Artisan,
-    Artist,
-    Craftsman,
-    Forester,
-    Martial,
-    Medicinal,
-    Military,
-    Musical,
-    Peasant,
-    Physical,
-    SchoolOfThought,
-    Seafaring,
-    Social,
-    Sorcerous,
-    Special,
-}
-
-impl SkillType {
-    pub fn db_name(&self) -> &str {
-        use SkillType::*;
-        match self {
-            Academic => "academic",
-            Artisan => "artisan",
-            Artist => "artist",
-            Craftsman => "craftsman",
-            Forester => "forester",
-            Martial => "martial",
-            Medicinal => "medicinal",
-            Military => "military",
-            Musical => "musical",
-            Peasant => "peasant",
-            Physical => "physical",
-            SchoolOfThought => "school_of_thought",
-            Seafaring => "seafaring",
-            Social => "social",
-            Sorcerous => "sorcerous",
-            Special => "special",
-        }
-    }
-}
-
 #[derive(Deserialize, Debug, Clone)]
 pub enum SkillRoot {
     Single(Stat),
     Pair(Stat, Stat),
-    Attribute(String),
+    Attribute(AttributeRoot),
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub enum AttributeRoot {
+    Hatred,
+}
+
+impl fmt::Display for AttributeRoot {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = match self {
+            Self::Hatred => "hatred",
+        };
+        write!(f, "{}", s)
+    }
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]

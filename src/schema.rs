@@ -16,6 +16,8 @@ pub enum ToolRequirement {
     No,
     Expendable,
     Workshop,
+    Weapon,
+    TravelingGear,
 }
 
 #[PgType = "stat_type"]
@@ -134,7 +136,6 @@ table! {
 
     skills (id) {
         id -> Int4,
-        skill_type_id -> Int4,
         book_id -> Int4,
         page -> Int4,
         name -> Text,
@@ -142,17 +143,6 @@ table! {
         training -> Bool,
         wise -> Bool,
         tools -> ToolRequirementMapping,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-table! {
-    use diesel::sql_types::*;
-
-    skill_types (id) {
-        id -> Int4,
-        name -> Text,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
@@ -198,7 +188,6 @@ joinable!(lifepaths -> books (book_id));
 joinable!(lifepaths -> lifepath_settings (lifepath_setting_id));
 joinable!(skill_roots -> skills (skill_id));
 joinable!(skills -> books (book_id));
-joinable!(skills -> skill_types (skill_type_id));
 joinable!(stocks -> books (book_id));
 joinable!(traits -> books (book_id));
 
@@ -210,7 +199,6 @@ allow_tables_to_appear_in_same_query!(
     lifepath_trait_lists,
     skill_roots,
     skills,
-    skill_types,
     stocks,
     traits,
 );

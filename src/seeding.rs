@@ -85,21 +85,10 @@ fn seed_stocks(db: &PgConnection, book_id: i32) -> StdResult<Vec<CreatedStock>> 
 }
 
 fn seed_skills(db: &PgConnection, book_id: i32) -> StdResult<HashMap<String, i32>> {
-    let skill_type_ids: HashMap<String, i32> = skill_types::table
-        .select((skill_types::id, skill_types::name))
-        .load::<(i32, String)>(db)?
-        .into_iter()
-        .map(|(id, name)| (name, id))
-        .collect();
-
     let config_skills = read_skills()?;
 
     let mut new_skills = Vec::new();
     for skill in &config_skills {
-        let skill_type_id = *skill_type_ids
-            .get(skill.skill_type.db_name())
-            .ok_or_else(|| format!("unknown skill type: {:?}", skill.skill_type))?;
-
         let new_skill = NewSkill {
             book_id,
             name: skill.name.clone(),
@@ -107,7 +96,6 @@ fn seed_skills(db: &PgConnection, book_id: i32) -> StdResult<HashMap<String, i32
             tools: skill.tools,
             magical: skill.magical,
             wise: skill.name.ends_with("-wise"),
-            skill_type_id,
         };
 
         new_skills.push(new_skill);

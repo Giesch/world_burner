@@ -7,13 +7,15 @@
   - [ ] outcast
 
 * TODO enter skills list
+** are wises Wise type or Special type?
 * TODO enter traits list
 
-* TODO add leads table (constraint for same stock?)
+* TODO add leads table
 * TODO seed leads table
 ** lifepath id
 ** setting id
 ** look up settings by name & stock
+** think about using a trigger for same-stock restriction
 
 * TODO think about replacing the seeding code with sql
 

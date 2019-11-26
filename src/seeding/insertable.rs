@@ -18,7 +18,6 @@ pub struct NewSkill {
     pub magical: bool,
     pub tools: ToolRequirement,
     pub wise: bool,
-    pub skill_type_id: i32,
 }
 
 #[derive(Insertable, Debug, PartialEq, Eq)]
