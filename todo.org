@@ -1,3 +1,5 @@
+* TODO enter skills list
+   
 * TODO add more dwarf settings
 ** settings:
   - [ ] guilder
@@ -6,8 +8,6 @@
   - [ ] host
   - [ ] outcast
 
-* TODO enter skills list
-** are wises Wise type or Special type?
 * TODO enter traits list
 
 * TODO add leads table
@@ -64,3 +64,30 @@
 
 * TODO move the HALF_PREVIOUS constant to a repo module and make it private
 ** db_string method on ResCalc enum
+
+* TODO rethink tools requirement type
+** can be multiple things (field dressing: travelling gear expendable)
+** TODO weapon should be specific (ranged/melee)
+** TODO musical instruments should get their own category
+** TODO special categories like logistics/estate management
+*** better to just have a generic tool description field?
+*** might want to have a field to specify item id if/when there is such a thing
+*** should leave tool requirement out of db for now?
+** get rid of expendable? doesn't matter for character creation
+*** still useful to mark it for players, though
+*** TODO allow TravelingGear(Expendable)
+**** add a deserialization type for tool requirement
+**** make tools_expendable a db flag
+
+* TODO are skills unique by name?
+** torture changes based on if an orc takes it
+*** for now, we're renaming the orc one
+** user created stuff might need to be tied to a stock
+*** multiple versions of sorcery, for example
+*** we could have a user equivalent of a book?
+
+* TODO how to do elven skill songs
+** they appear in the skill list, but get their own table?
+** we could just put them in the skills table
+*** will root
+*** elves only (allowed by fey blood?)

@@ -710,11 +710,26 @@ Skills(skills: [
     tools: No,
   ),
 
+  Skill(
+    name: "extortion",
+    page: 271,
+    root: Single(Will),
+    tools: No,
+  ),
 
+  Skill(
+    name: "falconry",
+    page: 272,
+    root: Pair(Will, Perception),
+    tools: Yes,
+  ),
 
-
-
-
+  Skill(
+    name: "falsehood",
+    page: 271,
+    root: Single(Will),
+    tools: No,
+  ),
 
   Skill(
     name: "farming",
@@ -732,11 +747,147 @@ Skills(skills: [
   ),
 
   Skill(
+    name: "field dressing",
+    page: 272,
+    root: Single(Perception),
+    tools: TravelingGear(Expendable),
+  ),
+
+  Skill(
+    name: "firearms",
+    page: 272,
+    root: Pair(Perception, Agility),
+    tools: Weapon,
+  ),
+
+  Skill(
+    name: "firebuilding",
+    page: 273,
+    root: Single(Perception),
+    tools: TravelingGear(Expendable),
+  ),
+
+  Skill(
+    name: "fishing",
+    page: 273,
+    root: Pair(Perception, Agility),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "fletcher",
+    page: 273,
+    root: Pair(Perception, Agility),
+    tools: Expendable,
+  ),
+
+  Skill(
+    name: "folklore",
+    page: 273,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "foraging",
+    page: 273,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "foreign languages",
+    page: 273,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "forge artifice",
+    page: 274,
+    root: Pair(Will, Perception),
+    tools: Workshop,
+    magical: true,
+    restrictions: Only(Dwarves),
+  ),
+
+  Skill(
+    name: "forgery",
+    page: 274,
+    root: Pair(Perception, Agility),
+    tools: Expendable,
+  ),
+
+  Skill(
+    name: "formation fighting",
+    page: 274,
+    root: Single(Will),
+    tools: No,
+    training: true,
+  ),
+
+  Skill(
+    name: "fortifications",
+    page: 274,
+    root: Single(Perception),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "gambling",
+    page: 275,
+    root: Pair(Will, Perception),
+    tools: TravelingGear,
+  ),
+
+  Skill(
+    name: "games of chance",
+    page: 275,
+    root: Single(Perception),
+    tools: TravelingGear,
+    restrictions: Only(Dwarves, CharBurning),
+  ),
+
+  Skill(
+    name: "gem artifice",
+    page: 275,
+    root: Pair(Will, Agility),
+    tools: Workshop,
+    magical: true,
+    restrictions: Only(Dwarves),
+  ),
+
+  Skill(
+    name: "gemcraft",
+    page: 275,
+    root: Pair(Will, Agility),
+    tools: Workshop,
+    magical: true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
     name: "grain appraisal",
     page: 276,
     root: Single(Perception),
     tools: No,
     restrictions: Only(Dwarves, CharBurning),
+  ),
+
+  Skill(
+    name: "grain song",
+    page: 276,
+    root: Single(Perception),
+    tools: No,
+    magical: true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "great wolf husbandry",
+    page: 276,
+    root: Single(Will),
+    tools: Yes,
   ),
 
   Skill(
@@ -747,6 +898,57 @@ Skills(skills: [
   ),
 
   Skill(
+    name: "hallmaster",
+    page: 276,
+    root: Pair(Will, Perception),
+    tools: Workshop,
+    magical: true,
+    restrictions: Only(Dwarves),
+  ),
+
+  Skill(
+    name: "hammer",
+    page: 276,
+    root: Single(Agility),
+    tools: Weapon,
+  ),
+
+  Skill(
+    name: "hauling",
+    page: 277,
+    root: Pair(Will, Power),
+    tools: No,
+  ),
+
+  Skill(
+    name: "heraldry",
+    page: 277,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "heraldry",
+    page: 277,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "heraldry",
+    page: 277,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "herbalism",
+    page: 277,
+    root: Single(Perception),
+    tools: Expendable,
+  ),
+
+  Skill(
     name: "history",
     page: 277,
     root: Single(Perception),
@@ -754,10 +956,218 @@ Skills(skills: [
   ),
 
   Skill(
+    name: "hunting",
+    page: 277,
+    root: Pair(Perception, Agility),
+    tools: Weapon,
+  ),
+
+  Skill(
+    name: "hymn of scales and fins",
+    page: 278,
+    root: Pair(Perception, Agility),
+    tools: yes,
+    magical: true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "illuminations",
+    page: 278,
+    root: Single(Agility),
+    tools: Expendable,
+  ),
+
+  Skill(
+    name: "inconspicuous",
+    page: 278,
+    root: Single(Will),
+    tools: No,
+  ),
+
+  Skill(
+    name: "insect husbandry",
+    page: 278,
+    root: Single(Will),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "instruction",
+    page: 278,
+    root: Single(Will),
+    tools: No,
+  ),
+
+  Skill(
+    name: "interrogation",
+    page: 278,
+    root: Single(Will),
+    tools: No,
+  ),
+
+  Skill(
+    name: "intimidation",
+    page: 278,
+    root: Single(Will),
+    tools: No,
+  ),
+
+  Skill(
+    name: "jargon",
+    page: 279,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "javelin",
+    page: 279,
+    root: Single(Agility),
+    tools: No,
+  ),
+
+  Skill(
+    name: "jewelcraft",
+    page: 279,
+    root: Single(Agility),
+    tools: Workshop,
+    magical: true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "jeweler",
+    page: 279,
+    root: Pair(Perception, Agility),
+    tools: Workshop,
+  ),
+
+  Skill(
+    name: "khirurgy",
+    page: 279,
+    root: Pair(Perception, Agility),
+    tools: Yes,
+    restrictions: Only(Dwarves, CharBurning),
+  ),
+
+  Skill(
+    name: "knives",
+    page: 279,
+    root: Single(Agility),
+    tools: Weapon,
+  ),
+
+  Skill(
+    name: "knots",
+    page: 290,
+    root: Pair(Perception, Agility),
+    tools: TravelingGear(Expendable),
+  ),
+
+  Skill(
+    name: "lance",
+    page: 290,
+    root: Pair(Agility, Power),
+    tools: Weapon,
+  ),
+
+  Skill(
+    name: "lapidary",
+    page: 290,
+    root: Single(Perception),
+    tools: Workshop,
+  ),
+
+  Skill(
+    name: "leathercraft",
+    page: 290,
+    root: Pair(Will, Agility),
+    tools: Workshop,
+    magical: true,
+    restrictions: Only(Elves),
+  ),
+
+ Skill(
+    name: "links",
+    page: 280,
+    root: Pair(Will, Forte),
+    tools: Yes,
+    restrictions: Only(Dwarves, CharBurning),
+  ),
+
+ Skill(
+    name: "lithography",
+    page: 281,
+    root: Pair(Perception, Agility),
+    tools: Workshop,
+    magical: true,
+    restrictions: Only(Dwarves),
+  ),
+
+ Skill(
+    name: "lock pick",
+    page: 281,
+    root: Pair(Perception, Agility),
+    tools: Yes,
+  ),
+
+ Skill(
+    name: "locksmith",
+    page: 281,
+    root: Pair(Perception, Agility),
+    tools: Workshop,
+  ),
+
+ Skill(
+    name: "logistics",
+    page: 281,
+    root: Single(Perception),
+    tools: Yes,
+  ),
+
+ Skill(
+    name: "lyric of law",
+    page: 282,
+    root: Single(Perception),
+    tools: No,
+    magical: true,
+    restrictions: Only(Elves),
+  ),
+
+ Skill(
+    name: "mace",
+    page: 281,
+    root: Pair(Power, Agility),
+    tools: Weapon,
+  ),
+
+ Skill(
+    name: "mason",
+    page: 281,
+    root: Pair(Perception, Agility),
+    tools: Workshop,
+  ),
+
+ Skill(
+    name: "meditation",
+    page: 282,
+    root: Single(Will),
+    tools: No,
+  ),
+
+ Skill(
     name: "mending",
     page: 283,
     root: Pair(Perception, Agility),
     tools: Expendable,
+  ),
+
+ Skill(
+    name: "midwifery",
+    page: 283,
+    root: Pair(Will, Perception),
+    tools: No,
   ),
 
   Skill(
@@ -768,12 +1178,370 @@ Skills(skills: [
   ),
 
   Skill(
-    name: "nogger",
+    name: "mimicry",
     page: 284,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "mining",
+    page: 284,
+    root: Single(Perception),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "mounted combat training",
+    page: 284,
+    root: Pair(Will, Perception),
+    tools: No,
+    training: true,
+  ),
+
+  Skill(
+    name: "munitions",
+    page: 284,
+    root: Pair(Perception, Agility),
+    tools: Workshop,
+  ),
+
+  Skill(
+    name: "music composition",
+    page: 285,
+    root: Pair(Perception, Will),
+    tools: Workshop,
+  ),
+
+  Skill(
+    name: "musical instrument",
+    page: 285,
+    root: Pair(Agility, Will),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "name ritual",
+    page: 285,
+    root: Pair(Perception, Will),
+    tools: No,
+  ),
+
+  Skill(
+    name: "name ritual",
+    page: 285,
+    root: Pair(Perception, Will),
+    tools: No,
+    restrictions: Only(Orcs, CharBurning),
+  ),
+
+  Skill(
+    name: "navigation",
+    page: 285,
+    root: Single(Perception),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "nogger",
+    page: 285,
     root: Pair(Will, Perception),
     magical: true,
     tools: Workshop,
     restrictions: Only(Dwarves),
+  ),
+
+  Skill(
+    name: "observation",
+    page: 286,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "oratory",
+    page: 286,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "orienteering",
+    page: 286,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "paen of deeds",
+    page: 287,
+    root: Single(Will),
+    tools: No,
+    magical: true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "painting",
+    page: 287,
+    root: Pair(Will, Agility),
+    tools: Expendable,
+  ),
+
+  Skill(
+    name: "persuasion",
+    page: 287,
+    root: Single(Will),
+    tools: No,
+  ),
+
+  Skill(
+    name: "philosophy",
+    page: 287,
+    root: Single(Will, Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "pilot",
+    page: 288,
+    root: Pair(Power, Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "playwright",
+    page: 288,
+    root: Pair(Will, Perception),
+    tools: Expendable,
+  ),
+
+  Skill(
+    name: "plumbing",
+    page: 288,
+    root: Single(Perception),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "poetry",
+    page: 288,
+    root: Single(Perception),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "poisonous platitudes",
+    page: 288,
+    root: Attribute(Hatred),
+    tools: No,
+    magical: true,
+    restrictions: Only(Orcs),
+  ),
+
+  Skill(
+    name: "poisons",
+    page: 288,
+    root: Single(Perception),
+    tools: Expendable,
+  ),
+
+  Skill(
+    name: "polearm",
+    page: 289,
+    root: Pair(Power, Agility),
+    tools: Weapon,
+  ),
+
+  Skill(
+    name: "potter",
+    page: 289,
+    root: Pair(Perception, Agility),
+    tools: Expendable,
+  ),
+
+  Skill(
+    name: "prospecting",
+    page: 289,
+    root: Single(Perception),
+    tools: Expendable,
+  ),
+
+  Skill(
+    name: "purple song",
+    page: 289,
+    root: Pair(Perception, Agility),
+    tools: Workshop,
+    magical: true,
+    restrictions: Only(Elves)
+  ),
+
+  Skill(
+    name: "ratiquette",
+    page: 289,
+    root: Single(Will),
+    tools: No,
+  ),
+
+  Skill(
+    name: "read",
+    page: 290,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "reason of old stone",
+    page: 290,
+    root: Single(Will),
+    tools: No,
+    magical: true,
+    restrictions: Only(Dwarves)
+  ),
+
+  Skill(
+    name: "religious diatribe",
+    page: 290,
+    root: Single(Will),
+    tools: No,
+  ),
+
+  Skill(
+    name: "research",
+    page: 290,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "rhetoric",
+    page: 290,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "rhyme of the gatherer",
+    page: 291,
+    root: Single(Perception),
+    tools: No,
+    magical: true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "rhyme of the mariner",
+    page: 291,
+    root: Pair(Agility, Speed),
+    tools: No,
+    magical: true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "rhyme of the pathfinder",
+    page: 291,
+    root: Single(Perception),
+    tools: No,
+    magical: true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "riddle of steel",
+    page: 291,
+    root: Pair(Will, Agility),
+    tools: Workshop,
+    magical: true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "riding",
+    page: 291,
+    root: Single(Will),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "rigging",
+    page: 291,
+    root: Pair(Agility, Speed),
+    tools: No,
+  ),
+
+  Skill(
+    name: "ritual",
+    page: 292,
+    root: Pair(Will, Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "rituals of blood",
+    page: 292,
+    root: Single(Will),
+    tools: Yes,
+    magical: true,
+    restriction: Only(Orcs)
+  ),
+
+  Skill(
+    name: "rituals of night",
+    page: 292,
+    root: Single(Perception),
+    tools: No,
+    magical: true,
+    restriction: Only(Orcs)
+  ),
+
+  Skill(
+    name: "rope chant",
+    page: 292,
+    root: Single(Agility),
+    tools: No,
+    magical: true,
+    restriction: Only(Elves)
+  ),
+
+  Skill(
+    name: "round of harvest",
+    page: 292,
+    root: Single(Perception),
+    tools: Yes,
+    magical: true,
+    restriction: Only(Elves)
+  ),
+
+  Skill(
+    name: "rude carpentry",
+    page: 293,
+    root: Pair(Perception, Agility),
+    tools: Yes,
+    magical: true,
+    restriction: Only(Orcs, CharBurning)
+  ),
+
+  Skill(
+    name: "rule of law",
+    page: 293,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "rune casting",
+    page: 293,
+    root: Pair(Will, Perception),
+    tools: Yes,
+    restrictions: Only(Dwarves)
+  ),
+
+  Skill(
+    name: "saddlery",
+    page: 294,
+    root: Pair(Agility, Perception),
+    tools: Workshop,
   ),
 
   Skill(
@@ -784,9 +1552,329 @@ Skills(skills: [
   ),
 
   Skill(
+    name: "sculpture",
+    page: 294,
+    root: Pair(Will, Agility),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "seamanship",
+    page: 294,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "seduction",
+    page: 294,
+    root: Single(Will),
+    tools: No,
+  ),
+
+  Skill(
+    name: "servant-wise",
+    page: 295,
+    root: Single(Perception),
+    tools: No,
+    restrictions: Only(Orcs, CharBurning),
+  ),
+
+  Skill(
+    name: "sewing",
+    page: 295,
+    root: Single(Agility),
+    tools: No,
+  ),
+
+  Skill(
+    name: "shield traning",
+    page: 295,
+    root: Single(Agility),
+    tools: No,
+    training: true,
+  ),
+
+  Skill(
+    name: "ship management",
+    page: 295,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "shipwright",
+    page: 295,
+    root: Single(Perception),
+    tools: Workshop,
+  ),
+
+  Skill(
+    name: "shrewd appraisal",
+    page: 296,
+    root: Single(Perception),
+    tools: No,
+    restrictions: Only(Dwarves),
+  ),
+
+  Skill(
+    name: "siege engineer",
+    page: 296,
+    root: Single(Perception),
+    tools: Yes,
+    restrictions: Only(Orcs),
+  ),
+
+  Skill(
+    name: "signaling",
+    page: 296,
+    root: Single(Perception),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "silent fury",
+    page: 296,
+    root: Single(Will),
+    tools: No,
+    magical: true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "silver trumpet",
+    page: 296,
+    root: Single(Will),
+    tools: No,
+    restrictions: Only(Elves, CharBurning),
+  ),
+
+  Skill(
+    name: "sing",
+    page: 297,
+    root: Single(Will),
+    tools: No,
+  ),
+
+  Skill(
+    name: "skirmish tactics",
+    page: 297,
+    root: Pair(Will, Perception),
+    tools: No,
+    training: true,
+  ),
+
+  Skill(
+    name: "sleight of hand",
+    page: 297,
+    root: Single(Agility),
+    tools: No,
+  ),
+
+  Skill(
+    name: "slip of currents",
+    page: 297,
+    root: Single(Perception),
+    tools: No,
+    magical: true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "smithcraft",
+    page: 297,
+    root: Pair(Will, Agility),
+    tools: Workshop,
+    magical: true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "soldiering",
+    page: 298,
+    root: Pair(Will, Perception),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "song of the eldar",
+    page: 298,
+    root: Single(Perception),
+    tools: Yes,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "song of feasting",
+    page: 298,
+    root: Pair(Perception, Agility),
+    tools: Yes,
+    magical:true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "song of flocks and herds",
+    page: 298,
+    root: Single(Will),
+    tools: No,
+    magical:true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "song of form",
+    page: 298,
+    root: Single(Will),
+    tools: Yes,
+    magical:true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "song of lordship",
+    page: 299,
+    root: Single(Will),
+    tools: No,
+    magical:true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "song of paths and ways",
+    page: 299,
+    root: Single(Perception),
+    tools: No,
+    magical:true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "song of soothing",
+    page: 299,
+    root: Single(Perception),
+    tools: No,
+    magical:true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
     name: "soothing platitudes",
     page: 299,
     root: Single(Will),
+    tools: No,
+  ),
+
+  Skill(
+    name: "sorcery",
+    page: 299,
+    root: Single(Perception),
+    tools: No,
+    magical: true
+    restrictions: Any([Humans, Roden], CharBurning),
+  ),
+
+  Skill(
+    name: "spear",
+    page: 300,
+    root: Single(Agility),
+    tools: Weapon,
+  ),
+
+  Skill(
+    name: "spearcraft",
+    page: 300,
+    root: Pair(Will, Agility),
+    tools: Yes,
+    magical: true
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "spider husbandry",
+    page: 300,
+    root: Single(Will),
+    tools: Expendable,
+    restrictions: Only(Orcs, CharBurning),
+  ),
+
+  Skill(
+    name: "staff",
+    page: 300,
+    root: Single(Agility),
+    tools: Weapon,
+  ),
+
+  Skill(
+    name: "starcraft",
+    page: 300,
+    root: Single(Agility),
+    tools: Weapon,
+    magical: true,
+    restriction: Only(Elves)
+  ),
+
+  Skill(
+    name: "stealthy",
+    page: 301,
+    root: Single(Speed),
+    tools: No,
+  ),
+
+  Skill(
+    name: "stentorious debate",
+    page: 301,
+    root: Single(Will),
+    tools: No,
+    magical: true,
+    restrictions: Only(Dwarves),
+  ),
+
+  Skill(
+    name: "stentorious singing",
+    page: 301,
+    root: Single(Will),
+    tools: No,
+    magical: true,
+    restrictions: Only(Dwarves),
+  ),
+
+  Skill(
+    name: "stone artifice",
+    page: 301,
+    root: Pair(Will, Power),
+    tools: Workshop,
+    magical: true,
+    restrictions: Only(Dwarves),
+  ),
+
+  Skill(
+    name: "stonecraft",
+    page: 301,
+    root: Pair(Will, Agility),
+    tools: Workshop,
+    magical: true,
+    restrictions: Only(Elves),
+  ),
+
+  Skill(
+    name: "strategy",
+    page: 302,
+    root: Pair(Will, Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "strategy games",
+    page: 302,
+    root: Pair(Will, Perception),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "streetwise",
+    page: 302,
+    root: Single(Perception),
     tools: No,
   ),
 
@@ -797,6 +1885,141 @@ Skills(skills: [
     tools: No,
     restrictions: Only(Dwarves, CharBurning),
   ),
+
+  Skill(
+    name: "suasion",
+    page: 302,
+    root: Single(Will),
+    tools: No,
+  ),
+
+  Skill(
+    name: "summoning",
+    page: 303,
+    root: Single(Perception),
+    tools: No,
+    restrictions: Only(Humans, CharBurning),
+  ),
+
+  Skill(
+    name: "surgery",
+    page: 303,
+    root: Pair(Perception, Agility),
+    tools: Expendable,
+  ),
+
+  Skill(
+    name: "survival",
+    page: 303,
+    root: Pair(Will, Perception),
+    tools: TravelingGear,
+  ),
+
+  Skill(
+    name: "sword",
+    page: 303,
+    root: Pair(Agility),
+    tools: Weapon,
+  ),
+
+  Skill(
+    name: "symbology",
+    page: 303,
+    root: Pair(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "tactics",
+    page: 304,
+    root: Single(Will, Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "tanner",
+    page: 304,
+    root: Single(Agility, Forte),
+    tools: Workshop,
+  ),
+
+  Skill(
+    name: "taxidermy",
+    page: 304,
+    root: Single(Perception),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "theatrics",
+    page: 304,
+    root: Pair(Will, Perception),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "threading chant",
+    page: 304,
+    root: Pair(Perception, Agility),
+    tools: Yes,
+    magical: true,
+    restricitons: Only(Elves)
+  ),
+
+  Skill(
+    name: "throwing",
+    page: 304,
+    root: Single(Agility),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "torture",
+    page: 304,
+    root: Pair(Will, Perception),
+    tools: Yes,
+  ),
+
+  Skill(
+    name: "torture (orc)",
+    page: 304,
+    root: Attribute(Hatred),
+    tools: Yes,
+    magical: true,
+    restrictions: Only(Orcs),
+  ),
+
+  Skill(
+    name: "tracking",
+    page: 305,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "trapper",
+    page: 305,
+    root: Pair(Perception, Agility),
+    tools: Expendable,
+  ),
+
+  Skill(
+    name: "tree pulling",
+    page: 305,
+    root: Attribute(Hatred),
+    tools: Expendable,
+    magical: true,
+    restrictions: Only(Orcs)
+  ),
+
+  Skill(
+    name: "troll ettiquete",
+    page: 305,
+    root: Pair(Will, Perception),
+    tools: No,
+  ),
+
+
 
   Skill(
     name: "tunnel-wise",
