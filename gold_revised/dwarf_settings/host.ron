@@ -1,0 +1,169 @@
+#![enable(unwrap_newtypes)]
+#![enable(implicit_some)]
+
+LifepathSetting(
+  name: "host",
+  page: 114,
+  lifepaths: [
+    Lifepath(
+      name: "foot soldier",
+      page: 114,
+      years: 10,
+      res: 6,
+      stat_mod: Physical(1),
+      leads: ["guilder", "outcast", "clansman"],
+      skill_pts: 6,
+      trait_pts: 1,
+      skills: ["foraging", "brawling", "hammer", "armor training",
+        "shield training", "cadence-wise"],
+      traits: ["salt of the earth"]
+    ),
+
+    Lifepath(
+      name: "arbalester",
+      page: 114,
+      years: 12,
+      res: 12,
+      stat_mod: Either(1),
+      leads: ["guilder", "outcast", "clansman"],
+      skill_pts: 5,
+      trait_pts: 1,
+      skills: ["crossbow", "mending", "fletcher", "artillery hand", "windage-wise"],
+      traits: ["squinty"]
+    ),
+
+    Lifepath(
+      name: "banner bearer",
+      page: 114,
+      years: 7,
+      res: 10,
+      stat_mod: Physical(1),
+      leads: ["guilder", "outcast", "clansman"],
+      skill_pts: 4,
+      trait_pts: 2,
+      skills: ["conspicuous", "banner-wise", "intimidation"],
+      traits: ["resigned to death", "obsessive"]
+    ),
+
+    Lifepath(
+      name: "horncaller",
+      page: 114,
+      years: 7,
+      res: 9,
+      stat_mod: Physical(1),
+      leads: ["guilder", "outcast", "clansman"],
+      skill_pts: 5,
+      trait_pts: 1,
+      skills: ["links", "conspicuous", "cadence-wise", "suicidal bravery-wise"],
+      traits: []
+    ),
+
+    Lifepath(
+      name: "axe bearer (host)",
+      page: 114,
+      years: 15,
+      res: 15,
+      stat_mod: Physical(1),
+      leads: ["guilder", "outcast", "noble"],
+      skill_pts: 9,
+      trait_pts: 1,
+      skills: ["foraging", "axe", "conspicuous", "intimidation", "armor training",
+        "shield training", "formation fighting", "throwing"],
+      traits: ["swaggering"]
+    ),
+
+    Lifepath(
+      name: "graybeard",
+      page: 115,
+      years: 20,
+      res: 20,
+      stat_mod: Either(1),
+      leads: ["guilder", "outcast", "noble"],
+      skill_pts: 5,
+      trait_pts: 2,
+      skills: ["intimidation", "field dressing", "command", "campaign-wise"],
+      traits: ["chuffing", "oddly likeable"]
+    ),
+
+    Lifepath(
+      name: "khirurgeon",
+      page: 115,
+      years: 25,
+      res: 25,
+      stat_mod: Mental(1),
+      leads: ["guilder", "outcast", "noble"],
+      skill_pts: 6,
+      trait_pts: 1,
+      skills: ["khirurgy", "soothing platitudes", "cooking", "infection-wise"],
+      traits: []
+    ),
+
+    Lifepath(
+      name: "quartermaster",
+      page: 115,
+      years: 50,
+      res: 35,
+      stat_mod: Mental(1),
+      leads: ["guilder", "outcast", "noble"],
+      skill_pts: 7,
+      trait_pts: 1,
+      skills: ["logistics", "accounting", "strategy", "supply-wise", "host-wise"],
+      traits: ["no nonsense"]
+    ),
+
+    Lifepath(
+      name: "captain",
+      page: 115,
+      years: 55,
+      res: 40,
+      stat_mod: Mental(1),
+      leads: ["guilder", "outcast", "noble"],
+      skill_pts: 7,
+      trait_pts: 1,
+      skills: ["command", "conspicuous", "formation fighting", "tactics", "cartography",
+        "graybeard-wise"],
+      traits: []
+    ),
+
+    Lifepath(
+      name: "artillerist",
+      page: 115,
+      years: 55,
+      res: 45,
+      stat_mod: Either(1),
+      leads: ["artificer", "outcast", "noble"],
+      skill_pts: 5,
+      trait_pts: 1,
+      skills: ["artillerist", "mending", "carpentry", "structural weakness-wise"],
+      traits: ["complaining"]
+    ),
+
+    Lifepath(
+      name: "engineer",
+      page: 115,
+      years: 60,
+      res: 50,
+      stat_mod: Either(1),
+      leads: ["artificer", "noble"],
+      skill_pts: 6,
+      trait_pts: 2,
+      skills: ["jargon", "war engineer", "scavenging", "leverage-wise"],
+      traits: ["estimation"]
+    ),
+
+    Lifepath(
+      name: "warden",
+      page: 115,
+      years: 75,
+      res: 65,
+      stat_mod: Either(1),
+      leads: ["outcast", "noble"],
+      skill_pts: 7,
+      trait_pts: 1,
+      skills: ["conspicuous", "oratory", "observation", "strategy", "etiquette",
+        "champion-wise"],
+      traits: ["chuntering", "hard as nails"]
+    ),
+
+  ],
+)

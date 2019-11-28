@@ -1,0 +1,88 @@
+#![enable(unwrap_newtypes)]
+#![enable(implicit_some)]
+
+LifepathSetting(
+  name: "outcast",
+  page: 116,
+  lifepaths: [
+    Lifepath(
+      name: "adventurer",
+      page: 116,
+      years: 5,
+      res: 10,
+      stat_mod: Either(1),
+      leads: ["clansman", "guilder"],
+      skill_pts: 12,
+      trait_pts: 2,
+      skills: ["survival", "climbing", "knots", "herbalism", "haggling", "firebuilding",
+        "brawling", "knives", "sword", "crossbow", "lock pick", "appraisal",
+        "obscure history", "symbology", "lost treasures-wise"],
+      traits: []
+    ),
+
+    Lifepath(
+      name: "gambler",
+      page: 116,
+      years: 7,
+      res: 15,
+      stat_mod: Mental(1),
+      leads: ["clansman"],
+      skill_pts: 5,
+      trait_pts: 2,
+      skills: ["games of chance", "observation", "sleight of hand", "cheat-wise"],
+      traits: ["stone-faced"]
+    ),
+
+    Lifepath(
+      name: "oathbreaker",
+      page: 116,
+      years: 20,
+      res: 5,
+      stat_mod: Mental(1),
+      leads: ["clansman"],
+      skill_pts: 4,
+      trait_pts: 2,
+      skills: ["ugly truth", "falsehood", "oath-wise"],
+      traits: ["oathbreaker", "bitter"]
+    ),
+
+    Lifepath(
+      name: "drunk",
+      page: 116,
+      years: 10,
+      res: 5,
+      leads: ["clansman"],
+      skill_pts: 5,
+      trait_pts: 2,
+      skills: ["stentorious singing", "drunking", "tavern tales-wise"],
+      traits: ["drunk", "despondent"]
+    ),
+
+    Lifepath(
+      name: "coward",
+      page: 116,
+      years: 15,
+      res: 5,
+      stat_mod: Either(1),
+      leads: [],
+      skill_pts: 5,
+      trait_pts: 3,
+      skills: ["inconspicuous", "ugly truth", "oratory", "hypocritical bastards-wise"],
+      traits: ["branded a coward"]
+    ),
+
+    Lifepath(
+      name: "rune caster",
+      page: 116,
+      years: 20,
+      res: 6,
+      stat_mod: Both(1),
+      leads: ["clansman", "guilder", "artificer", "noble"],
+      skill_pts: 5,
+      trait_pts: 2,
+      skills: ["rune casting", "foraging", "scavenging", "bad end-wise"],
+      traits: ["slave to fate"]
+    ),
+
+  ],
+)
