@@ -5,7 +5,7 @@
 ** settings:
   - [X] guilder
   - [X] artificer
-  - [ ] noble
+  - [X] noble
   - [ ] host
   - [ ] outcast
 

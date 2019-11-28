@@ -1,0 +1,121 @@
+#![enable(unwrap_newtypes)]
+#![enable(implicit_some)]
+
+LifepathSetting(
+  name: "noble",
+  page: 113,
+  lifepaths: [
+    Lifepath(
+      name: "born noble",
+      page: 113,
+      years: 21,
+      res: 10,
+      leads: ["guilder", "artificer"],
+      gen_skill_pts: 4,
+      skill_pts: 2,
+      trait_pts: 2,
+      skills: ["dwarven rune script"],
+      traits: ["dvergar"]
+    ),
+
+    Lifepath(
+      name: "abecedart",
+      page: 113,
+      years: 20,
+      res: 10,
+      leads: ["guilder", "artificer", "outcast"],
+      skill_pts: 4,
+      trait_pts: 1,
+      skills: ["chronology of kings", "etiquette", "obscure text-wise"],
+      traits: ["know it all"]
+    ),
+
+    Lifepath(
+      name: "ardent (noble)",
+      page: 113,
+      years: 25,
+      res: 15,
+      leads: ["guilder", "artificer", "outcast"],
+      skill_pts: 4,
+      trait_pts: 2,
+      skills: ["sing", "soothing platitudes", "accounting", "whispered secrets-wise"],
+      traits: ["humility in the face of your betters"]
+    ),
+
+    Lifepath(
+      name: "axe bearer",
+      page: 113,
+      years: 20,
+      res: 25,
+      leads: ["host", "outcast"],
+      skill_pts: 8,
+      trait_pts: 1,
+      skills: ["axe", "armor training", "shield training", "formation fighting", "throwing"],
+      traits: ["proud"]
+    ),
+
+    Lifepath(
+      name: "chronicler",
+      page: 113,
+      years: 50,
+      res: 20,
+      leads: ["host", "guilder", "artificer"],
+      skill_pts: 9,
+      trait_pts: 1,
+      skills: ["illuminations", "ancient history", "clan-wise", "dwarf-wise", "poetry",
+        "cartography", "etiquette", "symbology", "oath-wise"],
+      traits: []
+    ),
+
+    Lifepath(
+      name: "seneschal",
+      page: 113,
+      years: 55,
+      res: 50,
+      leads: ["host", "guilder"],
+      skill_pts: 5,
+      trait_pts: 1,
+      skills: ["etiquette", "command", "estate management", "hold-wise"],
+      traits: ["practical"]
+    ),
+
+    Lifepath(
+      name: "treasurer",
+      page: 113,
+      years: 75,
+      res: 100,
+      leads: ["host", "outcast"],
+      skill_pts: 6,
+      trait_pts: 1,
+      skills: ["accounting", "etiquette", "treasure-wise", "administration"],
+      traits: ["dangerous obsession", "rain man"]
+    ),
+
+    Lifepath(
+      name: "high captain",
+      page: 113,
+      years: 75,
+      res: 75,
+      leads: ["host", "outcast"],
+      gen_skill_pts: 2,
+      skill_pts: 5,
+      trait_pts: 2,
+      skills: ["command", "strategy", "conspicuous"],
+      traits: ["muttering", "stentorious voice"]
+    ),
+
+    Lifepath(
+      name: "prince",
+      page: 113,
+      years: 100,
+      res: 200,
+      leads: ["host", "outcast"],
+      skill_pts: 8,
+      trait_pts: 2,
+      skills: ["conspicuous", "etiquette", "intimidation", "oratory", "command",
+        "burden of the crown-wise"],
+      traits: ["grumbling", "galvanizing presence", "baleful stare"]
+    ),
+
+  ]
+)

@@ -414,7 +414,7 @@ Skills(skills: [
   ),
 
   Skill(
-    name: "chronology of kins",
+    name: "chronology of kings",
     page: 264,
     root: Single(Perception),
     tools: No,
@@ -1593,7 +1593,7 @@ Skills(skills: [
   ),
 
   Skill(
-    name: "shield traning",
+    name: "shield training",
     page: 295,
     root: Single(Agility),
     tools: No,

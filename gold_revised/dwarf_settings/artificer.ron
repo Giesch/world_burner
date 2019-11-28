@@ -18,7 +18,7 @@ LifepathSetting(
     ),
 
     Lifepath(
-      name: "ardent",
+      name: "ardent (artificer)",
       page: 112,
       years: 21,
       res: 15,
