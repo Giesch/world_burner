@@ -1,3 +1,6 @@
+#![enable(unwrap_newtypes)]
+#![enable(implicit_some)]
+
 Skills(skills: [
   Skill(
     name: "accounting",
@@ -33,7 +36,8 @@ Skills(skills: [
     name: "alchemy",
     page: 254,
     root: Single(Perception),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
     restrictions: Only(Humans),
   ),
 
@@ -86,7 +90,8 @@ Skills(skills: [
     name: "apothecary",
     page: 255,
     root: Single(Perception),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -138,7 +143,8 @@ Skills(skills: [
     name: "arson",
     page: 257,
     root: Pair(Perception, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
     restrictions: Any([Humans, Roden], CharBurning)
   ),
 
@@ -235,7 +241,6 @@ Skills(skills: [
   Skill(
     name: "black legion-wise",
     page: 260,
-    wise: true,
     root: Single(Perception),
     tools: Yes,
   ),
@@ -281,7 +286,8 @@ Skills(skills: [
     name: "bowcraft",
     page: 261,
     root: Pair(Will, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
     magical: true,
     restrictions: Only(Elves),
   ),
@@ -290,7 +296,8 @@ Skills(skills: [
     name: "bowyer",
     page: 261,
     root: Pair(Perception, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -373,7 +380,8 @@ Skills(skills: [
     name: "cartography",
     page: 263,
     root: Pair(Perception, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -394,7 +402,8 @@ Skills(skills: [
     name: "chandler",
     page: 263,
     root: Pair(Perception, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -430,14 +439,16 @@ Skills(skills: [
     name: "climbing",
     page: 264,
     root: Single(Speed),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
     name: "cloth dyeing",
     page: 264,
     root: Pair(Perception, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -452,7 +463,8 @@ Skills(skills: [
     name: "cobbler",
     page: 265,
     root: Pair(Perception, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -475,7 +487,8 @@ Skills(skills: [
     name: "composition",
     page: 265,
     root: Pair(Will, Perception),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -510,7 +523,8 @@ Skills(skills: [
     name: "counterfeiting",
     page: 266,
     root: Pair(Perception, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -561,7 +575,8 @@ Skills(skills: [
     name: "disguise",
     page: 267,
     root: Pair(Agility, Perception),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -619,7 +634,8 @@ Skills(skills: [
     name: "dwarven rune script",
     page: 269,
     root: Single(Perception),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
     restrictions: Only(Dwarves, CharBurning),
   ),
 
@@ -634,7 +650,8 @@ Skills(skills: [
     name: "elven script",
     page: 270,
     root: Single(Perception),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
     restrictions: Only(Elves, CharBurning),
   ),
 
@@ -642,7 +659,8 @@ Skills(skills: [
     name: "embroidery",
     page: 270,
     root: Pair(Perception, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -656,7 +674,8 @@ Skills(skills: [
     name: "enchanting",
     page: 270,
     root: Single(Perception),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -711,13 +730,6 @@ Skills(skills: [
   ),
 
   Skill(
-    name: "extortion",
-    page: 271,
-    root: Single(Will),
-    tools: No,
-  ),
-
-  Skill(
     name: "falconry",
     page: 272,
     root: Pair(Will, Perception),
@@ -742,7 +754,8 @@ Skills(skills: [
     name: "fence building",
     page: 272,
     root: Single(Perception),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
     restrictions: Only(Dwarves, CharBurning),
   ),
 
@@ -750,7 +763,8 @@ Skills(skills: [
     name: "field dressing",
     page: 272,
     root: Single(Perception),
-    tools: TravelingGear(Expendable),
+    tools: TravelingGear,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -764,7 +778,8 @@ Skills(skills: [
     name: "firebuilding",
     page: 273,
     root: Single(Perception),
-    tools: TravelingGear(Expendable),
+    tools: TravelingGear,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -778,7 +793,8 @@ Skills(skills: [
     name: "fletcher",
     page: 273,
     root: Pair(Perception, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -815,7 +831,8 @@ Skills(skills: [
     name: "forgery",
     page: 274,
     root: Pair(Perception, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -928,24 +945,11 @@ Skills(skills: [
   ),
 
   Skill(
-    name: "heraldry",
-    page: 277,
-    root: Single(Perception),
-    tools: No,
-  ),
-
-  Skill(
-    name: "heraldry",
-    page: 277,
-    root: Single(Perception),
-    tools: No,
-  ),
-
-  Skill(
     name: "herbalism",
     page: 277,
     root: Single(Perception),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -966,7 +970,7 @@ Skills(skills: [
     name: "hymn of scales and fins",
     page: 278,
     root: Pair(Perception, Agility),
-    tools: yes,
+    tools: Yes,
     magical: true,
     restrictions: Only(Elves),
   ),
@@ -975,7 +979,8 @@ Skills(skills: [
     name: "illuminations",
     page: 278,
     root: Single(Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -1062,7 +1067,8 @@ Skills(skills: [
     name: "knots",
     page: 290,
     root: Pair(Perception, Agility),
-    tools: TravelingGear(Expendable),
+    tools: TravelingGear,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -1160,7 +1166,8 @@ Skills(skills: [
     name: "mending",
     page: 283,
     root: Pair(Perception, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
  Skill(
@@ -1225,13 +1232,6 @@ Skills(skills: [
     page: 285,
     root: Pair(Perception, Will),
     tools: No,
-  ),
-
-  Skill(
-    name: "name ritual",
-    page: 285,
-    root: Pair(Perception, Will),
-    tools: No,
     restrictions: Only(Orcs, CharBurning),
   ),
 
@@ -1285,7 +1285,8 @@ Skills(skills: [
     name: "painting",
     page: 287,
     root: Pair(Will, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -1298,7 +1299,7 @@ Skills(skills: [
   Skill(
     name: "philosophy",
     page: 287,
-    root: Single(Will, Perception),
+    root: Pair(Will, Perception),
     tools: No,
   ),
 
@@ -1313,7 +1314,8 @@ Skills(skills: [
     name: "playwright",
     page: 288,
     root: Pair(Will, Perception),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -1343,7 +1345,8 @@ Skills(skills: [
     name: "poisons",
     page: 288,
     root: Single(Perception),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -1357,14 +1360,16 @@ Skills(skills: [
     name: "potter",
     page: 289,
     root: Pair(Perception, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
     name: "prospecting",
     page: 289,
     root: Single(Perception),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -1770,7 +1775,7 @@ Skills(skills: [
     page: 299,
     root: Single(Perception),
     tools: No,
-    magical: true
+    magical: true,
     restrictions: Any([Humans, Roden], CharBurning),
   ),
 
@@ -1786,7 +1791,7 @@ Skills(skills: [
     page: 300,
     root: Pair(Will, Agility),
     tools: Yes,
-    magical: true
+    magical: true,
     restrictions: Only(Elves),
   ),
 
@@ -1794,7 +1799,8 @@ Skills(skills: [
     name: "spider husbandry",
     page: 300,
     root: Single(Will),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
     restrictions: Only(Orcs, CharBurning),
   ),
 
@@ -1905,7 +1911,8 @@ Skills(skills: [
     name: "surgery",
     page: 303,
     root: Pair(Perception, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
@@ -1918,28 +1925,28 @@ Skills(skills: [
   Skill(
     name: "sword",
     page: 303,
-    root: Pair(Agility),
+    root: Single(Agility),
     tools: Weapon,
   ),
 
   Skill(
     name: "symbology",
     page: 303,
-    root: Pair(Perception),
+    root: Single(Perception),
     tools: No,
   ),
 
   Skill(
     name: "tactics",
     page: 304,
-    root: Single(Will, Perception),
+    root: Pair(Will, Perception),
     tools: No,
   ),
 
   Skill(
     name: "tanner",
     page: 304,
-    root: Single(Agility, Forte),
+    root: Pair(Agility, Forte),
     tools: Workshop,
   ),
 
@@ -2000,14 +2007,16 @@ Skills(skills: [
     name: "trapper",
     page: 305,
     root: Pair(Perception, Agility),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
   ),
 
   Skill(
     name: "tree pulling",
     page: 305,
     root: Attribute(Hatred),
-    tools: Expendable,
+    tools: Yes,
+    tools_expendable: true,
     magical: true,
     restrictions: Only(Orcs)
   ),
@@ -2019,7 +2028,12 @@ Skills(skills: [
     tools: No,
   ),
 
-
+  Skill(
+    name: "troll-wise",
+    page: 305,
+    root: Single(Perception),
+    tools: No,
+  ),
 
   Skill(
     name: "tunnel-wise",
@@ -2029,8 +2043,114 @@ Skills(skills: [
   ),
 
   Skill(
+    name: "two-fisted fighting training",
+    page: 307,
+    root: Single(Agility),
+    tools: No,
+    training: true,
+  ),
+
+  Skill(
     name: "ugly truth",
-    page: 306,
+    page: 307,
+    root: Single(Perception),
+    tools: No,
+  ),
+
+  Skill(
+    name: "vile poisoner",
+    page: 307,
+    root: Pair(Perception, Agility),
+    tools: No,
+    magical: true,
+    restrictions: Only(Orcs)
+  ),
+
+  Skill(
+    name: "vinter",
+    page: 308,
+    root: Pair(Will, Perception),
+    tools: Workshop,
+  ),
+
+  Skill(
+    name: "voice of thunder",
+    page: 308,
+    root: Pair(Will, Forte),
+    tools: No,
+    magical: true,
+    restriction: Only(Elves)
+  ),
+
+  Skill(
+    name: "waiting tables",
+    page: 308,
+    root: Single(Will),
+    tools: No,
+  ),
+
+  Skill(
+    name: "war art",
+    page: 308,
+    root: Pair(Will, Agility),
+    tools: Workshop,
+    magical: true,
+    restrictions: Only(Dwarves)
+  ),
+
+  Skill(
+    name: "war engineer",
+    page: 308,
+    root: Pair(Will, Perception),
+    tools: Workshop,
+    magical: true,
+    restrictions: Only(Dwarves)
+  ),
+
+  Skill(
+    name: "weaponsmith",
+    page: 310,
+    root: Pair(Perception, Agility),
+    tools: Workshop,
+  ),
+
+  Skill(
+    name: "weaving",
+    page: 310,
+    root: Pair(Perception, Agility),
+    tools: Yes,
+    tools_expendable: true,
+  ),
+
+  Skill(
+    name: "weaving way",
+    page: 310,
+    root: Pair(Will, Agility),
+    tools: Yes,
+    tools_expendable: true,
+    magical: true,
+    restrictions: Only(Elves)
+  ),
+
+  Skill(
+    name: "white metal artifice",
+    page: 310,
+    root: Pair(Will, Agility),
+    tools: Workshop,
+    magical: true,
+    restrictions: Only(Dwarves)
+  ),
+
+  Skill(
+    name: "whitesmith",
+    page: 310,
+    root: Pair(Perception, Agility),
+    tools: Workshop,
+  ),
+
+  Skill(
+    name: "wine tasting",
+    page: 311,
     root: Single(Perception),
     tools: No,
   ),
@@ -2040,5 +2160,22 @@ Skills(skills: [
     page: 309,
     root: Single(Perception),
     tools: No,
+  ),
+
+  Skill(
+    name: "woodcraft",
+    page: 309,
+    root: Pair(Will, Agility),
+    tools: No,
+    magical: true,
+    restrictions: Only(Elves)
+  ),
+
+  Skill(
+    name: "write",
+    page: 309,
+    root: Pair(Perception, Agility),
+    tools: Yes,
+    tools_expendable: true,
   ),
 ])

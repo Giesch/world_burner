@@ -90,7 +90,7 @@ LifepathSetting(
       skill_pts: 7,
       trait_pts: 1,
       skills: ["haggling", "reputation-wise", "cartwright", "mending",
-        "black-metal artifice"],
+        "black metal artifice"],
       traits: ["hungry"],
     ),
 

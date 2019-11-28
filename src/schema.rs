@@ -14,7 +14,6 @@ pub enum StatMod {
 pub enum ToolRequirement {
     Yes,
     No,
-    Expendable,
     Workshop,
     Weapon,
     TravelingGear,
@@ -143,6 +142,7 @@ table! {
         training -> Bool,
         wise -> Bool,
         tools -> ToolRequirementMapping,
+        tools_expendable -> Bool,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }

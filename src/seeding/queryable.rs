@@ -22,6 +22,7 @@ pub struct CreatedSkill {
     pub training: bool,
     pub wise: bool,
     pub tools: ToolRequirement,
+    pub tools_expendable: bool,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }

@@ -16,8 +16,10 @@ pub struct NewSkill {
     pub name: String,
     pub page: i32,
     pub magical: bool,
-    pub tools: ToolRequirement,
+    pub training: bool,
     pub wise: bool,
+    pub tools: ToolRequirement,
+    pub tools_expendable: bool,
 }
 
 #[derive(Insertable, Debug, PartialEq, Eq)]

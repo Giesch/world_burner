@@ -4,4 +4,19 @@ Stocks(stocks: [
     singular: "dwarf",
     page: 110,
   ),
+  Stock(
+    name: "elves",
+    singular: "elf",
+    page: 131,
+  ),
+  Stock(
+    name: "humanity",
+    singular: "human",
+    page: 163,
+  ),
+  Stock(
+    name: "orcs",
+    singular: "orc",
+    page: 228,
+  ),
 ])

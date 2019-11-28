@@ -94,8 +94,10 @@ fn seed_skills(db: &PgConnection, book_id: i32) -> StdResult<HashMap<String, i32
             name: skill.name.clone(),
             page: skill.page,
             tools: skill.tools,
+            tools_expendable: skill.tools_expendable,
             magical: skill.magical,
             wise: skill.name.ends_with("-wise"),
+            training: skill.training,
         };
 
         new_skills.push(new_skill);

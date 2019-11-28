@@ -79,6 +79,8 @@ pub struct Skill {
     pub training: bool,
     pub tools: ToolRequirement,
     #[serde(default)]
+    pub tools_expendable: bool,
+    #[serde(default)]
     pub restrictions: Restriction,
 }
 
