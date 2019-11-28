@@ -1,14 +1,13 @@
-* TODO enter skills list
+* DONE enter skills list
+  CLOSED: [2019-11-27 Wed 19:19]
    
 * TODO add more dwarf settings
 ** settings:
-  - [ ] guilder
-  - [ ] artificer
+  - [X] guilder
+  - [X] artificer
   - [ ] noble
   - [ ] host
   - [ ] outcast
-
-* TODO enter traits list
 
 * TODO add leads table
 * TODO seed leads table
@@ -17,7 +16,8 @@
 ** look up settings by name & stock
 ** think about using a trigger for same-stock restriction
 
-* TODO think about replacing the seeding code with sql
+* TODO enter traits list
+** need to know how to implement them first?
 
 * TODO think about how to handle stock common traits & born lifepaths
 ** need a table of common traits by stock?

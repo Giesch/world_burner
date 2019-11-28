@@ -1,0 +1,111 @@
+#![enable(unwrap_newtypes)]
+#![enable(implicit_some)]
+
+LifepathSetting(
+  name: "artificer",
+  page: 112,
+  lifepaths: [
+    Lifepath(
+      name: "born artificer",
+      page: 112,
+      years: 20,
+      res: 15,
+      leads: ["clansman"],
+      gen_skill_pts: 3,
+      skill_pts: 2,
+      trait_pts: 1,
+      skills: ["dwarven rune script"]
+    ),
+
+    Lifepath(
+      name: "ardent",
+      page: 112,
+      years: 21,
+      res: 15,
+      stat_mod: Physical(1),
+      leads: ["clansman", "noble", "host", "guilder"],
+      skill_pts: 4,
+      trait_pts: 2,
+      skills: ["firebuilding", "soothing platitudes", "soot-wise"],
+      traits: ["humility", "hard work"]
+    ),
+
+    Lifepath(
+      name: "tyro artificer",
+      page: 112,
+      years: 21,
+      res: 20,
+      stat_mod: Physical(1),
+      leads: ["guilder", "host", "outcast"],
+      skill_pts: 4,
+      trait_pts: 2,
+      skills: ["black metal artifice", "mending", "dwarven art-wise"],
+      traits: ["determined"]
+    ),
+
+    Lifepath(
+      name: "artificer",
+      page: 112,
+      years: 30,
+      res: 35,
+      stat_mod: Physical(1),
+      leads: ["host", "outcast"],
+      skill_pts: 8,
+      trait_pts: 1,
+      skills: ["stone artifice", "etching", "white metal artifice", "gem artifice"],
+      traits: ["stolid"]
+    ),
+
+    Lifepath(
+      name: "mask bearer",
+      page: 112,
+      years: 55,
+      res: 50,
+      stat_mod: Either(1),
+      leads: ["host", "outcast", "noble"],
+      skill_pts: 6,
+      trait_pts: 1,
+      skills: ["jargon", "fire and steel-wise", "war art"],
+    ),
+
+    Lifepath(
+      name: "master of arches",
+      page: 112,
+      years: 75,
+      res: 75,
+      stat_mod: Mental(1),
+      leads: ["host", "outcast"],
+      skill_pts: 8,
+      trait_pts: 2,
+      skills: ["lithography", "sculpture", "hallmaster", "symbology", "etiquette"],
+      traits: ["confident", "patient"]
+    ),
+
+    Lifepath(
+      name: "master of forges",
+      page: 112,
+      years: 75,
+      res: 75,
+      stat_mod: Mental(1),
+      leads: ["host", "outcast"],
+      skill_pts: 6,
+      trait_pts: 1,
+      skills: ["forge artifice", "appraisal", "engineering", "command", "maker's mark-wise"],
+      traits: ["meticulous", "estimation"]
+    ),
+
+    Lifepath(
+      name: "master engraver",
+      page: 112,
+      years: 100,
+      res: 60,
+      stat_mod: Mental(1),
+      leads: ["host", "outcast"],
+      gen_skill_pts: 2,
+      skill_pts: 4,
+      trait_pts: 1,
+      skills: ["reason of old stone", "stone-wise", "mountain-wise"],
+    ),
+    
+  ]
+)
