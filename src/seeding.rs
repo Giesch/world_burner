@@ -174,6 +174,14 @@ fn seed_settings(
         settings_by_stock_id.insert(stock.id, stock_settings);
     }
 
+    let all_lifepaths: Vec<_> = settings_by_stock_id
+        .values()
+        .flatten()
+        .flat_map(|setting| &setting.lifepaths)
+        .collect();
+
+    // settings
+
     let new_settings = new_settings(&settings_by_stock_id, book_id)?;
 
     let setting_ids: HashMap<_, _> = diesel::insert_into(lifepath_settings::table)
@@ -183,6 +191,8 @@ fn seed_settings(
         .map(|setting| (setting.name, setting.id))
         .collect();
 
+    // lifepaths
+
     let all_settings: Vec<_> = settings_by_stock_id.values().flatten().collect();
     let new_lifepaths = new_lifepaths(&all_settings, &setting_ids, book_id)?;
 
@@ -190,18 +200,20 @@ fn seed_settings(
         .values(new_lifepaths)
         .get_results::<CreatedLifepath>(db)?;
 
-    // skill lists
-
     let lifepath_ids: HashMap<_, _> = created_lifepaths
         .into_iter()
         .map(|lp| (lp.name, lp.id))
         .collect();
 
-    let all_lifepaths: Vec<_> = settings_by_stock_id
-        .values()
-        .flatten()
-        .flat_map(|setting| &setting.lifepaths)
-        .collect();
+    // leads
+
+    let new_leads = new_leads(&all_lifepaths, &lifepath_ids, &setting_ids)?;
+
+    diesel::insert_into(leads::table)
+        .values(new_leads)
+        .execute(db)?;
+
+    // skill lists
 
     let new_skill_lists = new_skill_lists(&all_lifepaths, &lifepath_ids, &skill_ids)?;
 
@@ -218,6 +230,33 @@ fn seed_settings(
         .execute(db)?;
 
     Ok(())
+}
+
+fn new_leads(
+    all_lifepaths: &[&deserialize::Lifepath],
+    lifepath_ids: &HashMap<String, i32>,
+    setting_ids: &HashMap<String, i32>,
+) -> StdResult<Vec<NewLead>> {
+    let mut new_leads = Vec::new();
+    for lifepath in all_lifepaths {
+        let &lifepath_id = lifepath_ids
+            .get(&lifepath.name)
+            .ok_or_else(|| format!("missing lifepath id for {:#?}", lifepath))?;
+        for lead in &lifepath.leads {
+            let &setting_id = setting_ids
+                .get(lead)
+                .ok_or_else(|| format!("missing setting id for {:#?}", lead))?;
+
+            let new_lead = NewLead {
+                lifepath_id,
+                setting_id,
+            };
+
+            new_leads.push(new_lead);
+        }
+    }
+
+    Ok(new_leads)
 }
 
 fn new_trait_lists(

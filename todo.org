@@ -1,21 +1,3 @@
-* DONE enter skills list
-  CLOSED: [2019-11-27 Wed 19:19]
-   
-* TODO add more dwarf settings
-** settings:
-  - [X] guilder
-  - [X] artificer
-  - [X] noble
-  - [ ] host
-  - [ ] outcast
-
-* TODO add leads table
-* TODO seed leads table
-** lifepath id
-** setting id
-** look up settings by name & stock
-** think about using a trigger for same-stock restriction
-
 * TODO enter traits list
 ** need to know how to implement them first?
 
@@ -91,3 +73,8 @@
 ** we could just put them in the skills table
 *** will root
 *** elves only (allowed by fey blood?)
+
+* validations that need triggers
+** leads should only point to settings in the same stock
+** lifepath names should be unique within a stock
+** think about changing the schema to fix these

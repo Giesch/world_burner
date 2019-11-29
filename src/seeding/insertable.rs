@@ -65,6 +65,13 @@ pub struct NewLifepath {
 }
 
 #[derive(Insertable, Debug, PartialEq, Eq)]
+#[table_name = "leads"]
+pub struct NewLead {
+    pub lifepath_id: i32,
+    pub setting_id: i32,
+}
+
+#[derive(Insertable, Debug, PartialEq, Eq)]
 #[table_name = "skill_roots"]
 pub struct NewSkillRoot {
     pub skill_id: i32,

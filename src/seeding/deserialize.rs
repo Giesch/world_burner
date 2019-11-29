@@ -41,7 +41,6 @@ pub fn read_stock_settings(book_dir: &str, stock_prefix: &str) -> StdResult<Vec<
 fn all_ron_files(dir: &Path) -> StdResult<Vec<String>> {
     let mut result = Vec::new();
     if !dir.is_dir() {
-        println!("no directory found at: {:#?}", dir);
         return Ok(vec![]);
     }
 

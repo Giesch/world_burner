@@ -11,6 +11,9 @@ CREATE TABLE skill_roots (
   second_stat_root stat_type,
   attribute_root TEXT,
 
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
   CONSTRAINT skill_roots_attr_or_stat_check
   CHECK (
     (first_stat_root IS NOT NULL AND attribute_root IS NULL) OR

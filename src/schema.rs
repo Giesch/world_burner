@@ -54,6 +54,17 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+
+    leads (lifepath_id, setting_id) {
+        lifepath_id -> Int4,
+        setting_id -> Int4,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
     use super::StatModTypeMapping;
 
     lifepaths (id) {
@@ -126,6 +137,8 @@ table! {
         first_stat_root -> Nullable<StatTypeMapping>,
         second_stat_root -> Nullable<StatTypeMapping>,
         attribute_root -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
@@ -178,6 +191,8 @@ table! {
     }
 }
 
+joinable!(leads -> lifepath_settings (setting_id));
+joinable!(leads -> lifepaths (lifepath_id));
 joinable!(lifepath_settings -> books (book_id));
 joinable!(lifepath_settings -> stocks (stock_id));
 joinable!(lifepath_skill_lists -> lifepaths (lifepath_id));
@@ -193,6 +208,7 @@ joinable!(traits -> books (book_id));
 
 allow_tables_to_appear_in_same_query!(
     books,
+    leads,
     lifepaths,
     lifepath_settings,
     lifepath_skill_lists,
