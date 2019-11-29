@@ -1,3 +1,21 @@
+* TODO get a minimal version of the app running
+** just picking lifepaths for now
+** allow starting at either end?
+*** do sequential from born lp first
+
+* TODO find a better way to handle same lifepath in different settings
+** the diminishing returns rules care
+
+* TODO unit tests covering the seeded data
+  - [ ] custom test runner
+    https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html
+  - [ ] check weird lifepaths
+  - [ ] test query layer (make query layer)
+
+* TODO set up a deployment w/heroku or aws
+** test that the app runs pending migrations on startup
+** have a way to reset the book data/the db in general
+
 * TODO think about how to handle stock common traits & born lifepaths
 ** need a table of common traits by stock?
 ** how to handle human cultural traits?
@@ -8,27 +26,12 @@
 ** need to know how to implement them first?
 ** we at least want the costs available
 
-* TODO add a born lifepath flag
-
 * TODO think about limits to put on the lifepath req table
 ** like depth/complexity
 ** should that just be a request validation rather than a constraint?
 
 * TODO how do we ensure integrity of lifepath requirements?
-** currently storing lifepath/setting name, same as config file
-** should these be storing lifepath/setting ids?
-** they're not for the database, but for executing against an in-memory character sheet
-** the names still need to stay in sync
-*** should at least unit test the book lifepaths' requirements
-
-* TODO unit tests covering the seeded data
-  - [ ] custom test runner
-    https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html
-  - [ ] check weird lifepaths
-  - [ ] test query layer (make query layer)
-
-* TODO find a better way to handle same lifepath in different settings
-** the diminishing returns rules care
+** need a join table that duplicates which lps are referenced in each other's json
 
 * db changes
 ** TODO think about how to do appropriate weapons
@@ -37,10 +40,6 @@
 **** add a step to the process where they're forced to choose weapon skills to replace it
 **** hardcode appropriate weapons into the specific skill restrictions
 ***** ie now it requires sword or app. weap.
-** think about a nice way to ensure list_position correctness (can't use check)
-*** a trigger that checks if max list position is equal to count distinct?
-*** are triggers slow? fine for this project?
-** TODO make everything polymorphic on pageref vs user_id
 ** think about how to do lifepath requirements
 *** store predicates as data
 *** types of predicates:
@@ -55,8 +54,6 @@
 ***** they must purchase that trait when actually making the character
 **** a wife lifepath's husband lp (lady, dame)
 
-* TODO set up a deployment w/heroku or aws
-** test that the app runs pending migrations on startup
 * TODO have the app seed book data in a smart way
 ** add a 'migration' tracking table for book seeds?
   ie, diesel migration adds a todo list row to the seed table,
@@ -66,18 +63,12 @@
 ** db_string method on ResCalc enum
 
 * TODO rethink tools requirement type
-** can be multiple things (field dressing: travelling gear expendable)
-** TODO weapon should be specific (ranged/melee)
+** TODO weapon should be specific (arms, bow, etc)
 ** TODO musical instruments should get their own category
 ** TODO special categories like logistics/estate management
 *** better to just have a generic tool description field?
 *** might want to have a field to specify item id if/when there is such a thing
 *** should leave tool requirement out of db for now?
-** get rid of expendable? doesn't matter for character creation
-*** still useful to mark it for players, though
-*** TODO allow TravelingGear(Expendable)
-**** add a deserialization type for tool requirement
-**** make tools_expendable a db flag
 
 * TODO are skills unique by name?
 ** torture changes based on if an orc takes it
@@ -85,9 +76,12 @@
 ** user created stuff might need to be tied to a stock
 *** multiple versions of sorcery, for example
 *** we could have a user equivalent of a book?
+**** this would make things a lot simpler
+**** create a book for the user when they make their account
+**** use the same schema for them as for the official stuff
+**** allow creating multiple books #someday
 
 * TODO how to do elven skill songs
-** they appear in the skill list, but get their own table?
 ** we could just put them in the skills table
 *** will root
 *** elves only (allowed by fey blood?)
@@ -95,4 +89,6 @@
 * validations that need triggers
 ** leads should only point to settings in the same stock
 ** lifepath names should be unique within a stock
+** list position for skills and traits should be contiguous
 ** think about changing the schema to fix these
+** are triggers slow? fine for this project?

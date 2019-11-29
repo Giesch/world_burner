@@ -501,6 +501,7 @@ fn new_lifepath(
         lifepath_setting_id,
         page: lifepath.page,
         name: lifepath.name.clone(),
+        born: lifepath.born,
 
         years: lifepath.years,
         years_min,

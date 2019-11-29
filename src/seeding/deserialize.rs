@@ -125,6 +125,8 @@ impl Default for StatMod {
 pub struct Lifepath {
     pub name: String,
     pub page: i32,
+    #[serde(default)]
+    pub born: bool,
 
     // for these two, None means the one special lifepath
     pub years: Option<i32>,

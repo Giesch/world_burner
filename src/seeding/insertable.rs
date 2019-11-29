@@ -48,6 +48,7 @@ pub struct NewLifepath {
     pub lifepath_setting_id: i32,
     pub page: i32,
     pub name: String,
+    pub born: bool,
 
     pub years: Option<i32>,
     pub years_min: Option<i32>,

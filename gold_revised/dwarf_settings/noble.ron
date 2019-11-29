@@ -8,6 +8,7 @@ LifepathSetting(
     Lifepath(
       name: "born noble",
       page: 113,
+      born: true,
       years: 21,
       res: 10,
       leads: ["guilder", "artificer"],

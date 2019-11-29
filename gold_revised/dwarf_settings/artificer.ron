@@ -8,6 +8,7 @@ LifepathSetting(
     Lifepath(
       name: "born artificer",
       page: 112,
+      born: true,
       years: 20,
       res: 15,
       leads: ["clansman"],

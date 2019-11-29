@@ -85,6 +85,7 @@ table! {
         lifepath_setting_id -> Int4,
         page -> Int4,
         name -> Text,
+        born -> Bool,
         years -> Nullable<Int4>,
         years_min -> Nullable<Int4>,
         years_max -> Nullable<Int4>,

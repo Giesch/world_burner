@@ -10,6 +10,8 @@ CREATE TABLE lifepaths (
 
   name TEXT NOT NULL,
 
+  born BOOLEAN NOT NULL DEFAULT FALSE,
+
   -- either a number, or a range (e.g. prince of the blood)
   years INTEGER
     CONSTRAINT positive_years

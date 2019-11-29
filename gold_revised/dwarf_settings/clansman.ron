@@ -8,6 +8,7 @@ LifepathSetting(
     Lifepath(
       name: "born clansman",
       page: 110,
+      born: true,
       years: 20,
       res: 10,
       leads: ["guilder"],
