@@ -144,9 +144,7 @@ pub struct Lifepath {
     #[serde(default)]
     pub traits: Vec<String>,
     #[serde(default)]
-    pub req: Option<LifepathReq>,
-    #[serde(default)]
-    pub req_desc: Option<String>,
+    pub requires: Option<Requirement>,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -293,12 +291,26 @@ impl Trait {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
+pub struct Requirement {
+    pub req: LifepathReq,
+    pub desc: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
 pub enum LifepathReq {
-    LP(String),                   // requires a specific previous lifepath
-    RetakenLP(String, u8),        // requires a specific lifepath n times
-    PreviousLifepaths(u8),        // requires n previous lifepaths of any kind
-    SettingLifepaths(u8, String), // n lifepaths from a particular setting
-    Any(Vec<LifepathReq>),        // true if any are met
-    All(Vec<LifepathReq>),        // true if all are met
+    // requires a specific previous lifepath n times
+    LP(String, #[serde(default = "one")] i32),
+    // requires n previous lifepaths of any kind
+    PreviousLifepaths(i32),
+    // requires n lifepaths from a setting
+    Setting(i32, String),
+    // met if any subreq is met
+    Any(Vec<LifepathReq>),
+    // met only if all subreqs are met
+    All(Vec<LifepathReq>),
+}
+
+fn one() -> i32 {
+    1
 }

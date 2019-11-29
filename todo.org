@@ -1,25 +1,34 @@
-* TODO enter traits list
-** need to know how to implement them first?
-** we at least want the costs available
-
-* TODO add a born lifepath flag
-
-* TODO add lifepath requirements
-  - [X] add to ron files (including description)
-  - [ ] decide on table structure
-  - [ ] seed them
-
 * TODO think about how to handle stock common traits & born lifepaths
 ** need a table of common traits by stock?
 ** how to handle human cultural traits?
 ** and fey blood
 *** implement skill restrictions as requiring the specific common trait
 
+* TODO enter traits list
+** need to know how to implement them first?
+** we at least want the costs available
+
+* TODO add a born lifepath flag
+
+* TODO think about limits to put on the lifepath req table
+** like depth/complexity
+** should that just be a request validation rather than a constraint?
+
+* TODO how do we ensure integrity of lifepath requirements?
+** currently storing lifepath/setting name, same as config file
+** should these be storing lifepath/setting ids?
+** they're not for the database, but for executing against an in-memory character sheet
+** the names still need to stay in sync
+*** should at least unit test the book lifepaths' requirements
+
 * TODO unit tests covering the seeded data
   - [ ] custom test runner
     https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html
   - [ ] check weird lifepaths
   - [ ] test query layer (make query layer)
+
+* TODO find a better way to handle same lifepath in different settings
+** the diminishing returns rules care
 
 * db changes
 ** TODO think about how to do appropriate weapons

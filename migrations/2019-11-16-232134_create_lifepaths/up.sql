@@ -4,22 +4,34 @@ CREATE TABLE lifepaths (
   id SERIAL PRIMARY KEY,
   book_id INTEGER NOT NULL REFERENCES books (id),
   lifepath_setting_id INTEGER NOT NULL REFERENCES lifepath_settings (id),
-  page INTEGER NOT NULL CHECK (page > 0),
+  page INTEGER NOT NULL
+    CONSTRAINT lifepaths_positive_page
+    CHECK (page > 0),
 
   name TEXT NOT NULL,
 
   -- either a number, or a range (e.g. prince of the blood)
-  years INTEGER CHECK (years >= 0),
+  years INTEGER
+    CONSTRAINT positive_years
+    CHECK (years >= 0),
   years_min INTEGER,
   years_max INTEGER,
 
-  gen_skill_pts INTEGER NOT NULL CHECK (gen_skill_pts >= 0),
-  skill_pts INTEGER NOT NULL CHECK (skill_pts >= 0),
-  trait_pts INTEGER NOT NULL CHECK (trait_pts >= 0),
+  gen_skill_pts INTEGER NOT NULL
+    CONSTRAINT positive_gen_skill_pts
+    CHECK (gen_skill_pts >= 0),
+  skill_pts INTEGER NOT NULL
+    CONSTRAINT positive_skill_pts
+    CHECK (skill_pts >= 0),
+  trait_pts INTEGER NOT NULL
+    CONSTRAINT positive_trait_pts
+    CHECK (trait_pts >= 0),
 
   -- either type and value are present, or neither are
   stat_mod stat_mod_type,
-  stat_mod_val INTEGER CHECK (stat_mod_val IN (-1, 1, 2)),
+  stat_mod_val INTEGER
+    CONSTRAINT valid_stat_mod_val
+    CHECK (stat_mod_val IN (-1, 1, 2)),
 
   -- either a number, or a specified calculation (e.g. hostage)
   res INTEGER,
@@ -27,9 +39,6 @@ CREATE TABLE lifepaths (
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-  -- these are roll-your-own tagged unions
-  -- https://hashrocket.com/blog/posts/modeling-polymorphic-associations-in-a-relational-database
 
   UNIQUE (lifepath_setting_id, name),
 

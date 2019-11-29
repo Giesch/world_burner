@@ -13,9 +13,6 @@ use deserialize::*;
 mod insertable;
 use insertable::*;
 
-mod queryable;
-use queryable::*;
-
 type StdError = Box<dyn std::error::Error>;
 type StdResult<T> = Result<T, StdError>;
 
@@ -56,16 +53,19 @@ fn seed_traits(db: &PgConnection, book_id: i32) -> StdResult<HashMap<String, i32
 
     let new_traits: Vec<_> = read_traits()?.into_iter().map(new_trait).collect();
 
-    let created_traits = diesel::insert_into(traits::table)
+    let trait_ids = diesel::insert_into(traits::table)
         .values(new_traits)
-        .get_results::<CreatedTrait>(db)?;
-
-    let trait_ids = created_traits
+        .returning((traits::name, traits::id))
+        .get_results::<(String, i32)>(db)?
         .into_iter()
-        .map(|tr| (tr.name, tr.id))
         .collect();
 
     Ok(trait_ids)
+}
+
+struct CreatedStock {
+    pub id: i32,
+    pub singular: String,
 }
 
 fn seed_stocks(db: &PgConnection, book_id: i32) -> StdResult<Vec<CreatedStock>> {
@@ -80,7 +80,11 @@ fn seed_stocks(db: &PgConnection, book_id: i32) -> StdResult<Vec<CreatedStock>> 
 
     let stocks: Vec<_> = diesel::insert_into(stocks::table)
         .values(stocks)
-        .get_results::<CreatedStock>(db)?;
+        .returning((stocks::id, stocks::singular))
+        .get_results::<(i32, String)>(db)?
+        .into_iter()
+        .map(|(id, singular)| CreatedStock { id, singular })
+        .collect();
 
     Ok(stocks)
 }
@@ -104,14 +108,12 @@ fn seed_skills(db: &PgConnection, book_id: i32) -> StdResult<HashMap<String, i32
         new_skills.push(new_skill);
     }
 
-    let created_skills: Vec<CreatedSkill> = diesel::insert_into(skills::table)
+    let skill_ids: HashMap<String, i32> = diesel::insert_into(skills::table)
         .values(new_skills)
-        .get_results(db)?;
-
-    let mut skill_ids: HashMap<String, i32> = HashMap::new();
-    for skill in &created_skills {
-        skill_ids.insert(skill.name.clone(), skill.id);
-    }
+        .returning((skills::name, skills::id))
+        .get_results(db)?
+        .into_iter()
+        .collect();
 
     let mut new_skill_roots = Vec::new();
     for skill in &config_skills {
@@ -126,11 +128,6 @@ fn seed_skills(db: &PgConnection, book_id: i32) -> StdResult<HashMap<String, i32
     diesel::insert_into(skill_roots::table)
         .values(new_skill_roots)
         .execute(db)?;
-
-    let skill_ids = created_skills
-        .into_iter()
-        .map(|skill| (skill.name, skill.id))
-        .collect();
 
     Ok(skill_ids)
 }
@@ -175,6 +172,8 @@ fn seed_settings(
         settings_by_stock_id.insert(stock.id, stock_settings);
     }
 
+    let all_settings: Vec<_> = settings_by_stock_id.values().flatten().collect();
+
     let all_lifepaths: Vec<_> = settings_by_stock_id
         .values()
         .flatten()
@@ -187,24 +186,29 @@ fn seed_settings(
 
     let setting_ids: HashMap<_, _> = diesel::insert_into(lifepath_settings::table)
         .values(new_settings)
-        .get_results::<CreatedSetting>(db)?
+        .returning((lifepath_settings::name, lifepath_settings::id))
+        .get_results::<(String, i32)>(db)?
         .into_iter()
-        .map(|setting| (setting.name, setting.id))
         .collect();
 
     // lifepaths
 
-    let all_settings: Vec<_> = settings_by_stock_id.values().flatten().collect();
     let new_lifepaths = new_lifepaths(&all_settings, &setting_ids, book_id)?;
 
-    let created_lifepaths = diesel::insert_into(lifepaths::table)
+    let lifepath_ids: HashMap<_, _> = diesel::insert_into(lifepaths::table)
         .values(new_lifepaths)
-        .get_results::<CreatedLifepath>(db)?;
-
-    let lifepath_ids: HashMap<_, _> = created_lifepaths
+        .returning((lifepaths::name, lifepaths::id))
+        .get_results::<(String, i32)>(db)?
         .into_iter()
-        .map(|lp| (lp.name, lp.id))
         .collect();
+
+    // requirements
+
+    let new_requirements = new_requirements(&all_lifepaths, &lifepath_ids, &setting_ids)?;
+
+    diesel::insert_into(lifepath_reqs::table)
+        .values(new_requirements)
+        .execute(db)?;
 
     // leads
 
@@ -231,6 +235,96 @@ fn seed_settings(
         .execute(db)?;
 
     Ok(())
+}
+
+// TODO move this to repo layer
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
+pub enum LifepathRequirement {
+    /// requires a specific lifepath 'count' number of times
+    Lifepath { lifepath_id: i32, count: i32 },
+    /// requires 'count' previous lifepaths of any kind
+    PreviousLifepaths { count: i32 },
+    /// requires 'count' previous lifepaths from a specific setting
+    Setting { setting_id: i32, count: i32 },
+    /// met if any of the sub-requirements are met
+    Any(Vec<LifepathRequirement>),
+    /// met only if all of the sub-requirements are met
+    All(Vec<LifepathRequirement>),
+}
+
+fn new_requirements(
+    all_lifepaths: &[&deserialize::Lifepath],
+    lifepath_ids: &HashMap<String, i32>,
+    setting_ids: &HashMap<String, i32>,
+) -> StdResult<Vec<NewRequirement>> {
+    let mut new_requirements = Vec::new();
+
+    for lifepath in all_lifepaths {
+        if let Some(Requirement { req, desc }) = &lifepath.requires {
+            let &lifepath_id = lifepath_ids
+                .get(&lifepath.name)
+                .ok_or_else(|| format!("missing lifepath id for {:#?}", lifepath))?;
+
+            let requirement = convert_req(req, lifepath_ids, setting_ids)?;
+            let requirement = serde_json::to_value(requirement)?;
+
+            let new_req = NewRequirement {
+                lifepath_id,
+                requirement,
+                description: desc.clone(),
+            };
+            new_requirements.push(new_req);
+        }
+    }
+
+    Ok(new_requirements)
+}
+
+fn convert_req(
+    req: &deserialize::LifepathReq,
+    lifepath_ids: &HashMap<String, i32>,
+    setting_ids: &HashMap<String, i32>,
+) -> StdResult<LifepathRequirement> {
+    use deserialize::LifepathReq as Req;
+    use LifepathRequirement::*;
+
+    let requirement = match req {
+        Req::LP(name, count) => {
+            let &lifepath_id = lifepath_ids
+                .get(name)
+                .ok_or_else(|| format!("missing lifepath id for {:#?}", name))?;
+            let count = *count;
+            Lifepath { lifepath_id, count }
+        }
+
+        Req::PreviousLifepaths(count) => PreviousLifepaths { count: *count },
+
+        Req::Setting(count, name) => {
+            let &setting_id = setting_ids
+                .get(name)
+                .ok_or_else(|| format!("missing setting id for {:#?}", name))?;
+            let count = *count;
+            Setting { setting_id, count }
+        }
+
+        Req::Any(sub_reqs) => {
+            let sub_reqs: StdResult<Vec<_>> = sub_reqs
+                .iter()
+                .map(|req| convert_req(req, lifepath_ids, setting_ids))
+                .collect();
+            Any(sub_reqs?)
+        }
+
+        Req::All(sub_reqs) => {
+            let sub_reqs: StdResult<Vec<_>> = sub_reqs
+                .iter()
+                .map(|req| convert_req(req, lifepath_ids, setting_ids))
+                .collect();
+            All(sub_reqs?)
+        }
+    };
+
+    Ok(requirement)
 }
 
 fn new_leads(

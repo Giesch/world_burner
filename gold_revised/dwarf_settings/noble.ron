@@ -55,8 +55,10 @@ LifepathSetting(
       trait_pts: 1,
       skills: ["axe", "armor training", "shield training", "formation fighting", "throwing"],
       traits: ["proud"],
-      req: Any([LP("ardent (noble)"), LP("banner bearer")]),
-      req_desc: "Noble Ardent or Banner Bearer",
+      requires: (
+        req: Any([LP("ardent (noble)"), LP("banner bearer")]),
+        desc: "Noble Ardent or Banner Bearer",
+      ),
     ),
 
     Lifepath(
@@ -71,8 +73,10 @@ LifepathSetting(
       skills: ["illuminations", "ancient history", "clan-wise", "dwarf-wise", "poetry",
         "cartography", "etiquette", "symbology", "oath-wise"],
       traits: [],
-      req: Any([LP("abecedart"), LP("khirurgeon"), LP("graybeard")]),
-      req_desc: "Abecedart, Khirurgeon, or Graybeard",
+      requires: (
+        req: Any([LP("abecedart"), LP("khirurgeon"), LP("graybeard")]),
+        desc: "Abecedart, Khirurgeon, or Graybeard",
+      ),
     ),
 
     Lifepath(
@@ -86,9 +90,11 @@ LifepathSetting(
       trait_pts: 1,
       skills: ["etiquette", "command", "estate management", "hold-wise"],
       traits: ["practical"],
-      req: Any([LP("trader"), LP("longbeard"), LP("quartermaster"), LP("chronicler"),
-        LP("khirurgeon"), LP("graybeard")]),
-      req_desc: "Trader, Longbeard, Quartermaster, Chronicler, Khirurgeon, or Graybeard",
+      requires: (
+        req: Any([LP("trader"), LP("longbeard"), LP("quartermaster"), LP("chronicler"),
+          LP("khirurgeon"), LP("graybeard")]),
+        desc: "Trader, Longbeard, Quartermaster, Chronicler, Khirurgeon, or Graybeard",
+      ),
     ),
 
     Lifepath(
@@ -102,8 +108,10 @@ LifepathSetting(
       trait_pts: 1,
       skills: ["accounting", "etiquette", "treasure-wise", "administration"],
       traits: ["dangerous obsession", "rain man"],
-      req: Any([LP("seneschal"), LP("artificer"), LP("warden")]),
-      req_desc: "Seneschal, Artificer, or Warden",
+      requires: (
+        req: Any([LP("seneschal"), LP("artificer"), LP("warden")]),
+        desc: "Seneschal, Artificer, or Warden",
+      ),
     ),
 
     Lifepath(
@@ -118,11 +126,13 @@ LifepathSetting(
       trait_pts: 2,
       skills: ["command", "strategy", "conspicuous"],
       traits: ["muttering", "stentorious voice"],
-      req: All([
-        LP("axe bearer (noble)"),
-        Any([LP("captain"), LP("warden")])
-      ]),
-      req_desc: "Noble Axe Bearer and either Captain or Warden",
+      requires: (
+        req: All([
+          LP("axe bearer (noble)"),
+          Any([LP("captain"), LP("warden")])
+        ]),
+        desc: "Noble Axe Bearer and either Captain or Warden",
+      ),
     ),
 
     Lifepath(
@@ -137,8 +147,10 @@ LifepathSetting(
       skills: ["conspicuous", "etiquette", "intimidation", "oratory", "command",
         "burden of the crown-wise"],
       traits: ["grumbling", "galvanizing presence", "baleful stare"],
-      req: All([LP("born noble"), LP("axe bearer (noble)")]),
-      req_desc: "Born Noble and Noble Axe Bearer",
+      requires: (
+        req: All([LP("born noble"), LP("axe bearer (noble)")]),
+        desc: "Born Noble and Noble Axe Bearer",
+      ),
     ),
 
   ]

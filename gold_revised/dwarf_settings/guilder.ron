@@ -92,8 +92,10 @@ LifepathSetting(
       skills: ["haggling", "reputation-wise", "cartwright", "mending",
         "black metal artifice"],
       traits: ["hungry"],
-      req: Any([LP("apprentice"), LP("ardent (artificer)"), LP("ardent (noble)")]),
-      req_desc: "Apprentice or any Ardent lifepath",
+      requires: (
+        req: Any([LP("apprentice"), LP("ardent (artificer)"), LP("ardent (noble)")]),
+        desc: "Apprentice or any Ardent lifepath",
+      ),
     ),
 
     Lifepath(
@@ -107,8 +109,10 @@ LifepathSetting(
       skill_pts: 4,
       trait_pts: 1,
       skills: ["appraisal", "shipwright", "artificer-wise"],
-      req: Any([LP("journeyman"), LP("artificer"), LP("artillerist"), LP("engineer")]),
-      req_desc: "Journeyman, Artificer, Artillerist, or Engineer",
+      requires: (
+        req: Any([LP("journeyman"), LP("artificer"), LP("artillerist"), LP("engineer")]),
+        desc: "Journeyman, Artificer, Artillerist, or Engineer",
+      ),
     ),
 
     Lifepath(
@@ -121,8 +125,10 @@ LifepathSetting(
       skill_pts: 7,
       trait_pts: 1,
       skills: ["stentorious debate", "shrewd appraisal", "haggling", "persuasion"],
-      req: Any([LP("hawker"), LP("journeyman"), LP("adventurer"), LP("husband/wife")]),
-      req_desc: "Hawker, Journeyman, Adventurer, or Husband/Wife",
+      requires: (
+        req: Any([LP("hawker"), LP("journeyman"), LP("adventurer"), LP("husband/wife")]),
+        desc: "Hawker, Journeyman, Adventurer, or Husband/Wife",
+      ),
     ),
 
   ],

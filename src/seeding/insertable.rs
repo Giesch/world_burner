@@ -97,3 +97,11 @@ pub struct NewTraitList {
     pub trait_id: Option<i32>,
     pub char_trait: Option<String>,
 }
+
+#[derive(Insertable, Debug)]
+#[table_name = "lifepath_reqs"]
+pub struct NewRequirement {
+    pub lifepath_id: i32,
+    pub requirement: serde_json::Value,
+    pub description: String,
+}

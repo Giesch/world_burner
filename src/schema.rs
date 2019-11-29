@@ -65,6 +65,18 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+
+    lifepath_reqs (lifepath_id) {
+        lifepath_id -> Int4,
+        requirement -> Jsonb,
+        description -> Text,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
     use super::StatModTypeMapping;
 
     lifepaths (id) {
@@ -193,6 +205,7 @@ table! {
 
 joinable!(leads -> lifepath_settings (setting_id));
 joinable!(leads -> lifepaths (lifepath_id));
+joinable!(lifepath_reqs -> lifepaths (lifepath_id));
 joinable!(lifepath_settings -> books (book_id));
 joinable!(lifepath_settings -> stocks (stock_id));
 joinable!(lifepath_skill_lists -> lifepaths (lifepath_id));
@@ -209,6 +222,7 @@ joinable!(traits -> books (book_id));
 allow_tables_to_appear_in_same_query!(
     books,
     leads,
+    lifepath_reqs,
     lifepaths,
     lifepath_settings,
     lifepath_skill_lists,
