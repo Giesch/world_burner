@@ -19,6 +19,7 @@ use queryable::*;
 type StdError = Box<dyn std::error::Error>;
 type StdResult<T> = Result<T, StdError>;
 
+const BWGR: &str = "BWGR";
 const HALF_PREVIOUS: &str = "half_previous";
 
 const PRINCE_YEARS_MIN: i32 = 2;
@@ -31,7 +32,7 @@ pub fn seed_book_data(db: &PgConnection) -> StdResult<()> {
     db.transaction(|| {
         let gold_id = books::table
             .select(books::id)
-            .filter(books::abbrev.eq("BWGR"))
+            .filter(books::abbrev.eq(BWGR))
             .first(db)?;
 
         let skill_ids = seed_skills(db, gold_id)?;

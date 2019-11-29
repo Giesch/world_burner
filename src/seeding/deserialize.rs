@@ -143,6 +143,10 @@ pub struct Lifepath {
     pub skills: Vec<String>,
     #[serde(default)]
     pub traits: Vec<String>,
+    #[serde(default)]
+    pub req: Option<LifepathReq>,
+    #[serde(default)]
+    pub req_desc: Option<String>,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -287,4 +291,14 @@ impl Trait {
             Self::Char { .. } => TraitType::Char,
         }
     }
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+pub enum LifepathReq {
+    LP(String),                   // requires a specific previous lifepath
+    RetakenLP(String, u8),        // requires a specific lifepath n times
+    PreviousLifepaths(u8),        // requires n previous lifepaths of any kind
+    SettingLifepaths(u8, String), // n lifepaths from a particular setting
+    Any(Vec<LifepathReq>),        // true if any are met
+    All(Vec<LifepathReq>),        // true if all are met
 }

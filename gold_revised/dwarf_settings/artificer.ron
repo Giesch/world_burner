@@ -14,7 +14,7 @@ LifepathSetting(
       gen_skill_pts: 3,
       skill_pts: 2,
       trait_pts: 1,
-      skills: ["dwarven rune script"]
+      skills: ["dwarven rune script"],
     ),
 
     Lifepath(
@@ -27,7 +27,7 @@ LifepathSetting(
       skill_pts: 4,
       trait_pts: 2,
       skills: ["firebuilding", "soothing platitudes", "soot-wise"],
-      traits: ["humility", "hard work"]
+      traits: ["humility", "hard work"],
     ),
 
     Lifepath(
@@ -40,7 +40,9 @@ LifepathSetting(
       skill_pts: 4,
       trait_pts: 2,
       skills: ["black metal artifice", "mending", "dwarven art-wise"],
-      traits: ["determined"]
+      traits: ["determined"],
+      req: Any([LP("ardent (artificer)"), LP("journeyman")]),
+      req_desc: "Artificer's Ardent or Journeyman",
     ),
 
     Lifepath(
@@ -53,7 +55,9 @@ LifepathSetting(
       skill_pts: 8,
       trait_pts: 1,
       skills: ["stone artifice", "etching", "white metal artifice", "gem artifice"],
-      traits: ["stolid"]
+      traits: ["stolid"],
+      req: Any([LP("tyro artificer"), LP("craftsman")]),
+      req_desc: "Tyro or Craftsman",
     ),
 
     Lifepath(
@@ -66,6 +70,8 @@ LifepathSetting(
       skill_pts: 6,
       trait_pts: 1,
       skills: ["jargon", "fire and steel-wise", "war art"],
+      req: LP("artificer"),
+      req_desc: "Artificer",
     ),
 
     Lifepath(
@@ -78,7 +84,9 @@ LifepathSetting(
       skill_pts: 8,
       trait_pts: 2,
       skills: ["lithography", "sculpture", "hallmaster", "symbology", "etiquette"],
-      traits: ["confident", "patient"]
+      traits: ["confident", "patient"],
+      req: LP("artificer"),
+      req_desc: "Artificer",
     ),
 
     Lifepath(
@@ -91,7 +99,9 @@ LifepathSetting(
       skill_pts: 6,
       trait_pts: 1,
       skills: ["forge artifice", "appraisal", "engineering", "command", "maker's mark-wise"],
-      traits: ["meticulous", "estimation"]
+      traits: ["meticulous", "estimation"],
+      req: LP("mask bearer"),
+      req_desc: "Mask Bearer",
     ),
 
     Lifepath(
@@ -105,6 +115,8 @@ LifepathSetting(
       skill_pts: 4,
       trait_pts: 1,
       skills: ["reason of old stone", "stone-wise", "mountain-wise"],
+      req: LP("master of arches"),
+      req_desc: "Master of Arches",
     ),
     
   ]

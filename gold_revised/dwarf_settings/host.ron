@@ -69,7 +69,9 @@ LifepathSetting(
       trait_pts: 1,
       skills: ["foraging", "axe", "conspicuous", "intimidation", "armor training",
         "shield training", "formation fighting", "throwing"],
-      traits: ["swaggering"]
+      traits: ["swaggering"],
+      req: Any([LP("ardent (noble)"), LP("graybeard"), LP("banner bearer")]),
+      req_desc: "Noble Ardent, Graybeard, or Banner Bearer",
     ),
 
     Lifepath(
@@ -82,7 +84,14 @@ LifepathSetting(
       skill_pts: 5,
       trait_pts: 2,
       skills: ["intimidation", "field dressing", "command", "campaign-wise"],
-      traits: ["chuffing", "oddly likeable"]
+      traits: ["chuffing", "oddly likeable"],
+      req: Any([
+        LP("axe bearer (host)"),
+        LP("axe bearer (noble)"),
+        LP("longbeard"),
+        SettingLifepaths(3, "host"),
+      ]),
+      req_desc: "Axe Bearer, Longbeard, or three Host lifepaths",
     ),
 
     Lifepath(
@@ -95,7 +104,9 @@ LifepathSetting(
       skill_pts: 6,
       trait_pts: 1,
       skills: ["khirurgy", "soothing platitudes", "cooking", "infection-wise"],
-      traits: []
+      traits: [],
+      req: Any([LP("abecedart"), LP("seneschal"), LP("graybeard")]),
+      req_desc: "Abecedart, Seneschal, or Graybeard",
     ),
 
     Lifepath(
@@ -108,7 +119,9 @@ LifepathSetting(
       skill_pts: 7,
       trait_pts: 1,
       skills: ["logistics", "accounting", "strategy", "supply-wise", "host-wise"],
-      traits: ["no nonsense"]
+      traits: ["no nonsense"],
+      req: Any([LP("seneschal"), LP("treasurer"), LP("trader"), LP("graybeard")]),
+      req_desc: "Seneschal, Treasurer, Trader, or Graybeard",
     ),
 
     Lifepath(
@@ -122,7 +135,9 @@ LifepathSetting(
       trait_pts: 1,
       skills: ["command", "conspicuous", "formation fighting", "tactics", "cartography",
         "graybeard-wise"],
-      traits: []
+      traits: [],
+      req: Any([LP("prince"), LP("graybeard")]),
+      req_desc: "Prince or Graybeard",
     ),
 
     Lifepath(
@@ -135,7 +150,14 @@ LifepathSetting(
       skill_pts: 5,
       trait_pts: 1,
       skills: ["artillerist", "mending", "carpentry", "structural weakness-wise"],
-      traits: ["complaining"]
+      traits: ["complaining"],
+      req: Any([
+        LP("mask bearer"),
+        LP("craftsman"),
+        LP("foreman"),
+        RetakenLP("arbalester", 3),
+      ]),
+      req_desc: "Mask Bearer, Craftsman, Foreman, or three Arbalester lifepaths",
     ),
 
     Lifepath(
@@ -148,7 +170,10 @@ LifepathSetting(
       skill_pts: 6,
       trait_pts: 2,
       skills: ["jargon", "war engineer", "scavenging", "leverage-wise"],
-      traits: ["estimation"]
+      traits: ["estimation"],
+      req: Any([LP("artillerist"), LP("mask bearer")]),
+      req_desc: "Artillerist or Mask Bearer",
+
     ),
 
     Lifepath(
@@ -162,7 +187,9 @@ LifepathSetting(
       trait_pts: 1,
       skills: ["conspicuous", "oratory", "observation", "strategy", "etiquette",
         "champion-wise"],
-      traits: ["chuntering", "hard as nails"]
+      traits: ["chuntering", "hard as nails"],
+      req: Any([LP("prince"), LP("captain"), LP("high captain")]),
+      req_desc: "Prince, Captain, or High Captain",
     ),
 
   ],

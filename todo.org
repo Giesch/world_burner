@@ -1,11 +1,25 @@
 * TODO enter traits list
 ** need to know how to implement them first?
+** we at least want the costs available
+
+* TODO add a born lifepath flag
+
+* TODO add lifepath requirements
+  - [X] add to ron files (including description)
+  - [ ] decide on table structure
+  - [ ] seed them
 
 * TODO think about how to handle stock common traits & born lifepaths
 ** need a table of common traits by stock?
 ** how to handle human cultural traits?
 ** and fey blood
 *** implement skill restrictions as requiring the specific common trait
+
+* TODO unit tests covering the seeded data
+  - [ ] custom test runner
+    https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html
+  - [ ] check weird lifepaths
+  - [ ] test query layer (make query layer)
 
 * db changes
 ** TODO think about how to do appropriate weapons
@@ -38,11 +52,6 @@
 ** add a 'migration' tracking table for book seeds?
   ie, diesel migration adds a todo list row to the seed table,
   then seed fn looks at that table
-* TODO find a way to seed the test database one time
-** make a custom test runner
-   https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html
-** recreate the test db once every time
-** use diesel's test_transaction
 
 * TODO move the HALF_PREVIOUS constant to a repo module and make it private
 ** db_string method on ResCalc enum

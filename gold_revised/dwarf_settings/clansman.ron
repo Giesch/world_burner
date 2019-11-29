@@ -92,6 +92,8 @@ LifepathSetting(
       trait_pts: 1,
       skills: ["beer appraisal", "nogger", "miller", "beer-wise"],
       traits: [],
+      req: Any([LP("miller"), LP("longbeard"), LP("seneschal"), LP("captain"), LP("drunk")]),
+      req_desc: "Miller, Longbeard, Seneschal, Captain, or Drunk",
     ),
 
     Lifepath(
@@ -105,6 +107,8 @@ LifepathSetting(
       trait_pts: 1,
       skills: ["ore-wise", "vein-wise", "engineering"],
       traits: [],
+      req: Any([LP("delver"), LP("ardent (artificer)"), LP("engineer")]),
+      req_desc: "Delver, Artificer's Ardent, or Engineer",
     ),
 
     Lifepath(
@@ -118,6 +122,8 @@ LifepathSetting(
       trait_pts: 2,
       skills: ["clan-wise", "family-wise", "haggling", "soothing platitudes"],
       traits: ["dispute-settler", "pragmatic outlook"],
+      req: PreviousLifepaths(2),
+      req_desc: "Husband/Wife cannot be the character's second lifepath",
     ),
 
     Lifepath(
@@ -131,6 +137,10 @@ LifepathSetting(
       trait_pts: 2,
       skills: ["coarse persuasion", "ugly truth", "guilder-wise", "host-wise"],
       traits: ["folksy wisdom", "oathswearer"],
+      req: Any([LP("foreman"), LP("graybeard"), LP("artificer"), LP("trader"),
+        LP("seneschal"), LP("adventurer"), LP("husband/wife")]),
+      req_desc:
+        "Foreman, Graybeard, Artificer, Trader, Seneschal, Adventurer or Husband/Wife",
     ),
 
   ]
