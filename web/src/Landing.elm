@@ -8,19 +8,25 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
+import Session exposing (..)
 
 
 type alias Model =
-    {}
+    { session : Session }
 
 
 type Msg
     = Msg
 
 
-init : Model
-init =
-    {}
+init : Session -> Model
+init session =
+    { session = session }
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    ( model, Cmd.none )
 
 
 view : Model -> Element a

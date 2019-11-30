@@ -10,23 +10,29 @@ import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
 import Landing exposing (..)
+import Session exposing (..)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser, s, string)
 
 
-type alias Model =
-    { page : Page }
-
-
-type Page
-    = LandingPage Landing.Model
-    | CreationPage Creation.Model
-    | NotFound
+type Model
+    = Landing Landing.Model
+    | Creation Creation.Model
+    | NotFound Session
 
 
 type Route
-    = Landing
-    | Creation
+    = LandingRoute
+    | CreationRoute
+
+
+init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init flags url key =
+    ( Landing (Landing.init { key = key }), Cmd.none )
+
+
+
+-- UPDATE
 
 
 type Msg
@@ -37,28 +43,93 @@ type Msg
     | NoOp
 
 
-init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
-init flags url key =
-    ( { page = LandingPage Landing.init }, Cmd.none )
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    ( model, Cmd.none )
+    case ( msg, model ) of
+        ( ChangedUrl url, _ ) ->
+            updateUrl url model
+
+        ( ClickedLink urlRequest, _ ) ->
+            case urlRequest of
+                Browser.External href ->
+                    ( model, Nav.load href )
+
+                Browser.Internal url ->
+                    ( model, Nav.pushUrl (.key (getSession model)) (Url.toString url) )
+
+        ( GotLandingMsg subMsg, Landing landing ) ->
+            Landing.update subMsg landing
+                |> updateWith Landing GotLandingMsg
+
+        ( GotCreationMsg subMsg, Creation creation ) ->
+            Creation.update subMsg creation
+                |> updateWith Creation GotCreationMsg
+
+        ( NoOp, _ ) ->
+            ( model, Cmd.none )
+
+        ( _, _ ) ->
+            -- msg for wrong page
+            ( model, Cmd.none )
+
+
+updateWith :
+    (subModel -> Model)
+    -> (subMsg -> Msg)
+    -> ( subModel, Cmd subMsg )
+    -> ( Model, Cmd Msg )
+updateWith toModel toMsg ( subModel, subCmd ) =
+    ( toModel subModel
+    , Cmd.map toMsg subCmd
+    )
+
+
+getSession : Model -> Session
+getSession model =
+    case model of
+        Landing landing ->
+            landing.session
+
+        Creation creation ->
+            creation.session
+
+        NotFound session ->
+            session
+
+
+updateUrl : Url -> Model -> ( Model, Cmd Msg )
+updateUrl url model =
+    let
+        session =
+            getSession model
+    in
+    case Parser.parse parser url of
+        Just LandingRoute ->
+            ( Landing (Landing.init session)
+            , Cmd.none
+            )
+
+        Just CreationRoute ->
+            ( Creation (Creation.init session)
+            , Cmd.none
+            )
+
+        Nothing ->
+            ( NotFound session, Cmd.none )
 
 
 view : Model -> Browser.Document Msg
 view model =
     let
         content =
-            case model.page of
-                LandingPage landing ->
+            case model of
+                Landing landing ->
                     Landing.view landing |> Element.map GotLandingMsg
 
-                CreationPage create ->
+                Creation create ->
                     Creation.view create |> Element.map GotCreationMsg
 
-                NotFound ->
+                NotFound session ->
                     el [ centerX, centerY ] <| text "Not Found"
     in
     { title = "World Burner"
@@ -82,23 +153,24 @@ header =
         , paddingXY 20 0
         , Background.color Colors.red
         ]
-        [ accountButton "Log In" NoOp
-        , accountButton "Create Account" NoOp
+        [ logo
+        , headerButton "Log In" NoOp
+        , headerButton "Register" NoOp
         ]
 
 
-accountButton : String -> Msg -> Element Msg
-accountButton label msg =
+headerButton : String -> Msg -> Element Msg
+headerButton label msg =
     Input.button
         [ alignRight
-        , mouseOver <|
-            [ Background.color Colors.white
-            , Font.color Colors.black
-            ]
         , height fill
         , Font.color Colors.white
         , Font.size 16
         , paddingXY 7 0
+        , mouseOver <|
+            [ Background.color Colors.white
+            , Font.color Colors.black
+            ]
         ]
         { onPress = Just msg
         , label = text label
@@ -110,11 +182,11 @@ logo =
     link
         [ height fill
         , paddingXY 10 0
+        , Font.color Colors.white
         , mouseOver <|
             [ Background.color Colors.white
             , Font.color Colors.black
             ]
-        , Font.color Colors.white
         ]
         { url = "/"
         , label = el [ alignLeft ] <| text "World Burner"
@@ -137,26 +209,9 @@ main =
         }
 
 
-updateUrl : Url -> Model -> ( Model, Cmd Msg )
-updateUrl url model =
-    case Parser.parse parser url of
-        Just Landing ->
-            ( { model | page = LandingPage Landing.init }
-            , Cmd.none
-            )
-
-        Just Creation ->
-            ( { model | page = CreationPage Creation.init }
-            , Cmd.none
-            )
-
-        Nothing ->
-            ( { model | page = NotFound }, Cmd.none )
-
-
 parser : Parser (Route -> a) a
 parser =
     Parser.oneOf
-        [ Parser.map Landing Parser.top
-        , Parser.map Creation (s "create")
+        [ Parser.map LandingRoute Parser.top
+        , Parser.map CreationRoute (s "create")
         ]
