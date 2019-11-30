@@ -5,7 +5,7 @@
 
 * TODO find a better way to handle same lifepath in different settings
 ** the diminishing returns rules care
-
+   
 * TODO unit tests covering the seeded data
   - [ ] custom test runner
     https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html
