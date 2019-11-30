@@ -1,7 +1,7 @@
 * TODO get a minimal version of the app running
-** just picking lifepaths for now
-** allow starting at either end?
-*** do sequential from born lp first
+  - [ ] set up elm subproject
+  - [ ] get google oauth flow working
+  - [ ] sequentially picking lifepaths
 
 * TODO find a better way to handle same lifepath in different settings
 ** the diminishing returns rules care

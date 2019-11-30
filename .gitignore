@@ -1,3 +1,6 @@
 api/target
 **/*.rs.bk
 api/.env
+
+web/elm-stuff/*
+web/elm.js
