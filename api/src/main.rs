@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db = PgConnection::establish(&db_url)?;
     embedded_migrations::run(&db)?;
 
-    world_burner::app();
+    world_burner::app().launch();
 
     Ok(())
 }

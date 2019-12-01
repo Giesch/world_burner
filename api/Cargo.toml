@@ -9,12 +9,23 @@ default-run = "world_burner"
 # https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+bcrypt = "0.5.0"
+chrono = "0.4.9"
 diesel = { version = "1.4.3", features = ["postgres", "chrono", "serde_json"] }
-dotenv = "0.15.0"
-diesel_migrations = "1.4.0"
 diesel-derive-enum = { version = "0.4.4", features = ["postgres"] }
+diesel_migrations = "1.4.0"
+dotenv = "0.15.0"
+rocket = "0.4.2"
+ron = "0.5.1"
 serde = "1.0.102"
 serde_derive = "1.0.102"
 serde_json = "1.0.42"
-ron = "0.5.1"
-chrono = "0.4.9"
+validator = "0.10.0"
+
+[dependencies.rocket_contrib]
+version = "0.4.2"
+default-features = false
+features = ["diesel_postgres_pool", "json"]
+
+[dev-dependencies]
+mockall = "0.5.0"

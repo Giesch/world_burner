@@ -5,6 +5,7 @@
 
 * TODO find a better way to handle same lifepath in different settings
 ** the diminishing returns rules care
+** for now, just have the diminishing returns do their own truncation
    
 * TODO unit tests covering the seeded data
   - [ ] custom test runner

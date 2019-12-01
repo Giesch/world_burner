@@ -24,4 +24,4 @@ update msg model =
 
 view : Model -> Element a
 view model =
-    el [] <| text "what is going on"
+    el [] <| text "the character creation page"

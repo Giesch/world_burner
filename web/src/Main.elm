@@ -55,7 +55,7 @@ update msg model =
                     ( model, Nav.load href )
 
                 Browser.Internal url ->
-                    ( model, Nav.pushUrl (.key (getSession model)) (Url.toString url) )
+                    ( model, Nav.pushUrl (.key (toSession model)) (Url.toString url) )
 
         ( GotLandingMsg subMsg, Landing landing ) ->
             Landing.update subMsg landing
@@ -69,7 +69,7 @@ update msg model =
             ( model, Cmd.none )
 
         ( _, _ ) ->
-            -- msg for wrong page
+            -- recieved a msg for the wrong page
             ( model, Cmd.none )
 
 
@@ -84,8 +84,8 @@ updateWith toModel toMsg ( subModel, subCmd ) =
     )
 
 
-getSession : Model -> Session
-getSession model =
+toSession : Model -> Session
+toSession model =
     case model of
         Landing landing ->
             landing.session
@@ -101,7 +101,7 @@ updateUrl : Url -> Model -> ( Model, Cmd Msg )
 updateUrl url model =
     let
         session =
-            getSession model
+            toSession model
     in
     case Parser.parse parser url of
         Just LandingRoute ->
