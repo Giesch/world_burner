@@ -24,6 +24,7 @@ fn no_entryless_non_knowledge_skills() {
         .filter(|name| !name.ends_with("history"))
         .collect();
 
+    println!("Orphaned skill names:");
     println!("{:#?}", orphan_skill_names);
     assert_eq!(orphan_skill_names.len(), 0);
 }

@@ -1,6 +1,5 @@
 use dotenv::dotenv;
 use std::env;
-
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 

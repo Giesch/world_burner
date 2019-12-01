@@ -12,7 +12,7 @@ type StdResult<T> = Result<T, Box<dyn std::error::Error>>;
 
 embed_migrations!();
 
-/// This is the task for resetting the test database before a 'cargo test' run.
+/// The task for resetting the test database before a 'cargo test' run.
 fn main() -> StdResult<()> {
     dotenv()?;
 

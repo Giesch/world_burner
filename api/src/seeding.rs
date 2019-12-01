@@ -22,9 +22,9 @@ const HALF_PREVIOUS: &str = "half_previous";
 const PRINCE_YEARS_MIN: i32 = 2;
 const PRINCE_YEARS_MAX: i32 = 20;
 
-/// This is the function for loading all RON files in both dev and prod.
-/// It relies on migrations have been run, and makes assumptions about the book data.
-/// It should not be used for user input.
+/// Loads all RON files into postgres.
+/// Relies on migrations have been run, and makes assumptions about the book data.
+/// Should not be used for user input.
 pub fn seed_book_data(db: &PgConnection) -> StdResult<()> {
     db.transaction(|| {
         let gold_id = books::table

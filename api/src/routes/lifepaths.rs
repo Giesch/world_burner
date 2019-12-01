@@ -20,7 +20,7 @@ impl From<LifepathsError> for RoutesError {
     }
 }
 
-#[get("/lifepaths/born", format = "json")]
+#[get("/api/lifepaths/born", format = "json")]
 pub fn born(db: DbConn) -> Result<Json<LifepathsResponse>, RoutesError> {
     let lifepaths = Lifepaths::born(db)?;
     let response = LifepathsResponse { lifepaths };

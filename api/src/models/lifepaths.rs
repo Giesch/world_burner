@@ -4,7 +4,7 @@ use itertools::Itertools;
 use std::collections::HashMap;
 use std::convert::Into;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Lifepath {
     pub id: i32,
     pub name: String,
@@ -19,7 +19,7 @@ pub struct Lifepath {
     pub skills: Vec<Skill>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum StatMod {
     Physical(i32),
     Mental(i32),
@@ -28,7 +28,7 @@ pub enum StatMod {
     None,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Lead {
     pub setting_name: String,
     pub setting_id: i32,
@@ -45,7 +45,7 @@ impl From<LeadRow> for Lead {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Skill {
     pub display_name: String,
     pub page: i32,
@@ -84,6 +84,7 @@ impl Lifepaths {
     pub fn born(db: impl LifepathRepo) -> Result<Vec<Lifepath>, LifepathsError> {
         let born_lps = db.born_lifepaths()?;
         let lifepath_ids: Vec<_> = born_lps.iter().map(|lp| lp.id).collect();
+
         let skill_rows = db.lifepath_skills(&lifepath_ids)?;
         let mut skill_lists = group_skill_lists(skill_rows);
 
