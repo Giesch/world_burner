@@ -15,14 +15,20 @@ extern crate rocket;
 #[macro_use]
 extern crate rocket_contrib;
 
+pub mod db;
+pub mod models;
+pub mod repos;
 pub mod routes;
 pub mod schema;
 pub mod seeding;
 
+use db::DbConn;
 use routes::*;
 
 pub fn app() -> rocket::Rocket {
-    let routes = routes![spa::index, spa::route, spa::js];
+    let routes = routes![spa::index, spa::route, spa::js, lifepaths::born];
 
-    rocket::ignite().mount("/", routes)
+    rocket::ignite()
+        .attach(DbConn::fairing())
+        .mount("/", routes)
 }

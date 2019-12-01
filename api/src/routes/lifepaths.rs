@@ -1,12 +1,29 @@
+use crate::db::DbConn;
+use crate::models::lifepaths::*;
 use rocket_contrib::json::Json;
 
-#[derive(Deserialize)]
-pub struct LifepathFilters {
-    born: Option<bool>,
+#[derive(Debug, Serialize)]
+pub struct LifepathsResponse {
+    lifepaths: Vec<Lifepath>,
 }
 
-// want to include current lifepaths here later
-#[post("/lifepaths/search", format = "json", data = "<filters>")]
-pub fn born_lps(filters: Json<LifepathFilters>) -> String {
-    "write me".to_string()
+#[derive(Debug, Serialize)]
+pub struct RoutesError {
+    error: String,
+}
+
+impl From<LifepathsError> for RoutesError {
+    fn from(_err: LifepathsError) -> Self {
+        RoutesError {
+            error: "oops".to_string(),
+        }
+    }
+}
+
+#[get("/lifepaths/born", format = "json")]
+pub fn born(db: DbConn) -> Result<Json<LifepathsResponse>, RoutesError> {
+    let lifepaths = Lifepaths::born(db)?;
+    let response = LifepathsResponse { lifepaths };
+
+    Ok(Json(response))
 }

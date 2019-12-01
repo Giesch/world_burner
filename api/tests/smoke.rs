@@ -4,7 +4,7 @@ use world_burner::schema::*;
 mod common;
 
 #[test]
-fn born_clansman_correct() {
+fn born_clansman() {
     let db = common::test_connection();
 
     use lifepaths::*;

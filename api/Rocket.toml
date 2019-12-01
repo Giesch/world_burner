@@ -1,0 +1,6 @@
+[development]
+jwt_secret = "mCLWoWkTBSEH0QqiU0WHhryKBMPy/cUW2+yDRyBv5hY="
+hash_cost = 4
+
+[development.databases]
+postgres_db = { url = "postgres://postgres:postgres@localhost/world_burner_dev" }

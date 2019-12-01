@@ -2,6 +2,12 @@
   - [ ] set up elm subproject
   - [ ] get google oauth flow working
   - [ ] sequentially picking lifepaths
+  - [ ] integration & unit tests for endpoints
+  - [ ] include skill roots in lifepath skills response
+  - [ ] should wises be an enum variant?
+  - [ ] think about a 'suggestions' endpoint
+        ie filter by 'i meet the requirements'
+        or 'satisfies my unmet requirements'
 
 * TODO find a better way to handle same lifepath in different settings
 ** the diminishing returns rules care
@@ -93,3 +99,7 @@
 ** list position for skills and traits should be contiguous
 ** think about changing the schema to fix these
 ** are triggers slow? fine for this project?
+* TODO consider using diesel associations
+** could simplify the leads/skill lists/trait lists stuff
+** seems like there's some limitations:
+   https://github.com/diesel-rs/diesel/issues/89

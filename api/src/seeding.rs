@@ -238,6 +238,7 @@ fn seed_settings(
 }
 
 // TODO move this to repo layer
+/// The requirements of a lifepath, stored as a tree in jsonb.
 #[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
 pub enum LifepathRequirement {
     /// requires a specific lifepath 'count' number of times
