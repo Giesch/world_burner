@@ -72,8 +72,8 @@ pub enum LifepathsError {
     Useless,
 }
 
-impl From<LifepathsRepoError> for LifepathsError {
-    fn from(_err: LifepathsRepoError) -> Self {
+impl From<LifepathRepoError> for LifepathsError {
+    fn from(_err: LifepathRepoError) -> Self {
         Self::Useless
     }
 }
@@ -81,13 +81,13 @@ impl From<LifepathsRepoError> for LifepathsError {
 pub struct Lifepaths;
 
 impl Lifepaths {
-    pub fn born(db: impl LifepathsRepo) -> Result<Vec<Lifepath>, LifepathsError> {
+    pub fn born(db: impl LifepathRepo) -> Result<Vec<Lifepath>, LifepathsError> {
         let born_lps = db.born_lifepaths()?;
         let lifepath_ids: Vec<_> = born_lps.iter().map(|lp| lp.id).collect();
         let skill_rows = db.lifepath_skills(&lifepath_ids)?;
         let mut skill_lists = group_skill_lists(skill_rows);
 
-        let lead_rows = db.leads(&lifepath_ids)?;
+        let lead_rows = db.lifepath_leads(&lifepath_ids)?;
         let mut leads = group_leads(lead_rows);
 
         born_lps

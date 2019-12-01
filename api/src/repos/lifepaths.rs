@@ -4,29 +4,29 @@ use crate::schema::StatMod;
 use diesel::pg::expression::dsl::any;
 use diesel::prelude::*;
 
-pub trait LifepathsRepo {
-    fn born_lifepaths(&self) -> Result<Vec<LifepathRow>, LifepathsRepoError>;
+pub trait LifepathRepo {
+    fn born_lifepaths(&self) -> Result<Vec<LifepathRow>, LifepathRepoError>;
 
     fn lifepath_skills(
         &self,
         lifepath_ids: &[i32],
-    ) -> Result<Vec<LifepathSkillRow>, LifepathsRepoError>;
+    ) -> Result<Vec<LifepathSkillRow>, LifepathRepoError>;
 
-    fn leads(&self, lifepath_ids: &[i32]) -> Result<Vec<LeadRow>, LifepathsRepoError>;
+    fn lifepath_leads(&self, lifepath_ids: &[i32]) -> Result<Vec<LeadRow>, LifepathRepoError>;
 }
 
-pub enum LifepathsRepoError {
+pub enum LifepathRepoError {
     Useless,
 }
 
-impl From<diesel::result::Error> for LifepathsRepoError {
+impl From<diesel::result::Error> for LifepathRepoError {
     fn from(_err: diesel::result::Error) -> Self {
-        LifepathsRepoError::Useless
+        LifepathRepoError::Useless
     }
 }
 
-impl LifepathsRepo for DbConn {
-    fn born_lifepaths(&self) -> Result<Vec<LifepathRow>, LifepathsRepoError> {
+impl LifepathRepo for DbConn {
+    fn born_lifepaths(&self) -> Result<Vec<LifepathRow>, LifepathRepoError> {
         use schema::lifepaths::dsl::*;
 
         let rows = lifepaths
@@ -51,7 +51,7 @@ impl LifepathsRepo for DbConn {
     fn lifepath_skills(
         &self,
         lifepath_ids: &[i32],
-    ) -> Result<Vec<LifepathSkillRow>, LifepathsRepoError> {
+    ) -> Result<Vec<LifepathSkillRow>, LifepathRepoError> {
         use schema::lifepath_skill_lists as skill_lists;
         use schema::skills;
 
@@ -76,7 +76,7 @@ impl LifepathsRepo for DbConn {
         Ok(rows)
     }
 
-    fn leads(&self, lifepath_ids: &[i32]) -> Result<Vec<LeadRow>, LifepathsRepoError> {
+    fn lifepath_leads(&self, lifepath_ids: &[i32]) -> Result<Vec<LeadRow>, LifepathRepoError> {
         use schema::leads;
         use schema::lifepath_settings as settings;
 
