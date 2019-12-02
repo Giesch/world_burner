@@ -5,15 +5,14 @@ use diesel::pg::expression::dsl::any;
 use diesel::prelude::*;
 
 pub trait LifepathRepo {
-    fn born_lifepaths(&self) -> Result<Vec<LifepathRow>, LifepathRepoError>;
+    fn born_lifepaths(&self) -> LifepathRepoResult<Vec<LifepathRow>>;
 
-    fn lifepath_skills(
-        &self,
-        lifepath_ids: &[i32],
-    ) -> Result<Vec<LifepathSkillRow>, LifepathRepoError>;
+    fn lifepath_skills(&self, lifepath_ids: &[i32]) -> LifepathRepoResult<Vec<LifepathSkillRow>>;
 
-    fn lifepath_leads(&self, lifepath_ids: &[i32]) -> Result<Vec<LeadRow>, LifepathRepoError>;
+    fn lifepath_leads(&self, lifepath_ids: &[i32]) -> LifepathRepoResult<Vec<LeadRow>>;
 }
+
+type LifepathRepoResult<T> = Result<T, LifepathRepoError>;
 
 pub enum LifepathRepoError {
     Useless,

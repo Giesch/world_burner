@@ -1,29 +1,23 @@
+use super::errors::*;
 use crate::db::DbConn;
 use crate::models::lifepaths::*;
 use rocket_contrib::json::Json;
+
+#[get("/api/lifepaths/born", format = "json")]
+pub fn born(db: DbConn) -> Result<Json<LifepathsResponse>, Error> {
+    let lifepaths = Lifepaths::born(db)?;
+    Ok(Json(LifepathsResponse { lifepaths }))
+}
 
 #[derive(Debug, Serialize)]
 pub struct LifepathsResponse {
     lifepaths: Vec<Lifepath>,
 }
 
-#[derive(Debug, Serialize)]
-pub struct RoutesError {
-    error: String,
-}
-
-impl From<LifepathsError> for RoutesError {
-    fn from(_err: LifepathsError) -> Self {
-        RoutesError {
-            error: "oops".to_string(),
+impl From<LifepathsError> for Error {
+    fn from(error: LifepathsError) -> Self {
+        match error {
+            LifepathsError::Useless => Error::ServerError(Json(ErrorResponse::useless())),
         }
     }
-}
-
-#[get("/api/lifepaths/born", format = "json")]
-pub fn born(db: DbConn) -> Result<Json<LifepathsResponse>, RoutesError> {
-    let lifepaths = Lifepaths::born(db)?;
-    let response = LifepathsResponse { lifepaths };
-
-    Ok(Json(response))
 }
