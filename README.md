@@ -3,18 +3,31 @@
 a crud app that's in rust for some reason
 
 ## requires  
-  rust (stable)  
+  rust (nightly)  
   postgres  
   diesel_cli  
   
 ## setup 
 
+set up dotenv file:  
+cd api  
 cp .env.example .env
 
-http://diesel.rs/guides/getting-started/
-
+to set up db (http://diesel.rs/guides/getting-started/)
+cd api  
 cargo install diesel_cli  
-echo DATABASE_URL=postgres:postgres//localhost/world_burner > .env  
 diesel setup
 
-cargo run --bin seed
+to build frontend:  
+cd web  
+./make_dev.sh
+
+to run dev server:  
+cd api  
+cargo run --bin seed  
+cargo run
+
+to run tests:  
+cd api  
+cargo run --bin reset_test_db  
+cargo test

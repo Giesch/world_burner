@@ -6,7 +6,7 @@ use world_burner::routes::lifepaths::LifepathsResponse;
 
 #[test]
 fn born_lifepaths() {
-    let rocket = world_burner::app();
+    let rocket = world_burner::test_app();
     let client = Client::new(rocket).expect("Rocket client");
 
     let json = r#"{

@@ -29,7 +29,7 @@ pub struct NewTrait {
     pub page: i32,
     pub name: String,
     pub cost: Option<i32>,
-    pub typ: TraitType,
+    pub taip: TraitType,
 }
 
 #[derive(Insertable, Debug, PartialEq, Eq)]

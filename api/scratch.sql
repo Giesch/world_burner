@@ -83,9 +83,9 @@ ORDER BY l.lifepath_id;
          tr.name,
          tr.page,
          tr.cost,
-         tr.typ
+         tr.taip
     FROM lifepath_trait_lists AS l
          LEFT JOIN traits AS tr ON l.trait_id = tr.id
    WHERE (l.trait_id = tr.id OR tr.id IS NULL)
      AND l.lifepath_id IN (29, 30, 31, 37, 42)
-ORDER BY lifepath_id, list_position;
+ORDER BY l.lifepath_id, l.list_position;

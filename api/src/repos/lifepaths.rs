@@ -87,7 +87,7 @@ impl LifepathRepo for DbConn {
                 traits::name.nullable(),
                 traits::page.nullable(),
                 traits::cost.nullable(),
-                traits::typ.nullable(),
+                traits::taip.nullable(),
             ))
             .filter(
                 trait_lists::trait_id
@@ -178,5 +178,5 @@ pub struct LifepathTraitRow {
     pub name: Option<String>,
     pub page: Option<i32>,
     pub cost: Option<i32>,
-    pub typ: Option<schema::TraitType>,
+    pub taip: Option<schema::TraitType>,
 }

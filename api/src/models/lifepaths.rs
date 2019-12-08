@@ -207,7 +207,7 @@ impl TryFrom<LifepathTraitRow> for Trait {
             let name = row.name.ok_or(LifepathsError::Useless)?;
             let page = row.page.ok_or(LifepathsError::Useless)?;
             let cost = row.cost.ok_or(LifepathsError::Useless)?;
-            let taip = row.typ.ok_or(LifepathsError::Useless)?;
+            let taip = row.taip.ok_or(LifepathsError::Useless)?;
 
             Ok(Trait::TraitEntry {
                 name,

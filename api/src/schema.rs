@@ -216,7 +216,7 @@ table! {
         page -> Int4,
         name -> Text,
         cost -> Nullable<Int4>,
-        typ -> TraitTypeMapping,
+        taip -> TraitTypeMapping,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }

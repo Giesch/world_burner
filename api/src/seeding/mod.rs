@@ -44,7 +44,7 @@ fn seed_traits(db: &PgConnection, book_id: i32) -> StdResult<HashMap<String, i32
         page: tr.page(),
         name: tr.name(),
         cost: tr.cost(),
-        typ: tr.trait_type(),
+        taip: tr.trait_type(),
     };
 
     let new_traits: Vec<_> = read_traits()?.into_iter().map(new_trait).collect();
