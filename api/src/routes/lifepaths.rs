@@ -3,21 +3,30 @@ use crate::db::DbConn;
 use crate::models::lifepaths::*;
 use rocket_contrib::json::Json;
 
-#[get("/api/lifepaths/born", format = "json")]
-pub fn born(db: DbConn) -> Result<Json<LifepathsResponse>, Error> {
-    let lifepaths = Lifepaths::born(db)?;
+#[post("/api/lifepaths/search", format = "json", data = "<filters>")]
+pub fn list(db: DbConn, filters: Json<LifepathFilters>) -> RouteResult<Json<LifepathsResponse>> {
+    let lifepaths = Lifepaths::list(db, &filters.into_inner())?;
     Ok(Json(LifepathsResponse { lifepaths }))
 }
 
-#[derive(Debug, Serialize)]
-pub struct LifepathsResponse {
-    lifepaths: Vec<Lifepath>,
+#[derive(Deserialize, Serialize, Debug)]
+pub struct LifepathFilters {
+    #[serde(default)]
+    pub born: Option<bool>,
+
+    #[serde(default)]
+    pub setting_ids: Option<Vec<i32>>,
 }
 
-impl From<LifepathsError> for Error {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LifepathsResponse {
+    pub lifepaths: Vec<Lifepath>,
+}
+
+impl From<LifepathsError> for RouteError {
     fn from(error: LifepathsError) -> Self {
         match error {
-            LifepathsError::Useless => Error::ServerError(Json(ErrorResponse::useless())),
+            LifepathsError::Useless => RouteError::useless(),
         }
     }
 }

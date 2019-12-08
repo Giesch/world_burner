@@ -28,7 +28,8 @@ type Route
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( Landing (Landing.init { key = key }), Cmd.none )
+    Landing.init { key = key }
+        |> updateWith Landing GotLandingMsg
 
 
 
@@ -105,14 +106,12 @@ updateUrl url model =
     in
     case Parser.parse parser url of
         Just LandingRoute ->
-            ( Landing (Landing.init session)
-            , Cmd.none
-            )
+            Landing.init session
+                |> updateWith Landing GotLandingMsg
 
         Just CreationRoute ->
-            ( Creation (Creation.init session)
-            , Cmd.none
-            )
+            Creation.init session
+                |> updateWith Creation GotCreationMsg
 
         Nothing ->
             ( NotFound session, Cmd.none )

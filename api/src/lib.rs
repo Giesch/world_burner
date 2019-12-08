@@ -26,7 +26,7 @@ use db::DbConn;
 use routes::*;
 
 pub fn app() -> rocket::Rocket {
-    let routes = routes![spa::index, spa::route, spa::js, lifepaths::born];
+    let routes = routes![spa::index, spa::route, spa::js, lifepaths::list];
 
     rocket::ignite()
         .attach(DbConn::fairing())

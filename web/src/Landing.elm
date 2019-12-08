@@ -19,9 +19,11 @@ type Msg
     = Msg
 
 
-init : Session -> Model
+init : Session -> ( Model, Cmd Msg )
 init session =
-    { session = session }
+    ( { session = session }
+    , Cmd.none
+    )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

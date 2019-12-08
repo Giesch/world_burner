@@ -1,36 +1,24 @@
 use crate::db::DbConn;
+use crate::routes::lifepaths::LifepathFilters;
 use crate::schema;
 use crate::schema::StatMod;
 use diesel::pg::expression::dsl::any;
 use diesel::prelude::*;
 
 pub trait LifepathRepo {
-    fn born_lifepaths(&self) -> LifepathRepoResult<Vec<LifepathRow>>;
-
+    fn lifepaths(&self, filters: &LifepathFilters) -> LifepathRepoResult<Vec<LifepathRow>>;
     fn lifepath_skills(&self, lifepath_ids: &[i32]) -> LifepathRepoResult<Vec<LifepathSkillRow>>;
-
     fn lifepath_leads(&self, lifepath_ids: &[i32]) -> LifepathRepoResult<Vec<LeadRow>>;
 }
 
-type LifepathRepoResult<T> = Result<T, LifepathRepoError>;
-
-pub enum LifepathRepoError {
-    Useless,
-}
-
-impl From<diesel::result::Error> for LifepathRepoError {
-    fn from(_err: diesel::result::Error) -> Self {
-        LifepathRepoError::Useless
-    }
-}
-
 impl LifepathRepo for DbConn {
-    fn born_lifepaths(&self) -> Result<Vec<LifepathRow>, LifepathRepoError> {
+    fn lifepaths(&self, filters: &LifepathFilters) -> LifepathRepoResult<Vec<LifepathRow>> {
         use schema::lifepaths::dsl::*;
 
-        let rows = lifepaths
+        let mut query = lifepaths
             .select((
                 id,
+                lifepath_setting_id,
                 page,
                 name,
                 years,
@@ -41,9 +29,17 @@ impl LifepathRepo for DbConn {
                 stat_mod_val,
                 res,
             ))
-            .filter(born.eq(true))
-            .load::<LifepathRow>(&**self)?;
+            .into_boxed();
 
+        if let Some(born_filter) = filters.born {
+            query = query.filter(born.eq(born_filter));
+        }
+
+        if let Some(setting_ids) = &filters.setting_ids {
+            query = query.filter(lifepath_setting_id.eq(any(setting_ids)))
+        }
+
+        let rows = query.load(&**self)?;
         Ok(rows)
     }
 
@@ -96,6 +92,18 @@ impl LifepathRepo for DbConn {
     }
 }
 
+type LifepathRepoResult<T> = Result<T, LifepathRepoError>;
+
+pub enum LifepathRepoError {
+    Useless,
+}
+
+impl From<diesel::result::Error> for LifepathRepoError {
+    fn from(_err: diesel::result::Error) -> Self {
+        LifepathRepoError::Useless
+    }
+}
+
 #[derive(Queryable, Debug)]
 pub struct LeadRow {
     pub lifepath_id: i32,
@@ -107,6 +115,7 @@ pub struct LeadRow {
 #[derive(Queryable, Debug)]
 pub struct LifepathRow {
     pub id: i32,
+    pub lifepath_setting_id: i32,
     pub page: i32,
     pub name: String,
     pub years: Option<i32>,

@@ -1,4 +1,5 @@
 use crate::repos::lifepaths::*;
+use crate::routes::lifepaths::LifepathFilters;
 use crate::schema;
 use itertools::Itertools;
 use std::collections::HashMap;
@@ -7,9 +8,12 @@ use std::convert::Into;
 pub struct Lifepaths;
 
 impl Lifepaths {
-    pub fn born(db: impl LifepathRepo) -> Result<Vec<Lifepath>, LifepathsError> {
-        let born_lps = db.born_lifepaths()?;
-        let lifepath_ids: Vec<_> = born_lps.iter().map(|lp| lp.id).collect();
+    pub fn list(
+        db: impl LifepathRepo,
+        filters: &LifepathFilters,
+    ) -> Result<Vec<Lifepath>, LifepathsError> {
+        let lp_rows = db.lifepaths(filters)?;
+        let lifepath_ids: Vec<_> = lp_rows.iter().map(|lp| lp.id).collect();
 
         let skill_rows = db.lifepath_skills(&lifepath_ids)?;
         let mut skill_lists = group_skill_lists(skill_rows);
@@ -17,7 +21,7 @@ impl Lifepaths {
         let lead_rows = db.lifepath_leads(&lifepath_ids)?;
         let mut leads = group_leads(lead_rows);
 
-        born_lps
+        lp_rows
             .into_iter()
             .map(|row| to_lifepath(row, &mut skill_lists, &mut leads))
             .collect()
@@ -54,6 +58,7 @@ fn to_lifepath(
 
     Ok(Lifepath {
         id: row.id,
+        setting_id: row.lifepath_setting_id,
         name: row.name,
         page: row.page,
         years,
@@ -67,21 +72,21 @@ fn to_lifepath(
     })
 }
 
-fn stat_mod(row: &LifepathRow) -> Result<StatMod, LifepathsError> {
+fn stat_mod(row: &LifepathRow) -> Result<Option<StatMod>, LifepathsError> {
     use schema::StatMod as SchemaMod;
     use StatMod::*;
 
     let result = if let Some(stat_mod) = row.stat_mod {
         let val = row.stat_mod_val.ok_or(LifepathsError::Useless)?;
 
-        match stat_mod {
+        Some(match stat_mod {
             SchemaMod::Physical => Physical(val),
             SchemaMod::Mental => Mental(val),
             SchemaMod::Both => Both(val),
             SchemaMod::Either => Either(val),
-        }
+        })
     } else {
-        StatMod::None
+        None
     };
 
     Ok(result)
@@ -90,10 +95,11 @@ fn stat_mod(row: &LifepathRow) -> Result<StatMod, LifepathsError> {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Lifepath {
     pub id: i32,
+    pub setting_id: i32,
     pub name: String,
     pub page: i32,
     pub years: i32,
-    pub stat_mod: StatMod,
+    pub stat_mod: Option<StatMod>,
     pub res: i32,
     pub leads: Vec<Lead>,
     pub gen_skill_pts: i32,
@@ -103,12 +109,12 @@ pub struct Lifepath {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value")]
 pub enum StatMod {
     Physical(i32),
     Mental(i32),
     Either(i32),
     Both(i32),
-    None,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

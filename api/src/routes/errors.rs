@@ -3,13 +3,21 @@
 use rocket_contrib::json::Json;
 use serde::Serialize;
 
+pub type RouteResult<T> = Result<T, RouteError>;
+
 #[derive(Debug, Responder)]
-pub enum Error {
+pub enum RouteError {
     #[response(status = 400)]
     BadRequest(Json<ErrorResponse>),
 
     #[response(status = 500)]
     ServerError(Json<ErrorResponse>),
+}
+
+impl RouteError {
+    pub fn useless() -> Self {
+        Self::ServerError(Json(ErrorResponse::useless()))
+    }
 }
 
 #[derive(Debug, Serialize)]
