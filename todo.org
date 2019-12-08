@@ -1,9 +1,15 @@
 * TODO get a minimal version of the app running
-  - [ ] sequentially picking lifepaths
-    - [ ] write lifepath decoders for api module
+  - [-] sequentially picking lifepaths
+    - [X] write lifepath decoders for api module
+    - [ ] think about how to do the interface
+      - drag and drop? how?
+    - [ ] easy search for allowed next lifepaths
   - [ ] think about a 'suggestions' endpoint
-        ie filter by 'i meet the requirements' - existing one does this
-        or 'satisfies my unmet requirements'
+        send a character fragment in the request
+        filter by:
+          'i meet the requirements'
+          'satisfies my unmet requirements'
+        need to disallow born lifepaths on invalid character fragments
   - [ ] include skill roots in lifepath skills response
   - [ ] get google oauth flow working
   - [ ] integration tests for endpoint
@@ -31,8 +37,7 @@
 *** implement skill restrictions as requiring the specific common trait
 
 * TODO enter traits list
-** need to know how to implement them first?
-** we at least want the costs available
+** need to handle stock common traits in a nice way
 
 * TODO think about limits to put on the lifepath req table
 ** like depth/complexity
@@ -110,3 +115,5 @@
   - [ ] add calculation rule option for general skill points
   - [ ] seeding needs to account for it existing 
         year range is 1-3; 10 res per year, 1 gsp per year
+* TODO make the lifepaths repo return and log errors properly
+** look into tracing or simple logger crates

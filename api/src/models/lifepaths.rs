@@ -3,7 +3,7 @@ use crate::routes::lifepaths::LifepathFilters;
 use crate::schema;
 use itertools::Itertools;
 use std::collections::HashMap;
-use std::convert::Into;
+use std::convert::{Into, TryFrom, TryInto};
 
 pub struct Lifepaths;
 
@@ -18,14 +18,34 @@ impl Lifepaths {
         let skill_rows = db.lifepath_skills(&lifepath_ids)?;
         let mut skill_lists = group_skill_lists(skill_rows);
 
+        let trait_rows = db.lifepath_traits(&lifepath_ids)?;
+        let mut trait_lists = group_trait_lists(trait_rows)?;
+
         let lead_rows = db.lifepath_leads(&lifepath_ids)?;
         let mut leads = group_leads(lead_rows);
 
         lp_rows
             .into_iter()
-            .map(|row| to_lifepath(row, &mut skill_lists, &mut leads))
+            .map(|row| to_lifepath(row, &mut skill_lists, &mut trait_lists, &mut leads))
             .collect()
     }
+}
+
+fn group_trait_lists(
+    rows: Vec<LifepathTraitRow>,
+) -> Result<HashMap<i32, Vec<Trait>>, LifepathsError> {
+    rows.into_iter()
+        .group_by(|row| row.lifepath_id)
+        .into_iter()
+        .map(convert_trait_rows)
+        .collect()
+}
+
+fn convert_trait_rows(
+    (id, rows): (i32, impl Iterator<Item = LifepathTraitRow>),
+) -> Result<(i32, Vec<Trait>), LifepathsError> {
+    let traits: Result<Vec<Trait>, LifepathsError> = rows.map(TryInto::try_into).collect();
+    Ok((id, traits?))
 }
 
 fn group_skill_lists(rows: Vec<LifepathSkillRow>) -> HashMap<i32, Vec<Skill>> {
@@ -47,6 +67,7 @@ fn group_leads(rows: Vec<LeadRow>) -> HashMap<i32, Vec<Lead>> {
 fn to_lifepath(
     row: LifepathRow,
     skill_lists: &mut HashMap<i32, Vec<Skill>>,
+    trait_lists: &mut HashMap<i32, Vec<Trait>>,
     leads: &mut HashMap<i32, Vec<Lead>>,
 ) -> Result<Lifepath, LifepathsError> {
     let stat_mod = stat_mod(&row)?;
@@ -55,6 +76,7 @@ fn to_lifepath(
     let gen_skill_pts = row.gen_skill_pts.ok_or(LifepathsError::Useless)?;
 
     let skills = skill_lists.remove(&row.id).unwrap_or_default();
+    let traits = trait_lists.remove(&row.id).unwrap_or_default();
     let leads = leads.remove(&row.id).unwrap_or_default();
 
     Ok(Lifepath {
@@ -70,6 +92,7 @@ fn to_lifepath(
         skill_pts: row.skill_pts,
         trait_pts: row.trait_pts,
         skills,
+        traits,
     })
 }
 
@@ -107,6 +130,7 @@ pub struct Lifepath {
     pub skill_pts: i32,
     pub trait_pts: i32,
     pub skills: Vec<Skill>,
+    pub traits: Vec<Trait>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -154,6 +178,48 @@ impl From<LifepathSkillRow> for Skill {
             magical: row.magical,
             training: row.training,
             wise: row.wise,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value")]
+pub enum Trait {
+    TraitEntry {
+        name: String,
+        trait_id: i32,
+        page: i32,
+        cost: i32,
+        taip: schema::TraitType,
+    },
+
+    CharTrait {
+        name: String,
+    },
+}
+
+impl TryFrom<LifepathTraitRow> for Trait {
+    type Error = LifepathsError;
+
+    fn try_from(row: LifepathTraitRow) -> Result<Self, Self::Error> {
+        if row.trait_id.is_some() {
+            let trait_id = row.trait_id.ok_or(LifepathsError::Useless)?;
+            let name = row.name.ok_or(LifepathsError::Useless)?;
+            let page = row.page.ok_or(LifepathsError::Useless)?;
+            let cost = row.cost.ok_or(LifepathsError::Useless)?;
+            let taip = row.typ.ok_or(LifepathsError::Useless)?;
+
+            Ok(Trait::TraitEntry {
+                name,
+                trait_id,
+                page,
+                cost,
+                taip,
+            })
+        } else {
+            let name = row.char_trait.ok_or(LifepathsError::Useless)?;
+
+            Ok(Trait::CharTrait { name })
         }
     }
 }

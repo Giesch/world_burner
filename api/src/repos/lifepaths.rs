@@ -8,8 +8,11 @@ use diesel::prelude::*;
 pub trait LifepathRepo {
     fn lifepaths(&self, filters: &LifepathFilters) -> LifepathRepoResult<Vec<LifepathRow>>;
     fn lifepath_skills(&self, lifepath_ids: &[i32]) -> LifepathRepoResult<Vec<LifepathSkillRow>>;
+    fn lifepath_traits(&self, lifepath_ids: &[i32]) -> LifepathRepoResult<Vec<LifepathTraitRow>>;
     fn lifepath_leads(&self, lifepath_ids: &[i32]) -> LifepathRepoResult<Vec<LeadRow>>;
 }
+
+const LIFEPATH_LIMIT: i64 = 20;
 
 impl LifepathRepo for DbConn {
     fn lifepaths(&self, filters: &LifepathFilters) -> LifepathRepoResult<Vec<LifepathRow>> {
@@ -39,7 +42,7 @@ impl LifepathRepo for DbConn {
             query = query.filter(lifepath_setting_id.eq(any(setting_ids)))
         }
 
-        let rows = query.load(&**self)?;
+        let rows = query.limit(LIFEPATH_LIMIT).load(&**self)?;
         Ok(rows)
     }
 
@@ -67,6 +70,34 @@ impl LifepathRepo for DbConn {
             .order_by(skill_lists::lifepath_id)
             .then_order_by(skill_lists::list_position)
             .load::<LifepathSkillRow>(&**self)?;
+
+        Ok(rows)
+    }
+
+    fn lifepath_traits(&self, lifepath_ids: &[i32]) -> LifepathRepoResult<Vec<LifepathTraitRow>> {
+        use schema::lifepath_trait_lists as trait_lists;
+        use schema::traits;
+
+        let rows = trait_lists::table
+            .left_join(traits::table)
+            .select((
+                trait_lists::lifepath_id,
+                trait_lists::char_trait,
+                trait_lists::trait_id,
+                traits::name.nullable(),
+                traits::page.nullable(),
+                traits::cost.nullable(),
+                traits::typ.nullable(),
+            ))
+            .filter(
+                trait_lists::trait_id
+                    .eq(traits::id.nullable())
+                    .or(trait_lists::trait_id.is_null()),
+            )
+            .filter(trait_lists::lifepath_id.eq(any(lifepath_ids)))
+            .order_by(trait_lists::lifepath_id)
+            .then_order_by(trait_lists::list_position)
+            .load::<LifepathTraitRow>(&**self)?;
 
         Ok(rows)
     }
@@ -137,4 +168,15 @@ pub struct LifepathSkillRow {
     pub training: bool,
     pub wise: bool,
     pub lifepath_id: i32,
+}
+
+#[derive(Queryable, Debug)]
+pub struct LifepathTraitRow {
+    pub lifepath_id: i32,
+    pub char_trait: Option<String>,
+    pub trait_id: Option<i32>,
+    pub name: Option<String>,
+    pub page: Option<i32>,
+    pub cost: Option<i32>,
+    pub typ: Option<schema::TraitType>,
 }

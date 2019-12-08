@@ -10,7 +10,7 @@ pub enum StatMod {
 
 #[PgType = "tool_req"]
 #[DieselType = "ToolRequirementMapping"]
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
 pub enum ToolRequirement {
     Yes,
     No,
@@ -21,7 +21,7 @@ pub enum ToolRequirement {
 
 #[PgType = "stat_type"]
 #[DieselType = "StatTypeMapping"]
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
 pub enum Stat {
     Will,
     Perception,
@@ -33,7 +33,7 @@ pub enum Stat {
 
 #[PgType = "trait_type"]
 #[DieselType = "TraitTypeMapping"]
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
 pub enum TraitType {
     Char,
     CallOn,
@@ -42,7 +42,7 @@ pub enum TraitType {
 
 #[PgType = "res_calc_type"]
 #[DieselType = "ResCalcTypeMapping"]
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
 pub enum ResCalc {
     HalfPrevious,
     TenPerYear,
@@ -50,7 +50,7 @@ pub enum ResCalc {
 
 #[PgType = "gen_skill_calc_type"]
 #[DieselType = "GenSkillCalcTypeMapping"]
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
 pub enum GenSkillCalc {
     OnePerYear,
 }

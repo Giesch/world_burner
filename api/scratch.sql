@@ -32,7 +32,8 @@ SELECT id,
             'born artificer',
             'ardent (artificer)',
             'tyro artificer',
-            'adventurer'
+            'adventurer',
+            'rune caster'
         );
 
 SELECT id,
@@ -74,3 +75,17 @@ ORDER BY lifepath_id, list_position;
    WHERE l.setting_id = s.id
      AND l.lifepath_id IN (29, 30, 31, 37)
 ORDER BY l.lifepath_id;
+
+-- get the trait lists for a group of lifepaths
+  SELECT l.lifepath_id,
+         l.char_trait,
+         l.trait_id,
+         tr.name,
+         tr.page,
+         tr.cost,
+         tr.typ
+    FROM lifepath_trait_lists AS l
+         LEFT JOIN traits AS tr ON l.trait_id = tr.id
+   WHERE (l.trait_id = tr.id OR tr.id IS NULL)
+     AND l.lifepath_id IN (29, 30, 31, 37, 42)
+ORDER BY lifepath_id, list_position;

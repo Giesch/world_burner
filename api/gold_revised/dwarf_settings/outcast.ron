@@ -17,7 +17,7 @@ LifepathSetting(
       skills: ["survival", "climbing", "knots", "herbalism", "haggling", "firebuilding",
         "brawling", "knives", "sword", "crossbow", "lock pick", "appraisal",
         "obscure history", "symbology", "lost treasures-wise"],
-      traits: []
+      traits: ["adventurer", "boaster"]
     ),
 
     Lifepath(
