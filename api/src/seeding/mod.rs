@@ -17,10 +17,6 @@ type StdError = Box<dyn std::error::Error>;
 type StdResult<T> = Result<T, StdError>;
 
 const BWGR: &str = "BWGR";
-const HALF_PREVIOUS: &str = "half_previous";
-
-const PRINCE_YEARS_MIN: i32 = 2;
-const PRINCE_YEARS_MAX: i32 = 20;
 
 /// Loads all RON files into postgres.
 /// Relies on migrations have been run, and makes assumptions about the book data.
@@ -470,7 +466,7 @@ fn new_lifepaths(
             .ok_or_else(|| format!("uncreated setting: {}", setting.name))?;
 
         for lifepath in &setting.lifepaths {
-            let new_lifepath = new_lifepath(lifepath, lifepath_setting_id, book_id);
+            let new_lifepath = new_lifepath(lifepath, lifepath_setting_id, book_id)?;
             new_lifepaths.push(new_lifepath);
         }
     }
@@ -482,22 +478,28 @@ fn new_lifepath(
     lifepath: &deserialize::Lifepath,
     lifepath_setting_id: i32,
     book_id: i32,
-) -> NewLifepath {
-    // prince of the blood
+) -> StdResult<NewLifepath> {
     let (years_min, years_max) = if lifepath.years.is_some() {
         (None, None)
     } else {
-        (Some(PRINCE_YEARS_MIN), Some(PRINCE_YEARS_MAX))
+        match lifepath.name.as_str() {
+            "advisor to the court" => (Some(1), Some(3)),
+            "prince of the blood" => (Some(2), Some(20)),
+            _ => Err(format!("invalid lifepath years: {:#?}", lifepath))?,
+        }
     };
 
-    // hostage
     let (res, res_calc) = if let Some(r) = lifepath.res {
         (Some(r), None)
     } else {
-        (None, Some(HALF_PREVIOUS.to_string()))
+        match lifepath.name.as_str() {
+            "advisor to the court" => (None, Some(ResCalc::TenPerYear)),
+            "hostage" => (None, Some(ResCalc::HalfPrevious)),
+            _ => Err(format!("invalid lifepath resources: {:#?}", lifepath))?,
+        }
     };
 
-    NewLifepath {
+    Ok(NewLifepath {
         book_id,
         lifepath_setting_id,
         page: lifepath.page,
@@ -517,5 +519,5 @@ fn new_lifepath(
 
         res,
         res_calc,
-    }
+    })
 }

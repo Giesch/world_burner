@@ -1,5 +1,9 @@
 CREATE TYPE stat_mod_type AS ENUM ('physical', 'mental', 'either', 'both');
 
+CREATE TYPE res_calc_type AS ENUM ('half_previous', 'ten_per_year');
+
+CREATE TYPE gen_skill_calc_type AS ENUM ('one_per_year');
+
 CREATE TABLE lifepaths (
   id SERIAL PRIMARY KEY,
   book_id INTEGER NOT NULL REFERENCES books (id),
@@ -19,9 +23,11 @@ CREATE TABLE lifepaths (
   years_min INTEGER,
   years_max INTEGER,
 
-  gen_skill_pts INTEGER NOT NULL
+  gen_skill_pts INTEGER
     CONSTRAINT positive_gen_skill_pts
     CHECK (gen_skill_pts >= 0),
+  gen_skill_pts_calc gen_skill_calc_type,
+
   skill_pts INTEGER NOT NULL
     CONSTRAINT positive_skill_pts
     CHECK (skill_pts >= 0),
@@ -37,12 +43,17 @@ CREATE TABLE lifepaths (
 
   -- either a number, or a specified calculation (e.g. hostage)
   res INTEGER,
-  res_calc TEXT,
+  res_calc res_calc_type,
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   UNIQUE (lifepath_setting_id, name),
+
+  CONSTRAINT lifepaths_gen_skills_or_calc_check CHECK (
+    (gen_skill_pts IS NOT NULL)::INTEGER +
+    (gen_skill_pts_calc IS NOT NULL)::INTEGER = 1
+  ),
 
   CONSTRAINT lifepaths_res_or_res_calc_check CHECK (
     (res IS NOT NULL)::INTEGER +

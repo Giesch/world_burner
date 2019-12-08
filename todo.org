@@ -67,8 +67,9 @@
   ie, diesel migration adds a todo list row to the seed table,
   then seed fn looks at that table
 
-* TODO move the HALF_PREVIOUS constant to a repo module and make it private
+* TODO move the res calc constants to a repo module and make it private
 ** db_string method on ResCalc enum
+** consider making these a database enum
 
 * TODO rethink tools requirement type
 ** TODO weapon should be specific (arms, bow, etc)

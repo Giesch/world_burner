@@ -9,7 +9,7 @@ fn born_clansman() {
 
     use lifepaths::*;
 
-    let tup: (i32, Option<i32>, Option<i32>, i32, i32, i32) = table
+    let tup: (i32, Option<i32>, Option<i32>, Option<i32>, i32, i32) = table
         .select((page, years, res, gen_skill_pts, skill_pts, trait_pts))
         .filter(name.eq("born clansman"))
         .first(&db)
@@ -18,7 +18,7 @@ fn born_clansman() {
     assert_eq!(tup.0, 110);
     assert_eq!(tup.1, Some(20));
     assert_eq!(tup.2, Some(10));
-    assert_eq!(tup.3, 3);
+    assert_eq!(tup.3, Some(3));
     assert_eq!(tup.4, 0);
     assert_eq!(tup.5, 1);
 }

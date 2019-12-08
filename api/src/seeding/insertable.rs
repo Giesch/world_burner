@@ -62,7 +62,7 @@ pub struct NewLifepath {
     pub stat_mod_val: Option<i32>,
 
     pub res: Option<i32>,
-    pub res_calc: Option<String>,
+    pub res_calc: Option<ResCalc>,
 }
 
 #[derive(Insertable, Debug, PartialEq, Eq)]

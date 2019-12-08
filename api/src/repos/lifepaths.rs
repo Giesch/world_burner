@@ -119,7 +119,7 @@ pub struct LifepathRow {
     pub page: i32,
     pub name: String,
     pub years: Option<i32>,
-    pub gen_skill_pts: i32,
+    pub gen_skill_pts: Option<i32>,
     pub skill_pts: i32,
     pub trait_pts: i32,
     pub stat_mod: Option<StatMod>,

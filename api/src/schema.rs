@@ -40,6 +40,21 @@ pub enum TraitType {
     Die,
 }
 
+#[PgType = "res_calc_type"]
+#[DieselType = "ResCalcTypeMapping"]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
+pub enum ResCalc {
+    HalfPrevious,
+    TenPerYear,
+}
+
+#[PgType = "gen_skill_calc_type"]
+#[DieselType = "GenSkillCalcTypeMapping"]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy, DbEnum)]
+pub enum GenSkillCalc {
+    OnePerYear,
+}
+
 table! {
     use diesel::sql_types::*;
 
@@ -78,6 +93,8 @@ table! {
 table! {
     use diesel::sql_types::*;
     use super::StatModTypeMapping;
+    use super::GenSkillCalcTypeMapping;
+    use super::ResCalcTypeMapping;
 
     lifepaths (id) {
         id -> Int4,
@@ -89,13 +106,14 @@ table! {
         years -> Nullable<Int4>,
         years_min -> Nullable<Int4>,
         years_max -> Nullable<Int4>,
-        gen_skill_pts -> Int4,
+        gen_skill_pts -> Nullable<Int4>,
+        gen_skill_pts_calc -> Nullable<GenSkillCalcTypeMapping>,
         skill_pts -> Int4,
         trait_pts -> Int4,
         stat_mod -> Nullable<StatModTypeMapping>,
         stat_mod_val -> Nullable<Int4>,
         res -> Nullable<Int4>,
-        res_calc -> Nullable<Text>,
+        res_calc -> Nullable<ResCalcTypeMapping>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }

@@ -52,6 +52,7 @@ fn to_lifepath(
     let stat_mod = stat_mod(&row)?;
     let years = row.years.ok_or(LifepathsError::Useless)?;
     let res = row.res.ok_or(LifepathsError::Useless)?;
+    let gen_skill_pts = row.gen_skill_pts.ok_or(LifepathsError::Useless)?;
 
     let skills = skill_lists.remove(&row.id).unwrap_or_default();
     let leads = leads.remove(&row.id).unwrap_or_default();
@@ -65,7 +66,7 @@ fn to_lifepath(
         stat_mod,
         res,
         leads,
-        gen_skill_pts: row.gen_skill_pts,
+        gen_skill_pts,
         skill_pts: row.skill_pts,
         trait_pts: row.trait_pts,
         skills,
