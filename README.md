@@ -30,4 +30,5 @@ cargo run
 to run tests:  
 cd api  
 cargo run --bin reset_test_db  
-cargo test
+cargo test  
+(or ./integration_test.sh)

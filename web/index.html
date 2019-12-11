@@ -5,11 +5,13 @@
     <meta charset="UTF-8">
     <title>World Burner</title>
     <script src="elm.js"></script>
+    <script src="draggable.js"></script>
   </head>
 
   <body>
     <script>
-      var app = Elm.Main.init();
+      const app = Elm.Main.init();
+      setupDraggable(app.ports.dragEvents.send);
     </script>
   </body>
 </html>

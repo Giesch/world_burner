@@ -24,10 +24,10 @@ impl Lifepaths {
         let lead_rows = db.lifepath_leads(&lifepath_ids)?;
         let mut leads = group_leads(lead_rows);
 
-        lp_rows
-            .into_iter()
-            .map(|row| to_lifepath(row, &mut skill_lists, &mut trait_lists, &mut leads))
-            .collect()
+        let to_lifepath =
+            |row| add_associations(row, &mut skill_lists, &mut trait_lists, &mut leads);
+
+        lp_rows.into_iter().map(to_lifepath).collect()
     }
 }
 
@@ -44,7 +44,7 @@ fn group_trait_lists(
 fn convert_trait_rows(
     (id, rows): (i32, impl Iterator<Item = LifepathTraitRow>),
 ) -> Result<(i32, Vec<Trait>), LifepathsError> {
-    let traits: Result<Vec<Trait>, LifepathsError> = rows.map(TryInto::try_into).collect();
+    let traits: Result<_, LifepathsError> = rows.map(TryInto::try_into).collect();
     Ok((id, traits?))
 }
 
@@ -64,7 +64,7 @@ fn group_leads(rows: Vec<LeadRow>) -> HashMap<i32, Vec<Lead>> {
         .collect()
 }
 
-fn to_lifepath(
+fn add_associations(
     row: LifepathRow,
     skill_lists: &mut HashMap<i32, Vec<Skill>>,
     trait_lists: &mut HashMap<i32, Vec<Trait>>,

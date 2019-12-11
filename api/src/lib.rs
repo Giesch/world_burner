@@ -42,7 +42,13 @@ fn mount(rocket: rocket::Rocket) -> rocket::Rocket {
 }
 
 fn routes() -> Vec<rocket::Route> {
-    routes![spa::index, spa::route, spa::js, lifepaths::list]
+    routes![
+        spa::index,
+        spa::route,
+        spa::elm_js,
+        spa::draggable_js,
+        lifepaths::list
+    ]
 }
 
 fn test_config() -> Config {

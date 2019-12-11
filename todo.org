@@ -1,8 +1,11 @@
 * TODO get a minimal version of the app running
   - [-] sequentially picking lifepaths
     - [X] write lifepath decoders for api module
-    - [ ] think about how to do the interface
+    - [X] think about how to do the interface
       - drag and drop? how?
+    - [ ] get dnd working; able to drop first lifepath of a new block
+      - [ ] limit the dragging to just the 'handle'?
+      - [ ] make dropping work correctly, not stick on click
     - [ ] easy search for allowed next lifepaths
   - [ ] think about a 'suggestions' endpoint
         send a character fragment in the request

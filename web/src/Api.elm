@@ -6,6 +6,7 @@ module Api exposing
     , LifepathFilters
     , ServerError
     , listLifepaths
+    , noFilters
     )
 
 import Http
@@ -32,6 +33,13 @@ type alias LifepathFilters =
     }
 
 
+noFilters : LifepathFilters
+noFilters =
+    { born = Nothing
+    , settingIds = Nothing
+    }
+
+
 encodeLifepathFilters : LifepathFilters -> Encode.Value
 encodeLifepathFilters filters =
     Encode.object
@@ -41,9 +49,8 @@ encodeLifepathFilters filters =
 
 
 maybeEncode : (a -> Encode.Value) -> Maybe a -> Encode.Value
-maybeEncode encoder maybe =
-    Maybe.map encoder maybe
-        |> Maybe.withDefault Encode.null
+maybeEncode encoder =
+    Maybe.map encoder >> Maybe.withDefault Encode.null
 
 
 type alias LifepathsResponse =
@@ -79,8 +86,8 @@ genericExpect :
 genericExpect errDecoder valDecoder toMsg =
     let
         badBody : Decode.Error -> ApiError e
-        badBody err =
-            HttpError <| Http.BadBody <| Decode.errorToString err
+        badBody =
+            HttpError << Http.BadBody << Decode.errorToString
     in
     Http.expectStringResponse toMsg <|
         \response ->
@@ -97,7 +104,7 @@ genericExpect errDecoder valDecoder toMsg =
                 Http.BadStatus_ _ body ->
                     Decode.decodeString errDecoder body
                         |> Result.mapError badBody
-                        |> Result.andThen (\resp -> Err <| AppError resp)
+                        |> Result.andThen (Err << AppError)
 
                 Http.GoodStatus_ _ body ->
                     Decode.decodeString valDecoder body

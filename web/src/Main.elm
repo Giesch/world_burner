@@ -202,7 +202,7 @@ main =
         { init = init
         , onUrlChange = ChangedUrl
         , onUrlRequest = ClickedLink
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = subscriptions
         , update = update
         , view = view
         }
@@ -214,3 +214,13 @@ parser =
         [ Parser.map LandingRoute Parser.top
         , Parser.map CreationRoute (s "create")
         ]
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    case model of
+        Creation creation ->
+            Sub.map GotCreationMsg (Creation.subscriptions creation)
+
+        _ ->
+            Sub.none
