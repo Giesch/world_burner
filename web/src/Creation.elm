@@ -12,7 +12,8 @@ import Html
 import Html.Attributes
 import Html.Events
 import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (required)
+import Json.Decode.Pipeline exposing (optional, required)
+import Json.Encode as Encode
 import LifeBlock exposing (LifeBlock)
 import Lifepath exposing (Lead, Lifepath, Skill, StatMod, StatModType(..))
 import Session exposing (..)
@@ -20,55 +21,23 @@ import String.Extra exposing (toTitleCase)
 import Trait exposing (Trait)
 
 
-viewDraggedBlock : Maybe DraggedBlock -> Dict Int LifeBlock -> Element Msg
-viewDraggedBlock draggedBlock blocks =
-    let
-        maybeBlock : Maybe LifeBlock
-        maybeBlock =
-            Maybe.map .id draggedBlock
-                |> Maybe.andThen (\id -> Dict.get id blocks)
 
-        top : DraggedBlock -> String
-        top { cursorOnScreen, cursorOnDraggable } =
-            String.fromFloat (cursorOnScreen.y - cursorOnDraggable.y) ++ "px"
+-- MODEL
 
-        left : DraggedBlock -> String
-        left { cursorOnScreen, cursorOnDraggable } =
-            String.fromFloat (cursorOnScreen.x - cursorOnDraggable.x) ++ "px"
-    in
-    case ( maybeBlock, draggedBlock ) of
-        ( Just block, Just dragged ) ->
-            el
-                ([ htmlAttribute <| Html.Attributes.style "position" "fixed"
-                 , htmlAttribute <|
-                    Html.Attributes.style "top" (top dragged)
-                 , htmlAttribute <|
-                    Html.Attributes.style "left" (left dragged)
-                 , htmlAttribute <| Html.Attributes.style "list-style" "none"
-                 , htmlAttribute <| Html.Attributes.style "padding" "0"
-                 , htmlAttribute <| Html.Attributes.style "margin" "0"
-                 ]
-                    ++ userSelectNone
-                )
-                (viewLifepath block.first)
 
-        _ ->
-            none
+type alias Model =
+    { session : Session
+    , sidebarLifepaths : Status (List LifeBlock)
+    , blocks : Dict Int LifeBlock
+    , nextBlockId : Int
+    , draggedBlock : Maybe DraggedBlock
+    }
 
 
 type alias DraggedBlock =
     { id : Int
     , cursorOnScreen : Coords
     , cursorOnDraggable : Coords
-    }
-
-
-type alias Model =
-    { session : Session
-    , sidebarLifepaths : Status (List Lifepath)
-    , blocks : Dict Int LifeBlock
-    , nextBlockId : Int
-    , draggedBlock : Maybe DraggedBlock
     }
 
 
@@ -90,6 +59,10 @@ init session =
     )
 
 
+
+-- UPDATE
+
+
 type Msg
     = GotLifepaths (ApiResult (List Lifepath))
     | Drag DragEvent
@@ -97,21 +70,9 @@ type Msg
 
 
 type DragEvent
-    = Start DraggedItem
+    = Start DraggedBlock
     | Move DragData
     | Stop DragData
-
-
-type alias Dragged item =
-    { item : item
-    , cursorOnScreen : Coords
-    , cursorOnDraggable : Coords
-    }
-
-
-type DraggedItem
-    = Block (Dragged Int)
-    | Path (Dragged Lifepath)
 
 
 type alias DragData =
@@ -138,32 +99,15 @@ type alias Rect =
     }
 
 
-initializeBlock : Model -> DraggedItem -> Model
-initializeBlock model draggedItem =
-    let
-        withDraggedBlock : Model -> DraggedBlock -> Model
-        withDraggedBlock aModel draggedBlock =
-            { aModel | draggedBlock = Just draggedBlock }
-    in
-    case draggedItem of
-        Block { item, cursorOnScreen, cursorOnDraggable } ->
-            withDraggedBlock model <|
-                DraggedBlock item cursorOnScreen cursorOnDraggable
-
-        Path { item, cursorOnScreen, cursorOnDraggable } ->
-            let
-                ( newModel, id ) =
-                    LifeBlock.dragNewBlock model <| LifeBlock.fromPath item
-            in
-            withDraggedBlock newModel <|
-                DraggedBlock id cursorOnScreen cursorOnDraggable
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotLifepaths (Ok bornLifepaths) ->
-            ( { model | sidebarLifepaths = Loaded bornLifepaths }
+        GotLifepaths (Ok lifepaths) ->
+            let
+                ( newModel, blocks ) =
+                    LifeBlock.addBatch model lifepaths
+            in
+            ( { newModel | sidebarLifepaths = Loaded blocks }
             , Cmd.none
             )
 
@@ -172,8 +116,8 @@ update msg model =
             , Cmd.none
             )
 
-        Drag (Start draggedItem) ->
-            ( initializeBlock model draggedItem
+        Drag (Start draggedBlock) ->
+            ( { model | draggedBlock = Just draggedBlock }
             , Cmd.none
             )
 
@@ -183,15 +127,15 @@ update msg model =
                     ( model, Cmd.none )
 
                 Just block ->
-                    -- TODO update dragged Block location
-                    -- TODO validations/check cached validations
+                    -- TODO validations/check cached validations (use cursor pos)
                     ( updateDraggedBlock model block data, Cmd.none )
 
         Drag (Stop data) ->
             -- TODO what did we drop it on/in?
-            -- find closest valid beacon
+            -- in empty square, create new character fragment
+            -- to combine: find closest valid beacon
             -- combine the blocks (append one to the other)
-            -- remove the dragged block from the dict if neccessary?
+            -- remove the dragged block from the dict, if neccessary
             ( { model | draggedBlock = Nothing }
             , Cmd.none
             )
@@ -235,8 +179,51 @@ view model =
         ]
 
 
-viewSidebar : Status (List Lifepath) -> List (Element Msg)
+viewDraggedBlock : Maybe DraggedBlock -> Dict Int LifeBlock -> Element Msg
+viewDraggedBlock draggedBlock blocks =
+    let
+        maybeBlock : Maybe LifeBlock
+        maybeBlock =
+            Maybe.map .id draggedBlock
+                |> Maybe.andThen (\id -> Dict.get id blocks)
+
+        top : DraggedBlock -> String
+        top { cursorOnScreen, cursorOnDraggable } =
+            String.fromFloat (cursorOnScreen.y - cursorOnDraggable.y) ++ "px"
+
+        left : DraggedBlock -> String
+        left { cursorOnScreen, cursorOnDraggable } =
+            String.fromFloat (cursorOnScreen.x - cursorOnDraggable.x) ++ "px"
+    in
+    case ( maybeBlock, draggedBlock ) of
+        ( Just block, Just dragged ) ->
+            el
+                ([ htmlAttribute <| Html.Attributes.style "position" "fixed"
+                 , htmlAttribute <|
+                    Html.Attributes.style "top" (top dragged)
+                 , htmlAttribute <|
+                    Html.Attributes.style "left" (left dragged)
+                 , htmlAttribute <| Html.Attributes.style "list-style" "none"
+                 , htmlAttribute <| Html.Attributes.style "padding" "0"
+                 , htmlAttribute <| Html.Attributes.style "margin" "0"
+                 , width <| px 300
+                 ]
+                    ++ userSelectNone
+                )
+                (viewLifepath block.first { withBeacon = Nothing })
+
+        _ ->
+            none
+
+
+viewSidebar : Status (List LifeBlock) -> List (Element Msg)
 viewSidebar status =
+    let
+        viewBlock =
+            \block ->
+                viewLifepath block.first
+                    { withBeacon = Just block.beaconId }
+    in
     case status of
         Loading ->
             [ text "loading..." ]
@@ -244,23 +231,35 @@ viewSidebar status =
         Failed ->
             [ text "couldn't load lifepaths" ]
 
-        Loaded lifepaths ->
-            List.map viewLifepath lifepaths
+        Loaded lifeBlocks ->
+            List.map viewBlock lifeBlocks
 
 
-viewLifepath : Lifepath -> Element Msg
-viewLifepath lifepath =
-    column
-        ([ Background.color Colors.white
-         , Font.color Colors.black
-         , Border.rounded 8
-         , padding 12
-         , width fill
-         , spacing 10
-         , onPointerDown lifepath
-         ]
-            ++ userSelectNone
-        )
+viewLifepath : Lifepath -> { withBeacon : Maybe Int } -> Element Msg
+viewLifepath lifepath { withBeacon } =
+    let
+        defaultAttrs : List (Attribute Msg)
+        defaultAttrs =
+            [ Background.color Colors.white
+            , Font.color Colors.black
+            , Border.rounded 8
+            , Border.color Colors.darkened
+            , Border.width 1
+            , padding 12
+            , width <| px 300
+            , spacing 10
+            ]
+                ++ userSelectNone
+
+        attrs =
+            case withBeacon of
+                Just beaconId ->
+                    beaconAttribute beaconId :: defaultAttrs
+
+                Nothing ->
+                    defaultAttrs
+    in
+    column attrs
         [ text <| toTitleCase lifepath.name
         , row [ width fill, spaceEvenly ]
             [ text (String.fromInt lifepath.years ++ " years")
@@ -271,6 +270,13 @@ viewLifepath lifepath =
         , viewTraits lifepath.traitPts lifepath.traits
         , viewLeads lifepath.leads
         ]
+
+
+beaconAttribute : Int -> Attribute msg
+beaconAttribute blockId =
+    htmlAttribute <|
+        Html.Attributes.attribute "data-beacon"
+            (Encode.encode 0 <| Encode.int blockId)
 
 
 viewLeads : List Lead -> Element Msg
@@ -284,7 +290,8 @@ viewLeads leads =
         none
 
     else
-        text <| "Leads: " ++ leadNames
+        paragraph []
+            [ text <| "Leads: " ++ leadNames ]
 
 
 viewTraits : Int -> List Trait -> Element Msg
@@ -298,10 +305,12 @@ viewTraits pts traits =
             none
 
         ( _, 0 ) ->
-            text ("Traits: " ++ String.fromInt pts)
+            paragraph []
+                [ text ("Traits: " ++ String.fromInt pts) ]
 
         _ ->
-            text ("Traits: " ++ String.fromInt pts ++ ": " ++ traitNames)
+            paragraph []
+                [ text ("Traits: " ++ String.fromInt pts ++ ": " ++ traitNames) ]
 
 
 viewSkills : Int -> List Skill -> Element Msg
@@ -315,10 +324,12 @@ viewSkills pts skills =
             none
 
         ( _, 0 ) ->
-            text ("Skills: " ++ String.fromInt pts)
+            paragraph []
+                [ text ("Skills: " ++ String.fromInt pts) ]
 
         _ ->
-            text ("Skills: " ++ String.fromInt pts ++ ": " ++ skillNames)
+            paragraph []
+                [ text ("Skills: " ++ String.fromInt pts ++ ": " ++ skillNames) ]
 
 
 viewLifepathStat : Maybe StatMod -> Element Msg
@@ -391,8 +402,10 @@ msgDecoder =
     Decode.succeed BeaconJson
         |> required "type" eventDecoder
         |> required "cursor" coordsDecoder
-        |> required "beacons" handlersDecoder
-        |> Decode.map dragEvent
+        |> required "beacons" beaconsDecoder
+        |> optional "startBeaconId" (Decode.map Just Decode.string) Nothing
+        |> optional "cursorOnDraggable" (Decode.map Just coordsDecoder) Nothing
+        |> Decode.andThen dragEvent
 
 
 dragData : BeaconJson -> DragData
@@ -401,37 +414,50 @@ dragData json =
     , beacons =
         List.map
             (\( blockId, box ) -> Beacon blockId box)
-            json.handlers
+            json.beacons
     }
 
 
-dragEvent : BeaconJson -> Msg
+dragEvent : BeaconJson -> Decode.Decoder Msg
 dragEvent json =
     let
         data =
             dragData json
     in
-    Drag <|
+    Decode.map Drag <|
         case json.eventType of
-            -- StartEvent ->
-            --     Start <| closestRect data.cursor data.beacons
+            StartEvent ->
+                startEvent json data.cursor
+
             MoveEvent ->
-                Move data
+                Decode.succeed <| Move data
 
             StopEvent ->
-                Stop data
+                Decode.succeed <| Stop data
+
+
+startEvent : BeaconJson -> Coords -> Decode.Decoder DragEvent
+startEvent { startBeaconId, cursorOnDraggable } cursor =
+    case ( Maybe.andThen String.toInt startBeaconId, cursorOnDraggable ) of
+        ( Just id, Just onDraggable ) ->
+            Decode.succeed <| Start <| DraggedBlock id cursor onDraggable
+
+        _ ->
+            Decode.fail "Recieved start event with no beacon id"
 
 
 type EventType
-    = -- StartEvent -- TODO remove this from js?
-      MoveEvent
+    = StartEvent
+    | MoveEvent
     | StopEvent
 
 
 type alias BeaconJson =
     { eventType : EventType
     , cursor : Coords
-    , handlers : List ( Int, Rect )
+    , beacons : List ( Int, Rect )
+    , startBeaconId : Maybe String
+    , cursorOnDraggable : Maybe Coords
     }
 
 
@@ -441,9 +467,9 @@ eventDecoder =
         |> Decode.andThen
             (\eventType ->
                 case eventType of
-                    -- TODO remove this from the js?
-                    -- "start" ->
-                    --     Decode.succeed StartEvent
+                    "start" ->
+                        Decode.succeed StartEvent
+
                     "move" ->
                         Decode.succeed MoveEvent
 
@@ -462,8 +488,8 @@ coordsDecoder =
         (Decode.field "y" Decode.float)
 
 
-handlersDecoder : Decode.Decoder (List ( Int, Rect ))
-handlersDecoder =
+beaconsDecoder : Decode.Decoder (List ( Int, Rect ))
+beaconsDecoder =
     Decode.list
         (Decode.map2
             Tuple.pair
@@ -479,99 +505,6 @@ rectDecoder =
         (Decode.field "y" Decode.float)
         (Decode.field "width" Decode.float)
         (Decode.field "height" Decode.float)
-
-
-
--- Functions for manipulating Rects and Coords
-
-
-{-| Finds the id of the block whose center is closest to the cursor,
-and still within the beacon's bounding box.
--}
-closestRect : Coords -> List Beacon -> Maybe Int
-closestRect cursor beacons =
-    beacons
-        |> List.sortBy (distance cursor << center << .box)
-        |> List.head
-        |> keepIf (containedBy cursor << .box)
-        |> Maybe.map .blockId
-
-
-keepIf : (a -> Bool) -> Maybe a -> Maybe a
-keepIf fn maybe =
-    Maybe.andThen
-        (\item ->
-            if fn item then
-                Just item
-
-            else
-                Nothing
-        )
-        maybe
-
-
-containedBy : Coords -> Rect -> Bool
-containedBy { x, y } box =
-    (x > box.x)
-        && (y > box.y)
-        && (x < (box.x + box.width))
-        && (y < (box.y + box.height))
-
-
-center : Rect -> Coords
-center { x, y, width, height } =
-    { x = x + (width / 2)
-    , y = y + (height / 2)
-    }
-
-
-distance : Coords -> Coords -> Float
-distance coords1 coords2 =
-    let
-        dx =
-            coords1.x - coords2.x
-
-        dy =
-            coords1.y - coords2.y
-    in
-    sqrt ((dx ^ 2) + (dy ^ 2))
-
-
-onPointerDown : Lifepath -> Attribute Msg
-onPointerDown lifepath =
-    -- TODO name this better
-    let
-        dragged : Coords -> Coords -> Dragged Lifepath
-        dragged onScreen onDraggable =
-            { item = lifepath
-            , cursorOnScreen = onScreen
-            , cursorOnDraggable = onDraggable
-            }
-
-        drag : Coords -> Coords -> Msg
-        drag cursorOnScreen cursorOnDraggable =
-            Drag <| Start <| Path <| dragged cursorOnScreen cursorOnDraggable
-    in
-    htmlAttribute <|
-        Html.Events.on "pointerdown"
-            (Decode.map2 drag
-                cursorPositionDecoder
-                cursorOffsetDecoder
-            )
-
-
-cursorPositionDecoder : Decode.Decoder Coords
-cursorPositionDecoder =
-    Decode.map2 Coords
-        (Decode.field "clientX" Decode.float)
-        (Decode.field "clientY" Decode.float)
-
-
-cursorOffsetDecoder : Decode.Decoder Coords
-cursorOffsetDecoder =
-    Decode.map2 Coords
-        (Decode.field "offsetX" Decode.float)
-        (Decode.field "offsetY" Decode.float)
 
 
 userSelectNone : List (Attribute msg)

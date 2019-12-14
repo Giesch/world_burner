@@ -1,7 +1,7 @@
 module LifeBlock exposing
     ( LifeBlock
-    , dragNewBlock
-    , fromPath
+    , add
+    , addBatch
     )
 
 import Array exposing (Array)
@@ -12,6 +12,7 @@ import Lifepath exposing (Lifepath)
 type alias LifeBlock =
     { first : Lifepath
     , rest : Array Lifepath
+    , beaconId : Int
     }
 
 
@@ -23,25 +24,43 @@ type alias Model a =
     }
 
 
-fromPath : Lifepath -> LifeBlock
-fromPath path =
-    LifeBlock path Array.empty
+addBatch : Model a -> List Lifepath -> ( Model a, List LifeBlock )
+addBatch ({ nextBlockId, blocks } as model) lifepaths =
+    let
+        makeBlock : Lifepath -> ( Int, List LifeBlock ) -> ( Int, List LifeBlock )
+        makeBlock path ( nextId, blockList ) =
+            ( nextId + 1, LifeBlock path Array.empty nextId :: blockList )
+
+        ( newNextId, blocksWithIds ) =
+            List.foldl makeBlock ( nextBlockId, [] ) lifepaths
+
+        insertBlock : LifeBlock -> Dict Int LifeBlock -> Dict Int LifeBlock
+        insertBlock block dict =
+            Dict.insert block.beaconId block dict
+
+        newBlocks : Dict Int LifeBlock
+        newBlocks =
+            List.foldl insertBlock blocks blocksWithIds
+    in
+    ( { model | nextBlockId = newNextId, blocks = newBlocks }
+    , List.reverse blocksWithIds
+    )
 
 
-dragNewBlock : Model a -> LifeBlock -> ( Model a, Int )
-dragNewBlock model block =
+add : Model a -> Lifepath -> ( Model a, Int )
+add model path =
     let
         ( bumpedModel, id ) =
-            nextBlockId model
+            bump model
 
         blocks =
-            Dict.insert id block model.blocks
+            Dict.insert id (LifeBlock path Array.empty id) model.blocks
     in
     ( { bumpedModel | blocks = blocks }, id )
 
 
-nextBlockId : Model a -> ( Model a, Int )
-nextBlockId model =
+bump : Model a -> ( Model a, Int )
+bump model =
     ( { model | nextBlockId = model.nextBlockId + 1 }
     , model.nextBlockId
     )

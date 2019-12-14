@@ -5,6 +5,20 @@ window.setupDraggable = function setupDraggable(sendEvent) {
   document.addEventListener("pointerdown", awaitDragStart);
 
   function awaitDragStart(startEvent) {
+    startEvent.preventDefault();
+
+    let startBeaconId = null;
+    let cursorOnDraggable = null;
+    const startBeaconElem = startEvent.target.closest(`[${BEACON_ATTRIBUTE}]`);
+    if (startBeaconElem) {
+      startBeaconId = startBeaconElem.getAttribute(BEACON_ATTRIBUTE);
+      const { left, top } = startBeaconElem.getBoundingClientRect();
+      cursorOnDraggable = {
+        x: startEvent.clientX - left,
+        y: startEvent.clientY - top
+      };
+    }
+
     document.addEventListener("pointermove", maybeDragMove);
     document.addEventListener("pointerup", stopAwaitingDrag);
 
@@ -16,7 +30,7 @@ window.setupDraggable = function setupDraggable(sendEvent) {
     function maybeDragMove(moveEvent) {
       const dragDistance = distance(coords(startEvent), coords(moveEvent));
       if (dragDistance >= MINIMUM_DRAG_DISTANCE_PX) {
-        dragEvent("start", startEvent);
+        sendStartEvent(startEvent, startBeaconId, cursorOnDraggable);
         dragEvent("move", moveEvent);
         stopAwaitingDrag();
         document.addEventListener("pointermove", dragMove);
@@ -33,6 +47,16 @@ window.setupDraggable = function setupDraggable(sendEvent) {
 
   function dragMove(event) {
     dragEvent("move", event);
+  }
+
+  function sendStartEvent(event, startBeaconId, cursorOnDraggable) {
+    sendEvent({
+      type: "start",
+      cursor: coords(event),
+      beacons: beaconPositions(),
+      startBeaconId,
+      cursorOnDraggable
+    });
   }
 
   function dragEvent(type, event) {
