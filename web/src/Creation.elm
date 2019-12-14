@@ -29,7 +29,7 @@ type alias Model =
     { session : Session
     , sidebarLifepaths : Status (List LifeBlock)
     , blocks : Dict Int LifeBlock
-    , nextBlockId : Int
+    , nextBeaconId : Int
     , draggedBlock : Maybe DraggedBlock
     }
 
@@ -52,7 +52,7 @@ init session =
     ( { session = session
       , sidebarLifepaths = Loading
       , blocks = Dict.empty
-      , nextBlockId = 1
+      , nextBeaconId = 1
       , draggedBlock = Nothing
       }
     , Api.listLifepaths GotLifepaths { noFilters | born = Just True }
@@ -82,7 +82,7 @@ type alias DragData =
 
 
 type alias Beacon =
-    { blockId : Int
+    { beaconId : Int
     , box : Rect
     }
 
@@ -127,15 +127,11 @@ update msg model =
                     ( model, Cmd.none )
 
                 Just block ->
-                    -- TODO validations/check cached validations (use cursor pos)
                     ( updateDraggedBlock model block data, Cmd.none )
 
         Drag (Stop data) ->
             -- TODO what did we drop it on/in?
-            -- in empty square, create new character fragment
-            -- to combine: find closest valid beacon
-            -- combine the blocks (append one to the other)
-            -- remove the dragged block from the dict, if neccessary
+            -- need to find closest bounding beacon
             ( { model | draggedBlock = Nothing }
             , Cmd.none
             )
@@ -163,20 +159,59 @@ updateDraggedBlock model { id, cursorOnDraggable } { cursor } =
 
 view : Model -> Element Msg
 view model =
-    row [ width fill, height fill ]
-        [ column
-            [ width (fillPortion 1)
-            , height fill
-            , Background.color Colors.darkened
-            , Font.color Colors.white
-            , spacing 20
-            , padding 40
-            ]
-            (viewSidebar model.sidebarLifepaths)
-        , column [ width (fillPortion 5), height fill ]
-            [ el [ centerX, centerY ] <| none ]
+    row [ width fill, height fill, spacing 40 ]
+        [ viewSidebar model.sidebarLifepaths
+        , viewMainArea []
         , viewDraggedBlock model.draggedBlock model.blocks
         ]
+
+
+viewMainArea : List LifeBlock -> Element Msg
+viewMainArea fragments =
+    let
+        filledSlots =
+            List.map viewFragment fragments ++ [ openSlot ]
+
+        slots =
+            filledSlots
+                ++ List.repeat
+                    (8 - List.length filledSlots)
+                    (el slotAttrs none)
+    in
+    row
+        [ spacing 20
+        , padding 40
+        , centerX
+        , centerY
+        , height <| px 500
+        , width (fillPortion 5)
+        ]
+        (List.take 4 slots)
+
+
+viewFragment : LifeBlock -> Element Msg
+viewFragment block =
+    viewLifepath block.first { withBeacon = Just block.beaconId }
+
+
+openSlot : Element Msg
+openSlot =
+    el (Border.width 1 :: slotAttrs) <|
+        el [ centerX, centerY ] (text "+")
+
+
+slotAttrs =
+    [ Background.color Colors.white
+    , Font.color Colors.black
+    , Border.rounded 8
+    , Border.color Colors.darkened
+    , width <| px 350
+    , height fill
+    , spacing 20
+    , padding 12
+    , centerX
+    , centerY
+    ]
 
 
 viewDraggedBlock : Maybe DraggedBlock -> Dict Int LifeBlock -> Element Msg
@@ -216,23 +251,31 @@ viewDraggedBlock draggedBlock blocks =
             none
 
 
-viewSidebar : Status (List LifeBlock) -> List (Element Msg)
+viewSidebar : Status (List LifeBlock) -> Element Msg
 viewSidebar status =
     let
         viewBlock =
             \block ->
-                viewLifepath block.first
-                    { withBeacon = Just block.beaconId }
+                viewLifepath block.first { withBeacon = Just block.beaconId }
     in
-    case status of
-        Loading ->
-            [ text "loading..." ]
+    column
+        [ width (fillPortion 1)
+        , height fill
+        , Background.color Colors.darkened
+        , Font.color Colors.white
+        , spacing 20
+        , padding 40
+        ]
+        (case status of
+            Loading ->
+                [ text "loading..." ]
 
-        Failed ->
-            [ text "couldn't load lifepaths" ]
+            Failed ->
+                [ text "couldn't load lifepaths" ]
 
-        Loaded lifeBlocks ->
-            List.map viewBlock lifeBlocks
+            Loaded lifeBlocks ->
+                List.map viewBlock lifeBlocks
+        )
 
 
 viewLifepath : Lifepath -> { withBeacon : Maybe Int } -> Element Msg
@@ -273,10 +316,10 @@ viewLifepath lifepath { withBeacon } =
 
 
 beaconAttribute : Int -> Attribute msg
-beaconAttribute blockId =
+beaconAttribute beaconId =
     htmlAttribute <|
         Html.Attributes.attribute "data-beacon"
-            (Encode.encode 0 <| Encode.int blockId)
+            (Encode.encode 0 <| Encode.int beaconId)
 
 
 viewLeads : List Lead -> Element Msg
@@ -413,7 +456,7 @@ dragData json =
     { cursor = json.cursor
     , beacons =
         List.map
-            (\( blockId, box ) -> Beacon blockId box)
+            (\( beaconId, box ) -> Beacon beaconId box)
             json.beacons
     }
 

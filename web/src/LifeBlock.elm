@@ -19,20 +19,20 @@ type alias LifeBlock =
 type alias Model a =
     -- TODO should this be an opaque submodel managed by this module?
     { a
-        | nextBlockId : Int
+        | nextBeaconId : Int
         , blocks : Dict Int LifeBlock
     }
 
 
 addBatch : Model a -> List Lifepath -> ( Model a, List LifeBlock )
-addBatch ({ nextBlockId, blocks } as model) lifepaths =
+addBatch ({ nextBeaconId, blocks } as model) lifepaths =
     let
         makeBlock : Lifepath -> ( Int, List LifeBlock ) -> ( Int, List LifeBlock )
         makeBlock path ( nextId, blockList ) =
             ( nextId + 1, LifeBlock path Array.empty nextId :: blockList )
 
         ( newNextId, blocksWithIds ) =
-            List.foldl makeBlock ( nextBlockId, [] ) lifepaths
+            List.foldl makeBlock ( nextBeaconId, [] ) lifepaths
 
         insertBlock : LifeBlock -> Dict Int LifeBlock -> Dict Int LifeBlock
         insertBlock block dict =
@@ -42,7 +42,7 @@ addBatch ({ nextBlockId, blocks } as model) lifepaths =
         newBlocks =
             List.foldl insertBlock blocks blocksWithIds
     in
-    ( { model | nextBlockId = newNextId, blocks = newBlocks }
+    ( { model | nextBeaconId = newNextId, blocks = newBlocks }
     , List.reverse blocksWithIds
     )
 
@@ -61,6 +61,6 @@ add model path =
 
 bump : Model a -> ( Model a, Int )
 bump model =
-    ( { model | nextBlockId = model.nextBlockId + 1 }
-    , model.nextBlockId
+    ( { model | nextBeaconId = model.nextBeaconId + 1 }
+    , model.nextBeaconId
     )
