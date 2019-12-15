@@ -8,6 +8,7 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Geom exposing (Box, Point)
 import Html
 import Html.Attributes
 import Html.Events
@@ -28,16 +29,23 @@ import Trait exposing (Trait)
 type alias Model =
     { session : Session
     , sidebarLifepaths : Status (List LifeBlock)
-    , blocks : Dict Int LifeBlock
+    , blocks : TrackedBeacons
     , nextBeaconId : Int
     , draggedBlock : Maybe DraggedBlock
     }
 
 
+type alias TrackedBeacons =
+    -- TODO this will need to include non-block items
+    Dict Int LifeBlock
+
+
 type alias DraggedBlock =
-    { id : Int
-    , cursorOnScreen : Coords
-    , cursorOnDraggable : Coords
+    -- TODO this needs a field for whether to clean up on drop,
+    -- or put it back where it was
+    { beaconId : Int
+    , cursorOnScreen : Point
+    , cursorOnDraggable : Point
     }
 
 
@@ -70,28 +78,24 @@ type Msg
 
 
 type DragEvent
-    = Start DraggedBlock
+    = CopyOnStart DraggedBlock
     | Move DragData
     | Stop DragData
 
 
 type alias DragData =
-    { cursor : Coords
+    { cursor : Point
     , beacons : List Beacon
     }
 
 
 type alias Beacon =
     { beaconId : Int
-    , box : Rect
+    , box : Box
     }
 
 
-type alias Coords =
-    { x : Float, y : Float }
-
-
-type alias Rect =
+type alias Box =
     { x : Float
     , y : Float
     , width : Float
@@ -116,10 +120,15 @@ update msg model =
             , Cmd.none
             )
 
-        Drag (Start draggedBlock) ->
-            ( { model | draggedBlock = Just draggedBlock }
-            , Cmd.none
-            )
+        Drag (CopyOnStart draggedBlock) ->
+            case Dict.get draggedBlock.beaconId model.blocks of
+                Just referenceBlock ->
+                    ( copyOnDrag model draggedBlock referenceBlock
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
         Drag (Move data) ->
             case model.draggedBlock of
@@ -130,24 +139,70 @@ update msg model =
                     ( updateDraggedBlock model block data, Cmd.none )
 
         Drag (Stop data) ->
-            -- TODO what did we drop it on/in?
-            -- need to find closest bounding beacon
-            ( { model | draggedBlock = Nothing }
-            , Cmd.none
-            )
+            -- TODO this should probably go by box overlap instead of bound
+            case closestBoundingBeacon data of
+                Nothing ->
+                    ( cleanUpDraggedBlock model, Cmd.none )
+
+                Just boundingBeacon ->
+                    ( dropOnBeacon model boundingBeacon data.cursor
+                    , Cmd.none
+                    )
 
         NoOp ->
             ( model, Cmd.none )
 
 
+dropOnBeacon : Model -> Beacon -> Point -> Model
+dropOnBeacon model boundingBeacon cursor =
+    -- TODO what did we drop it on, and is that valid
+    cleanUpDraggedBlock model
+
+
+cleanUpDraggedBlock : Model -> Model
+cleanUpDraggedBlock model =
+    -- TODO this needs to know if the dragged block is 'copy on start'
+    -- and do the right thing based on that
+    case model.draggedBlock of
+        Nothing ->
+            model
+
+        Just block ->
+            { model
+                | draggedBlock = Nothing
+                , blocks = Dict.remove block.beaconId model.blocks
+            }
+
+
+copyOnDrag : Model -> DraggedBlock -> LifeBlock -> Model
+copyOnDrag model draggedBlock lifeBlock =
+    let
+        ( newId, newModel ) =
+            bump model
+
+        newDraggedBlock : DraggedBlock
+        newDraggedBlock =
+            { draggedBlock | beaconId = newId }
+    in
+    { newModel
+        | draggedBlock = Just newDraggedBlock
+        , blocks = Dict.insert newId { lifeBlock | beaconId = newId } model.blocks
+    }
+
+
+bump : Model -> ( Int, Model )
+bump model =
+    ( model.nextBeaconId, { model | nextBeaconId = model.nextBeaconId + 1 } )
+
+
 updateDraggedBlock : Model -> DraggedBlock -> DragData -> Model
-updateDraggedBlock model { id, cursorOnDraggable } { cursor } =
-    case Dict.get id model.blocks of
+updateDraggedBlock model { beaconId, cursorOnDraggable } { cursor } =
+    case Dict.get beaconId model.blocks of
         Just block ->
             { model
                 | draggedBlock =
                     Just
-                        { id = id
+                        { beaconId = beaconId
                         , cursorOnScreen = cursor
                         , cursorOnDraggable = cursorOnDraggable
                         }
@@ -214,12 +269,12 @@ slotAttrs =
     ]
 
 
-viewDraggedBlock : Maybe DraggedBlock -> Dict Int LifeBlock -> Element Msg
+viewDraggedBlock : Maybe DraggedBlock -> TrackedBeacons -> Element Msg
 viewDraggedBlock draggedBlock blocks =
     let
         maybeBlock : Maybe LifeBlock
         maybeBlock =
-            Maybe.map .id draggedBlock
+            Maybe.map .beaconId draggedBlock
                 |> Maybe.andThen (\id -> Dict.get id blocks)
 
         top : DraggedBlock -> String
@@ -317,6 +372,7 @@ viewLifepath lifepath { withBeacon } =
 
 beaconAttribute : Int -> Attribute msg
 beaconAttribute beaconId =
+    -- TODO we need different attributes for start move & copy on start
     htmlAttribute <|
         Html.Attributes.attribute "data-beacon"
             (Encode.encode 0 <| Encode.int beaconId)
@@ -479,17 +535,19 @@ dragEvent json =
                 Decode.succeed <| Stop data
 
 
-startEvent : BeaconJson -> Coords -> Decode.Decoder DragEvent
+startEvent : BeaconJson -> Point -> Decode.Decoder DragEvent
 startEvent { startBeaconId, cursorOnDraggable } cursor =
     case ( Maybe.andThen String.toInt startBeaconId, cursorOnDraggable ) of
         ( Just id, Just onDraggable ) ->
-            Decode.succeed <| Start <| DraggedBlock id cursor onDraggable
+            Decode.succeed <| CopyOnStart <| DraggedBlock id cursor onDraggable
 
         _ ->
             Decode.fail "Recieved start event with no beacon id"
 
 
-type EventType
+type
+    EventType
+    -- TODO we'll need a JS PickUp event or similar for moving things around
     = StartEvent
     | MoveEvent
     | StopEvent
@@ -497,10 +555,10 @@ type EventType
 
 type alias BeaconJson =
     { eventType : EventType
-    , cursor : Coords
-    , beacons : List ( Int, Rect )
+    , cursor : Point
+    , beacons : List ( Int, Box )
     , startBeaconId : Maybe String
-    , cursorOnDraggable : Maybe Coords
+    , cursorOnDraggable : Maybe Point
     }
 
 
@@ -524,26 +582,26 @@ eventDecoder =
             )
 
 
-coordsDecoder : Decode.Decoder Coords
+coordsDecoder : Decode.Decoder Point
 coordsDecoder =
-    Decode.map2 Coords
+    Decode.map2 Point
         (Decode.field "x" Decode.float)
         (Decode.field "y" Decode.float)
 
 
-beaconsDecoder : Decode.Decoder (List ( Int, Rect ))
+beaconsDecoder : Decode.Decoder (List ( Int, Box ))
 beaconsDecoder =
     Decode.list
         (Decode.map2
             Tuple.pair
             (Decode.field "id" Decode.int)
-            rectDecoder
+            boxDecoder
         )
 
 
-rectDecoder : Decode.Decoder Rect
-rectDecoder =
-    Decode.map4 Rect
+boxDecoder : Decode.Decoder Box
+boxDecoder =
+    Decode.map4 Box
         (Decode.field "x" Decode.float)
         (Decode.field "y" Decode.float)
         (Decode.field "width" Decode.float)
@@ -560,3 +618,29 @@ userSelectNone =
         , "-ms-user-select"
         , "user-select"
         ]
+
+
+
+-- BEACON UTILS
+
+
+closestBoundingBeacon : DragData -> Maybe Beacon
+closestBoundingBeacon { cursor, beacons } =
+    beacons
+        |> List.sortBy (Geom.distance cursor << Geom.center << .box)
+        |> List.head
+        |> keepIf (\beacon -> Geom.bounds beacon.box cursor)
+
+
+{-| aka Maybe.filter
+-}
+keepIf : (a -> Bool) -> Maybe a -> Maybe a
+keepIf pred =
+    Maybe.andThen
+        (\something ->
+            if pred something then
+                Just something
+
+            else
+                Nothing
+        )
