@@ -1,11 +1,11 @@
+* TODO get drag and drop working
+** TODO i can drop a born lifepath on a new character slot
+*** DONE need to be able to look up the box of the open slot on drop
+*** TODO make it work intuitively
+**** TODO what does that even mean
 * TODO get a minimal version of the app running
-  - [-] sequentially picking lifepaths
-    - [X] write lifepath decoders for api module
-    - [X] think about how to do the interface
-      - drag and drop? how?
+  - [ ] sequentially picking lifepaths
     - [ ] get dnd working; able to drop first lifepath of a new block
-      - [ ] limit the dragging to just the 'handle'?
-      - [ ] make dropping work correctly, not stick on click
     - [ ] easy search for allowed next lifepaths
   - [ ] think about a 'suggestions' endpoint
         send a character fragment in the request

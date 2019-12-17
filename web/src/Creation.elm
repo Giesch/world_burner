@@ -30,6 +30,7 @@ type alias Model =
     { session : Session
     , sidebarLifepaths : Status (List LifeBlock)
     , blocks : TrackedBeacons
+    , benchBlocks : List LifeBlock
     , nextBeaconId : Int
     , draggedBlock : Maybe DraggedBlock
     }
@@ -37,6 +38,7 @@ type alias Model =
 
 type alias TrackedBeacons =
     -- TODO this will need to include non-block items
+    -- sidebar lifeblock, workbench lifeblock, static beacon
     Dict Int LifeBlock
 
 
@@ -62,9 +64,32 @@ init session =
       , blocks = Dict.empty
       , nextBeaconId = 1
       , draggedBlock = Nothing
+      , benchBlocks = []
       }
     , Api.listLifepaths GotLifepaths { noFilters | born = Just True }
     )
+
+
+{-| Beacons with non-generated beacon ids.
+-}
+staticBeacons : Dict Int StaticBeacon
+staticBeacons =
+    [ OpenSlot ]
+        |> List.map (\beacon -> ( staticBeaconId beacon, beacon ))
+        |> Dict.fromList
+
+
+{-| They have negative beacon ids to avoid overlap with the generated ones.
+-}
+staticBeaconId : StaticBeacon -> Int
+staticBeaconId beacon =
+    case beacon of
+        OpenSlot ->
+            -1
+
+
+type StaticBeacon
+    = OpenSlot
 
 
 
@@ -121,6 +146,7 @@ update msg model =
             )
 
         Drag (CopyOnStart draggedBlock) ->
+            -- this one should only check sidebar lifepaths
             case Dict.get draggedBlock.beaconId model.blocks of
                 Just referenceBlock ->
                     ( copyOnDrag model draggedBlock referenceBlock
@@ -139,7 +165,7 @@ update msg model =
                     ( updateDraggedBlock model block data, Cmd.none )
 
         Drag (Stop data) ->
-            -- TODO this should probably go by box overlap instead of bound
+            -- TODO this should probably go by box overlap or distance instead of bound
             case closestBoundingBeacon data of
                 Nothing ->
                     ( cleanUpDraggedBlock model, Cmd.none )
@@ -154,20 +180,38 @@ update msg model =
 
 
 dropOnBeacon : Model -> Beacon -> Point -> Model
-dropOnBeacon model boundingBeacon cursor =
-    -- TODO what did we drop it on, and is that valid
-    cleanUpDraggedBlock model
+dropOnBeacon model { beaconId } cursor =
+    let
+        droppedOn : Maybe StaticBeacon
+        droppedOn =
+            Dict.get beaconId staticBeacons
+
+        draggedBlock : Maybe LifeBlock
+        draggedBlock =
+            model.draggedBlock
+                |> Maybe.map .beaconId
+                |> Maybe.andThen (\id -> Dict.get id model.blocks)
+    in
+    case ( draggedBlock, droppedOn ) of
+        ( Just lifeBlock, Just OpenSlot ) ->
+            { model
+                | benchBlocks = model.benchBlocks ++ [ lifeBlock ]
+                , draggedBlock = Nothing
+            }
+
+        _ ->
+            cleanUpDraggedBlock model
 
 
 cleanUpDraggedBlock : Model -> Model
 cleanUpDraggedBlock model =
-    -- TODO this needs to know if the dragged block is 'copy on start'
-    -- and do the right thing based on that
     case model.draggedBlock of
         Nothing ->
             model
 
         Just block ->
+            -- TODO this needs to know if the dragged block is 'copy on start'
+            -- and do the right thing based on that
             { model
                 | draggedBlock = Nothing
                 , blocks = Dict.remove block.beaconId model.blocks
@@ -216,7 +260,7 @@ view : Model -> Element Msg
 view model =
     row [ width fill, height fill, spacing 40 ]
         [ viewSidebar model.sidebarLifepaths
-        , viewMainArea []
+        , viewMainArea model.benchBlocks
         , viewDraggedBlock model.draggedBlock model.blocks
         ]
 
@@ -251,10 +295,15 @@ viewFragment block =
 
 openSlot : Element Msg
 openSlot =
-    el (Border.width 1 :: slotAttrs) <|
-        el [ centerX, centerY ] (text "+")
+    el
+        (beaconAttribute (staticBeaconId OpenSlot)
+            :: Border.width 1
+            :: slotAttrs
+        )
+        (el [ centerX, centerY ] <| text "+")
 
 
+slotAttrs : List (Attribute msg)
 slotAttrs =
     [ Background.color Colors.white
     , Font.color Colors.black
