@@ -150,7 +150,7 @@ update msg model =
             )
 
         Drag (CopyOnStart draggedBlock) ->
-            -- this one should only check sidebar lifepaths
+            -- TODO should copy on start be renamed?
             case Dict.get draggedBlock.beaconId model.blocks of
                 Just (SidebarPath referenceBlock) ->
                     ( copyOnDrag model draggedBlock referenceBlock
@@ -161,12 +161,19 @@ update msg model =
                     ( model, Cmd.none )
 
         Drag (Move data) ->
-            case model.draggedBlock of
-                Nothing ->
-                    ( model, Cmd.none )
+            -- TODO should we be matching on (msg, model)
+            let
+                newModel : Model
+                newModel =
+                    model.draggedBlock
+                        |> Maybe.andThen (\block -> Just <| updateDraggedBlock block)
+                        |> Maybe.withDefault model
 
-                Just block ->
-                    ( updateDraggedBlock model block data, Cmd.none )
+                updateDraggedBlock : DraggedBlock -> Model
+                updateDraggedBlock draggedBlock =
+                    { model | draggedBlock = Just { draggedBlock | cursorOnScreen = data.cursor } }
+            in
+            ( newModel, Cmd.none )
 
         Drag (Stop data) ->
             -- TODO this should probably go by box overlap or distance instead of bound
@@ -252,23 +259,6 @@ copyOnDrag model draggedBlock lifeBlock =
 bump : Model -> ( Int, Model )
 bump model =
     ( model.nextBeaconId, { model | nextBeaconId = model.nextBeaconId + 1 } )
-
-
-updateDraggedBlock : Model -> DraggedBlock -> DragData -> Model
-updateDraggedBlock model { beaconId, cursorOnDraggable } { cursor } =
-    case Dict.get beaconId model.blocks of
-        Just block ->
-            { model
-                | draggedBlock =
-                    Just
-                        { beaconId = beaconId
-                        , cursorOnScreen = cursor
-                        , cursorOnDraggable = cursorOnDraggable
-                        }
-            }
-
-        Nothing ->
-            model
 
 
 view : Model -> Element Msg
