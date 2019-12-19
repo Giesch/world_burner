@@ -37,9 +37,13 @@ type alias Model =
 
 
 type alias TrackedBeacons =
-    -- TODO this will need to include non-block items
-    -- sidebar lifeblock, workbench lifeblock, static beacon
-    Dict Int LifeBlock
+    Dict Int BeaconT
+
+
+type BeaconT
+    = SidebarPath LifeBlock
+    | BenchBlock LifeBlock
+    | Static StaticBeacon
 
 
 type alias DraggedBlock =
@@ -134,7 +138,7 @@ update msg model =
         GotLifepaths (Ok lifepaths) ->
             let
                 ( newModel, blocks ) =
-                    LifeBlock.addBatch model lifepaths
+                    LifeBlock.addBatch model lifepaths SidebarPath
             in
             ( { newModel | sidebarLifepaths = Loaded blocks }
             , Cmd.none
@@ -148,12 +152,12 @@ update msg model =
         Drag (CopyOnStart draggedBlock) ->
             -- this one should only check sidebar lifepaths
             case Dict.get draggedBlock.beaconId model.blocks of
-                Just referenceBlock ->
+                Just (SidebarPath referenceBlock) ->
                     ( copyOnDrag model draggedBlock referenceBlock
                     , Cmd.none
                     )
 
-                Nothing ->
+                _ ->
                     ( model, Cmd.none )
 
         Drag (Move data) ->
@@ -186,18 +190,25 @@ dropOnBeacon model { beaconId } cursor =
         droppedOn =
             Dict.get beaconId staticBeacons
 
-        draggedBlock : Maybe LifeBlock
+        draggedBlock : Maybe BeaconT
         draggedBlock =
             model.draggedBlock
                 |> Maybe.map .beaconId
                 |> Maybe.andThen (\id -> Dict.get id model.blocks)
-    in
-    case ( draggedBlock, droppedOn ) of
-        ( Just lifeBlock, Just OpenSlot ) ->
+
+        doDrop : LifeBlock -> Model
+        doDrop block =
             { model
-                | benchBlocks = model.benchBlocks ++ [ lifeBlock ]
+                | benchBlocks = model.benchBlocks ++ [ block ]
                 , draggedBlock = Nothing
             }
+    in
+    case ( draggedBlock, droppedOn ) of
+        ( Just (SidebarPath lifeBlock), Just OpenSlot ) ->
+            doDrop lifeBlock
+
+        ( Just (BenchBlock lifeBlock), Just OpenSlot ) ->
+            Debug.todo "remove it from where it was then do drop"
 
         _ ->
             cleanUpDraggedBlock model
@@ -227,10 +238,14 @@ copyOnDrag model draggedBlock lifeBlock =
         newDraggedBlock : DraggedBlock
         newDraggedBlock =
             { draggedBlock | beaconId = newId }
+
+        sidebarPath : BeaconT
+        sidebarPath =
+            SidebarPath { lifeBlock | beaconId = newId }
     in
     { newModel
         | draggedBlock = Just newDraggedBlock
-        , blocks = Dict.insert newId { lifeBlock | beaconId = newId } model.blocks
+        , blocks = Dict.insert newId sidebarPath model.blocks
     }
 
 
@@ -321,7 +336,7 @@ slotAttrs =
 viewDraggedBlock : Maybe DraggedBlock -> TrackedBeacons -> Element Msg
 viewDraggedBlock draggedBlock blocks =
     let
-        maybeBlock : Maybe LifeBlock
+        maybeBlock : Maybe BeaconT
         maybeBlock =
             Maybe.map .beaconId draggedBlock
                 |> Maybe.andThen (\id -> Dict.get id blocks)
@@ -349,9 +364,22 @@ viewDraggedBlock draggedBlock blocks =
                  ]
                     ++ userSelectNone
                 )
-                (viewLifepath block.first { withBeacon = Nothing })
+                (viewDraggedPath block)
 
         _ ->
+            none
+
+
+viewDraggedPath : BeaconT -> Element Msg
+viewDraggedPath beacon =
+    case beacon of
+        SidebarPath block ->
+            viewLifepath block.first { withBeacon = Nothing }
+
+        BenchBlock block ->
+            viewLifepath block.first { withBeacon = Nothing }
+
+        Static oops ->
             none
 
 

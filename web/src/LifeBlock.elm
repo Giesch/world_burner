@@ -16,16 +16,19 @@ type alias LifeBlock =
     }
 
 
-type alias Model a =
-    -- TODO should this be an opaque submodel managed by this module?
+type alias Model a b =
     { a
         | nextBeaconId : Int
-        , blocks : Dict Int LifeBlock
+        , blocks : Dict Int b
     }
 
 
-addBatch : Model a -> List Lifepath -> ( Model a, List LifeBlock )
-addBatch ({ nextBeaconId, blocks } as model) lifepaths =
+addBatch :
+    Model a b
+    -> List Lifepath
+    -> (LifeBlock -> b)
+    -> ( Model a b, List LifeBlock )
+addBatch ({ nextBeaconId, blocks } as model) lifepaths constructor =
     let
         makeBlock : Lifepath -> ( Int, List LifeBlock ) -> ( Int, List LifeBlock )
         makeBlock path ( nextId, blockList ) =
@@ -34,11 +37,11 @@ addBatch ({ nextBeaconId, blocks } as model) lifepaths =
         ( newNextId, blocksWithIds ) =
             List.foldl makeBlock ( nextBeaconId, [] ) lifepaths
 
-        insertBlock : LifeBlock -> Dict Int LifeBlock -> Dict Int LifeBlock
+        insertBlock : LifeBlock -> Dict Int b -> Dict Int b
         insertBlock block dict =
-            Dict.insert block.beaconId block dict
+            Dict.insert block.beaconId (constructor block) dict
 
-        newBlocks : Dict Int LifeBlock
+        newBlocks : Dict Int b
         newBlocks =
             List.foldl insertBlock blocks blocksWithIds
     in
@@ -47,19 +50,21 @@ addBatch ({ nextBeaconId, blocks } as model) lifepaths =
     )
 
 
-add : Model a -> Lifepath -> ( Model a, Int )
-add model path =
+add : Model a b -> Lifepath -> (LifeBlock -> b) -> ( Model a b, Int )
+add model path constructor =
     let
         ( bumpedModel, id ) =
             bump model
 
         blocks =
-            Dict.insert id (LifeBlock path Array.empty id) model.blocks
+            Dict.insert id
+                (constructor <| LifeBlock path Array.empty id)
+                model.blocks
     in
     ( { bumpedModel | blocks = blocks }, id )
 
 
-bump : Model a -> ( Model a, Int )
+bump : Model a b -> ( Model a b, Int )
 bump model =
     ( { model | nextBeaconId = model.nextBeaconId + 1 }
     , model.nextBeaconId

@@ -3,6 +3,8 @@
 *** DONE need to be able to look up the box of the open slot on drop
 *** TODO make it work intuitively
 **** TODO what does that even mean
+* TODO LifeBlock shouldn't get it's own module
+* TODO static beacons shouldn't be confusable with draggables
 * TODO get a minimal version of the app running
   - [ ] sequentially picking lifepaths
     - [ ] get dnd working; able to drop first lifepath of a new block
