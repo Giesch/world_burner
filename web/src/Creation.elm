@@ -8,6 +8,7 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Element.Input as Input
 import Geom exposing (Box, Point)
 import Html
 import Html.Attributes
@@ -103,6 +104,7 @@ type StaticBeacon
 type Msg
     = GotLifepaths (ApiResult (List Lifepath))
     | Drag DragEvent
+    | DeleteLifeBlock Int
     | NoOp
 
 
@@ -185,6 +187,20 @@ update msg model =
                     ( dropOnBeacon model boundingBeacon data.cursor
                     , Cmd.none
                     )
+
+        DeleteLifeBlock id ->
+            let
+                blocks : Dict Int BeaconT
+                blocks =
+                    Dict.remove id model.blocks
+
+                benchBlocks : List LifeBlock
+                benchBlocks =
+                    List.filter (\block -> block.beaconId /= id) model.benchBlocks
+            in
+            ( { model | blocks = blocks, benchBlocks = benchBlocks }
+            , Cmd.none
+            )
 
         NoOp ->
             ( model, Cmd.none )
@@ -295,7 +311,19 @@ viewMainArea fragments =
 
 viewFragment : LifeBlock -> Element Msg
 viewFragment block =
-    viewLifepath block.first { withBeacon = Just block.beaconId }
+    -- TODO show list with dropzones (need to check validity)
+    column []
+        [ deleteButton [ alignRight ] <| DeleteLifeBlock block.beaconId
+        , viewLifepath block.first { withBeacon = Just block.beaconId }
+        ]
+
+
+deleteButton : List (Attribute msg) -> msg -> Element msg
+deleteButton attrs onPress =
+    Input.button attrs
+        { onPress = Just onPress
+        , label = text "X"
+        }
 
 
 openSlot : Element Msg
