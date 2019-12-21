@@ -21,7 +21,7 @@ type alias TraitEntryProps =
     { name : String
     , traitId : Int
     , page : Int
-    , cost : Int
+    , cost : Maybe Int
     , taip : TraitType
     }
 
@@ -52,11 +52,11 @@ name trait =
             props.name
 
 
-cost : Trait -> Int
+cost : Trait -> Maybe Int
 cost trait =
     case trait of
         CharTrait _ ->
-            1
+            Just 1
 
         TraitEntry props ->
             props.cost
@@ -102,7 +102,7 @@ traitEntryDecoder =
             |> required "name" Decode.string
             |> required "trait_id" Decode.int
             |> required "page" Decode.int
-            |> required "cost" Decode.int
+            |> optional "cost" (Decode.map Just Decode.int) Nothing
             |> required "taip" traitTypeDecoder
         )
 

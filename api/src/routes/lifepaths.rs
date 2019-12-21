@@ -16,6 +16,9 @@ pub struct LifepathFilters {
 
     #[serde(default)]
     pub setting_ids: Option<Vec<i32>>,
+
+    #[serde(default)]
+    pub search_term: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -27,6 +30,7 @@ impl From<LifepathsError> for RouteError {
     fn from(error: LifepathsError) -> Self {
         match error {
             LifepathsError::Useless => RouteError::useless(),
+            LifepathsError::MissingValue(_msg) => RouteError::useless(),
         }
     }
 }

@@ -13,34 +13,43 @@ pub trait LifepathRepo {
 }
 
 const LIFEPATH_LIMIT: i64 = 20;
+const MIN_SEARCH_TERM: usize = 2;
 
 impl LifepathRepo for DbConn {
     fn lifepaths(&self, filters: &LifepathFilters) -> LifepathRepoResult<Vec<LifepathRow>> {
-        use schema::lifepaths::dsl::*;
+        use schema::lifepaths;
 
-        let mut query = lifepaths
+        let mut query = lifepaths::table
             .select((
-                id,
-                lifepath_setting_id,
-                page,
-                name,
-                years,
-                gen_skill_pts,
-                skill_pts,
-                trait_pts,
-                stat_mod,
-                stat_mod_val,
-                res,
-                born,
+                lifepaths::id,
+                lifepaths::lifepath_setting_id,
+                lifepaths::page,
+                lifepaths::name,
+                lifepaths::years,
+                lifepaths::gen_skill_pts,
+                lifepaths::skill_pts,
+                lifepaths::trait_pts,
+                lifepaths::stat_mod,
+                lifepaths::stat_mod_val,
+                lifepaths::res,
+                lifepaths::born,
             ))
             .into_boxed();
 
         if let Some(born_filter) = filters.born {
-            query = query.filter(born.eq(born_filter));
+            query = query.filter(lifepaths::born.eq(born_filter));
         }
 
         if let Some(setting_ids) = &filters.setting_ids {
-            query = query.filter(lifepath_setting_id.eq(any(setting_ids)))
+            query = query.filter(lifepaths::lifepath_setting_id.eq(any(setting_ids)))
+        }
+
+        match &filters.search_term {
+            Some(search_term) if search_term.len() >= MIN_SEARCH_TERM => {
+                let like_term: String = format!("{}%", search_term);
+                query = query.filter(lifepaths::name.ilike(like_term))
+            }
+            _ => (),
         }
 
         let rows = query.limit(LIFEPATH_LIMIT).load(&**self)?;

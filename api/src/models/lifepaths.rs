@@ -191,7 +191,7 @@ pub enum Trait {
         name: String,
         trait_id: i32,
         page: i32,
-        cost: i32,
+        cost: Option<i32>,
         taip: schema::TraitType,
     },
 
@@ -204,12 +204,18 @@ impl TryFrom<LifepathTraitRow> for Trait {
     type Error = LifepathsError;
 
     fn try_from(row: LifepathTraitRow) -> Result<Self, Self::Error> {
-        if row.trait_id.is_some() {
-            let trait_id = row.trait_id.ok_or(LifepathsError::Useless)?;
-            let name = row.name.ok_or(LifepathsError::Useless)?;
-            let page = row.page.ok_or(LifepathsError::Useless)?;
-            let cost = row.cost.ok_or(LifepathsError::Useless)?;
-            let taip = row.taip.ok_or(LifepathsError::Useless)?;
+        if let Some(trait_id) = row.trait_id {
+            let missing = |col| {
+                LifepathsError::MissingValue(format!(
+                    "Missing {} for lifepath_trait {}",
+                    col, trait_id
+                ))
+            };
+
+            let name = row.name.ok_or_else(|| missing("name"))?;
+            let page = row.page.ok_or_else(|| missing("page"))?;
+            let taip = row.taip.ok_or_else(|| missing("taip"))?;
+            let cost = row.cost;
 
             Ok(Trait::TraitEntry {
                 name,
@@ -219,7 +225,13 @@ impl TryFrom<LifepathTraitRow> for Trait {
                 taip,
             })
         } else {
-            let name = row.char_trait.ok_or(LifepathsError::Useless)?;
+            let lifepath_id = row.lifepath_id;
+            let name = row.char_trait.ok_or_else(|| {
+                LifepathsError::MissingValue(format!(
+                    "Missing char_trait for lifepath_trait with lifepath_id {}",
+                    lifepath_id
+                ))
+            })?;
 
             Ok(Trait::CharTrait { name })
         }
@@ -228,6 +240,7 @@ impl TryFrom<LifepathTraitRow> for Trait {
 
 pub enum LifepathsError {
     Useless,
+    MissingValue(String),
 }
 
 impl From<LifepathRepoError> for LifepathsError {

@@ -19,7 +19,7 @@ type alias LifeBlock =
 type alias Model a b =
     { a
         | nextBeaconId : Int
-        , blocks : Dict Int b
+        , beacons : Dict Int b
     }
 
 
@@ -28,7 +28,7 @@ addBatch :
     -> List Lifepath
     -> (LifeBlock -> b)
     -> ( Model a b, List LifeBlock )
-addBatch ({ nextBeaconId, blocks } as model) lifepaths constructor =
+addBatch ({ nextBeaconId, beacons } as model) lifepaths constructor =
     let
         makeBlock : Lifepath -> ( Int, List LifeBlock ) -> ( Int, List LifeBlock )
         makeBlock path ( nextId, blockList ) =
@@ -43,9 +43,9 @@ addBatch ({ nextBeaconId, blocks } as model) lifepaths constructor =
 
         newBlocks : Dict Int b
         newBlocks =
-            List.foldl insertBlock blocks blocksWithIds
+            List.foldl insertBlock beacons blocksWithIds
     in
-    ( { model | nextBeaconId = newNextId, blocks = newBlocks }
+    ( { model | nextBeaconId = newNextId, beacons = newBlocks }
     , List.reverse blocksWithIds
     )
 
@@ -56,12 +56,12 @@ add model path constructor =
         ( bumpedModel, id ) =
             bump model
 
-        blocks =
+        beacons =
             Dict.insert id
                 (constructor <| LifeBlock path Array.empty id)
-                model.blocks
+                model.beacons
     in
-    ( { bumpedModel | blocks = blocks }, id )
+    ( { bumpedModel | beacons = beacons }, id )
 
 
 bump : Model a b -> ( Model a b, Int )

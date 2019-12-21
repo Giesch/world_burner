@@ -30,6 +30,7 @@ listLifepaths toMsg filters =
 type alias LifepathFilters =
     { born : Maybe Bool
     , settingIds : Maybe (List Int)
+    , searchTerm : Maybe String
     }
 
 
@@ -37,6 +38,7 @@ noFilters : LifepathFilters
 noFilters =
     { born = Nothing
     , settingIds = Nothing
+    , searchTerm = Nothing
     }
 
 
@@ -45,6 +47,7 @@ encodeLifepathFilters filters =
     Encode.object
         [ ( "born", maybeEncode Encode.bool filters.born )
         , ( "setting_ids", maybeEncode (Encode.list Encode.int) filters.settingIds )
+        , ( "search_term", maybeEncode Encode.string filters.searchTerm )
         ]
 
 

@@ -5,8 +5,6 @@ window.setupDraggable = function setupDraggable(sendEvent) {
   document.addEventListener("pointerdown", awaitDragStart);
 
   function awaitDragStart(startEvent) {
-    startEvent.preventDefault();
-
     let startBeaconId = null;
     let cursorOnDraggable = null;
     const startBeaconElem = startEvent.target.closest(`[${BEACON_ATTRIBUTE}]`);

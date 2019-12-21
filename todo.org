@@ -1,7 +1,22 @@
 * TODO get drag and drop working
-** TODO there's a filterable list on the right
-** TODO drop beacons should be distinct from draggable beacons
+** TODO there's a filterable list on the left
+*** TODO show the born filter toggle
+*** DONE implement simple/dumb search on the backend
 ** TODO i can drop other lifepaths before or after a benchblock
+*** TODO validation?
+*** TODO show the whole list in viewFragment
+*** TODO need to implement move on drag vs copy on drag
+*** TODO consider changing from dropzones to drop range
+how to display that?
+highlight the place where it'll go on hover in some way
+*** TODO need a JS pickup event like start? or just go by the type in elm
+** TODO drop beacons should be distinct from draggable beacons
+ie the closestBounding fn should filter on type
+** TODO when dragging lifeblocks, do we move on pickup or on drop?
+which is easier to understand?
+which is easier to implement?
+if move on pickup, need to store where to put it back
+    (or just the old model? ie undo)
 
 * TODO get a minimal version of the app running
   - [ ] sequentially picking lifepaths
@@ -120,7 +135,14 @@ in each other's json
 
 * Soon (TM)
 ** TODO LifeBlock shouldn't get it's own module
+** TODO TrackedBeacons should get its own module
 ** TODO static beacons shouldn't be confusable with draggables
 ** TODO find a better way to handle same lifepath in different settings
 *** the diminishing returns rules care
 *** for now, just have the diminishing returns do their own truncation
+** TODO closest bounding beacon should go by distance/overlap
+the whole point was to not do dropzones
+** TODO benchblocks should be just a list of ids
+ie normalize the model
+** TODO handle the errors from draggable.js in decodeDragEvents
+** TODO add on-hover text explaining the ui

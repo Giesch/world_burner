@@ -133,11 +133,9 @@ view model =
     in
     { title = "World Burner"
     , body =
-        [ Element.layout [] <|
-            column [ width fill, height fill ]
-                [ header
-                , content
-                ]
+        [ Element.layout [ width fill, height fill, scrollbarY ] <|
+            column [ width fill, height fill, scrollbarY ]
+                [ header, content ]
         ]
     }
 
@@ -150,7 +148,7 @@ header =
         , height <| px 50
         , spacing 20
         , paddingXY 20 0
-        , Background.color Colors.red
+        , Background.color Colors.darkened
         ]
         [ logo
         , headerButton "Log In" NoOp
