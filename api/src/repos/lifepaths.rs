@@ -31,6 +31,7 @@ impl LifepathRepo for DbConn {
                 stat_mod,
                 stat_mod_val,
                 res,
+                born,
             ))
             .into_boxed();
 
@@ -156,6 +157,7 @@ pub struct LifepathRow {
     pub stat_mod: Option<StatMod>,
     pub stat_mod_val: Option<i32>,
     pub res: Option<i32>,
+    pub born: bool,
 }
 
 #[derive(Queryable, Debug)]

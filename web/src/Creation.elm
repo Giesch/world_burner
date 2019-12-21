@@ -48,8 +48,6 @@ type BeaconT
 
 
 type alias DraggedBlock =
-    -- TODO this needs a field for whether to clean up on drop,
-    -- or put it back where it was
     { beaconId : Int
     , cursorOnScreen : Point
     , cursorOnDraggable : Point
@@ -109,7 +107,7 @@ type Msg
 
 
 type DragEvent
-    = CopyOnStart DraggedBlock
+    = Start DraggedBlock
     | Move DragData
     | Stop DragData
 
@@ -151,8 +149,7 @@ update msg model =
             , Cmd.none
             )
 
-        Drag (CopyOnStart draggedBlock) ->
-            -- TODO should copy on start be renamed?
+        Drag (Start draggedBlock) ->
             case Dict.get draggedBlock.beaconId model.blocks of
                 Just (SidebarPath referenceBlock) ->
                     ( copyOnDrag model draggedBlock referenceBlock
@@ -163,12 +160,12 @@ update msg model =
                     ( model, Cmd.none )
 
         Drag (Move data) ->
-            -- TODO should we be matching on (msg, model)
             let
                 newModel : Model
                 newModel =
                     model.draggedBlock
-                        |> Maybe.andThen (\block -> Just <| updateDraggedBlock block)
+                        |> Maybe.andThen
+                            (\block -> Just <| updateDraggedBlock block)
                         |> Maybe.withDefault model
 
                 updateDraggedBlock : DraggedBlock -> Model
@@ -207,11 +204,11 @@ update msg model =
 
 
 dropOnBeacon : Model -> Beacon -> Point -> Model
-dropOnBeacon model { beaconId } cursor =
+dropOnBeacon model boundingBeacon cursor =
     let
         droppedOn : Maybe StaticBeacon
         droppedOn =
-            Dict.get beaconId staticBeacons
+            Dict.get boundingBeacon.beaconId staticBeacons
 
         draggedBlock : Maybe BeaconT
         draggedBlock =
@@ -222,7 +219,9 @@ dropOnBeacon model { beaconId } cursor =
         doDrop : LifeBlock -> Model
         doDrop block =
             { model
+              -- TODO should benchblocks only be ids?
                 | benchBlocks = model.benchBlocks ++ [ block ]
+                , blocks = Dict.insert block.beaconId (BenchBlock block) model.blocks
                 , draggedBlock = Nothing
             }
     in
@@ -231,6 +230,8 @@ dropOnBeacon model { beaconId } cursor =
             doDrop lifeBlock
 
         ( Just (BenchBlock lifeBlock), Just OpenSlot ) ->
+            -- TODO should it have already been removed?
+            -- if so there's another case to handle
             Debug.todo "remove it from where it was then do drop"
 
         _ ->
@@ -304,7 +305,7 @@ viewMainArea fragments =
         , centerX
         , centerY
         , height <| px 500
-        , width (fillPortion 5)
+        , width <| fillPortion 5
         ]
         (List.take 4 slots)
 
@@ -312,18 +313,20 @@ viewMainArea fragments =
 viewFragment : LifeBlock -> Element Msg
 viewFragment block =
     -- TODO show list with dropzones (need to check validity)
+    -- TODO Change beacon attribute to be move (not copy) on drag
     column []
-        [ deleteButton [ alignRight ] <| DeleteLifeBlock block.beaconId
+        [ -- validation should be generic to any append
+          -- dropzone,
+          Input.button [ alignRight ]
+            { onPress = Just <| DeleteLifeBlock block.beaconId
+            , label = text "X"
+            }
+
+        -- TODO our own view fn with different beacon logic
         , viewLifepath block.first { withBeacon = Just block.beaconId }
+
+        -- , dropzone
         ]
-
-
-deleteButton : List (Attribute msg) -> msg -> Element msg
-deleteButton attrs onPress =
-    Input.button attrs
-        { onPress = Just onPress
-        , label = text "X"
-        }
 
 
 openSlot : Element Msg
@@ -634,7 +637,7 @@ startEvent : BeaconJson -> Point -> Decode.Decoder DragEvent
 startEvent { startBeaconId, cursorOnDraggable } cursor =
     case ( Maybe.andThen String.toInt startBeaconId, cursorOnDraggable ) of
         ( Just id, Just onDraggable ) ->
-            Decode.succeed <| CopyOnStart <| DraggedBlock id cursor onDraggable
+            Decode.succeed <| Start <| DraggedBlock id cursor onDraggable
 
         _ ->
             Decode.fail "Recieved start event with no beacon id"

@@ -27,6 +27,7 @@ type alias Lifepath =
     , traitPts : Int
     , skills : List Skill
     , traits : List Trait
+    , born : Bool
     }
 
 
@@ -80,6 +81,7 @@ decoder =
         |> required "trait_pts" Decode.int
         |> required "skills" (Decode.list skillDecoder)
         |> required "traits" (Decode.list Trait.decoder)
+        |> required "born" Decode.bool
 
 
 statModDecoder : Decoder StatMod

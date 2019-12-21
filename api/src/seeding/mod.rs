@@ -485,7 +485,7 @@ fn new_lifepath(
         match lifepath.name.as_str() {
             "advisor to the court" => (Some(1), Some(3)),
             "prince of the blood" => (Some(2), Some(20)),
-            _ => Err(format!("invalid lifepath years: {:#?}", lifepath))?,
+            _ => return Err(format!("invalid lifepath years: {:#?}", lifepath).into()),
         }
     };
 
@@ -495,7 +495,7 @@ fn new_lifepath(
         match lifepath.name.as_str() {
             "advisor to the court" => (None, Some(ResCalc::TenPerYear)),
             "hostage" => (None, Some(ResCalc::HalfPrevious)),
-            _ => Err(format!("invalid lifepath resources: {:#?}", lifepath))?,
+            _ => return Err(format!("invalid lifepath resources: {:#?}", lifepath).into()),
         }
     };
 

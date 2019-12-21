@@ -93,6 +93,7 @@ fn add_associations(
         trait_pts: row.trait_pts,
         skills,
         traits,
+        born: row.born,
     })
 }
 
@@ -131,6 +132,7 @@ pub struct Lifepath {
     pub trait_pts: i32,
     pub skills: Vec<Skill>,
     pub traits: Vec<Trait>,
+    pub born: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

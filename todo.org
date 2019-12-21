@@ -1,10 +1,8 @@
 * TODO get drag and drop working
-** TODO i can drop a born lifepath on a new character slot
-*** DONE need to be able to look up the box of the open slot on drop
-*** TODO make it work intuitively
-**** TODO what does that even mean
-* TODO LifeBlock shouldn't get it's own module
-* TODO static beacons shouldn't be confusable with draggables
+** TODO there's a filterable list on the right
+** TODO drop beacons should be distinct from draggable beacons
+** TODO i can drop other lifepaths before or after a benchblock
+
 * TODO get a minimal version of the app running
   - [ ] sequentially picking lifepaths
     - [ ] get dnd working; able to drop first lifepath of a new block
@@ -21,19 +19,11 @@
   - [ ] unit tests for model
   - [ ] unit tests for json decoders
 
-* TODO find a better way to handle same lifepath in different settings
-** the diminishing returns rules care
-** for now, just have the diminishing returns do their own truncation
-   
-* TODO unit tests covering the seeded data
-  - [ ] custom test runner
-    https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html
-  - [ ] check weird lifepaths
-  - [ ] test query layer (make query layer)
 
 * TODO set up a deployment w/heroku or aws
 ** test that the app runs pending migrations on startup
 ** have a way to reset the book data/the db in general
+
 
 * TODO think about how to handle stock common traits & born lifepaths
 ** need a table of common traits by stock?
@@ -49,9 +39,14 @@
 ** should that just be a request validation rather than a constraint?
 
 * TODO how do we ensure integrity of lifepath requirements?
-** need a join table that duplicates which lps are referenced in each other's json
+** need a join table that duplicates which lps are referenced
+in each other's json
 
 * db changes
+** TODO refactor check constraints into separate tables where possible
+- [ ] year range
+- [ ] stat mod & stat mod val pair
+- [ ] find a nicer way to do skill roots
 ** TODO think about how to do appropriate weapons
 *** treat it as any other skill until the point buy phase
 **** also need to special case it for restrictions (ie counts as sword)
@@ -122,3 +117,10 @@
         year range is 1-3; 10 res per year, 1 gsp per year
 * TODO make the lifepaths repo return and log errors properly
 ** look into tracing or simple logger crates
+
+* Soon (TM)
+** TODO LifeBlock shouldn't get it's own module
+** TODO static beacons shouldn't be confusable with draggables
+** TODO find a better way to handle same lifepath in different settings
+*** the diminishing returns rules care
+*** for now, just have the diminishing returns do their own truncation
