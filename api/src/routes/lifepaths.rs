@@ -1,6 +1,6 @@
 use super::errors::*;
 use crate::db::DbConn;
-use crate::models::lifepaths::*;
+use crate::services::lifepaths::*;
 use rocket_contrib::json::Json;
 
 #[post("/api/lifepaths/search", format = "json", data = "<filters>")]
