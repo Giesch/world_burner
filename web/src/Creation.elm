@@ -46,9 +46,17 @@ type alias TrackedBeacons =
 
 
 type BeaconT
+    = Drag DragBeacon
+    | Drop DropBeacon
+
+
+type DragBeacon
     = SidebarPath LifeBlock
     | BenchBlock LifeBlock
-    | Static StaticBeacon
+
+
+type DropBeacon
+    = Static StaticBeacon
 
 
 type alias DraggedBlock =
@@ -88,16 +96,15 @@ getLifepaths searchFilters =
     Api.listLifepaths GotLifepaths searchFilters
 
 
-{-| Beacons with non-generated beacon ids.
--}
-staticBeacons : Dict Int StaticBeacon
-staticBeacons =
+dropBeacons : Dict Int DropBeacon
+dropBeacons =
     [ OpenSlot ]
-        |> List.map (\beacon -> ( staticBeaconId beacon, beacon ))
+        |> List.map (\beacon -> ( staticBeaconId beacon, Static beacon ))
         |> Dict.fromList
 
 
-{-| They have negative beacon ids to avoid overlap with the generated ones.
+{-| Beacons with non-generated beacon ids.
+They have negative beacon ids to avoid overlap with the generated ones.
 -}
 staticBeaconId : StaticBeacon -> Int
 staticBeaconId beacon =
@@ -116,7 +123,7 @@ type StaticBeacon
 
 type Msg
     = GotLifepaths (ApiResult (List Lifepath))
-    | Drag DragEvent
+    | DragMsg DragEvent
     | DeleteLifeBlock Int
     | EnteredSearchText String
     | SearchTimePassed String
@@ -159,7 +166,7 @@ update msg model =
                     cleanSidebarBeacons model
 
                 ( newModel, blocks ) =
-                    LifeBlock.addBatch cleanModel lifepaths SidebarPath
+                    LifeBlock.addBatch cleanModel lifepaths (Drag << SidebarPath)
             in
             ( { newModel | sidebarLifepaths = Loaded blocks }
             , Cmd.none
@@ -174,9 +181,9 @@ update msg model =
             , Cmd.none
             )
 
-        Drag (Start draggedBlock) ->
+        DragMsg (Start draggedBlock) ->
             case Dict.get draggedBlock.beaconId model.beacons of
-                Just (SidebarPath referenceBlock) ->
+                Just (Drag (SidebarPath referenceBlock)) ->
                     ( copyOnDrag model draggedBlock referenceBlock
                     , Cmd.none
                     )
@@ -184,7 +191,7 @@ update msg model =
                 _ ->
                     ( model, Cmd.none )
 
-        Drag (Move data) ->
+        DragMsg (Move data) ->
             let
                 newModel : Model
                 newModel =
@@ -199,7 +206,7 @@ update msg model =
             in
             ( newModel, Cmd.none )
 
-        Drag (Stop data) ->
+        DragMsg (Stop data) ->
             case closestBoundingBeacon data of
                 Nothing ->
                     ( cleanUpDraggedBlock model, Cmd.none )
@@ -308,32 +315,49 @@ beginSearchDebounce input =
 dropOnBeacon : Model -> Beacon -> Point -> Model
 dropOnBeacon model boundingBeacon cursor =
     let
-        droppedOn : Maybe StaticBeacon
-        droppedOn =
-            Dict.get boundingBeacon.beaconId staticBeacons
-
-        draggedBlock : Maybe BeaconT
+        draggedBlock : Maybe DragBeacon
         draggedBlock =
             model.draggedBlock
                 |> Maybe.map .beaconId
                 |> Maybe.andThen (\id -> Dict.get id model.beacons)
+                |> Maybe.andThen onlyDrag
+
+        onlyDrag : BeaconT -> Maybe DragBeacon
+        onlyDrag beacon =
+            case beacon of
+                Drag drag ->
+                    Just drag
+
+                Drop _ ->
+                    Nothing
 
         doDrop : LifeBlock -> Model
         doDrop block =
             { model
                 | benchBlocks = model.benchBlocks ++ [ block ]
-                , beacons = Dict.insert block.beaconId (BenchBlock block) model.beacons
+                , beacons =
+                    Dict.insert block.beaconId
+                        (Drag <| BenchBlock block)
+                        model.beacons
                 , draggedBlock = Nothing
             }
+
+        droppedOn : Maybe DropBeacon
+        droppedOn =
+            Dict.get boundingBeacon.beaconId dropBeacons
     in
     case ( draggedBlock, droppedOn ) of
-        ( Just (SidebarPath lifeBlock), Just OpenSlot ) ->
+        ( Nothing, _ ) ->
+            model
+
+        ( Just (SidebarPath lifeBlock), Just (Static OpenSlot) ) ->
             doDrop lifeBlock
 
-        ( Just (BenchBlock lifeBlock), Just OpenSlot ) ->
+        ( Just (BenchBlock lifeBlock), Just (Static OpenSlot) ) ->
             Debug.todo "remove it from where it was then do drop"
 
-        _ ->
+        ( _, Nothing ) ->
+            -- TODO clean up based on draggedBlock type
             cleanUpDraggedBlock model
 
 
@@ -362,7 +386,7 @@ copyOnDrag model draggedBlock lifeBlock =
 
         sidebarPath : BeaconT
         sidebarPath =
-            SidebarPath { lifeBlock | beaconId = newId }
+            Drag <| SidebarPath { lifeBlock | beaconId = newId }
     in
     { newModel
         | draggedBlock = Just newDraggedBlock
@@ -483,13 +507,13 @@ viewDraggedBlock draggedBlock blocks =
 viewDraggedPath : BeaconT -> Element Msg
 viewDraggedPath beacon =
     case beacon of
-        SidebarPath block ->
+        Drag (SidebarPath block) ->
             viewLifepath block.first { withBeacon = Nothing }
 
-        BenchBlock block ->
+        Drag (BenchBlock block) ->
             viewLifepath block.first { withBeacon = Nothing }
 
-        Static oops ->
+        Drop _ ->
             none
 
 
@@ -748,7 +772,7 @@ dragEvent json =
         data =
             dragData json
     in
-    Decode.map Drag <|
+    Decode.map DragMsg <|
         case json.eventType of
             StartEvent ->
                 startEvent json data.cursor
@@ -849,6 +873,8 @@ userSelectNone =
 
 closestBoundingBeacon : DragData -> Maybe Beacon
 closestBoundingBeacon { cursor, beacons } =
+    -- TODO filter on BeaconT
+    -- drop beacons (static or not)
     beacons
         |> List.sortBy (Geom.distance cursor << Geom.center << .box)
         |> List.head

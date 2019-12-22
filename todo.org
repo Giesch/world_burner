@@ -1,23 +1,21 @@
 * TODO get drag and drop working
-** TODO there's a filterable list on the left
-*** TODO show the born filter toggle
-*** DONE implement simple/dumb search on the backend
 ** TODO i can drop other lifepaths before or after a benchblock
-*** TODO validation?
-*** TODO show the whole list in viewFragment
 *** TODO need to implement move on drag vs copy on drag
-*** TODO consider changing from dropzones to drop range
-how to display that?
-highlight the place where it'll go on hover in some way
-*** TODO need a JS pickup event like start? or just go by the type in elm
-** TODO drop beacons should be distinct from draggable beacons
+should just go by the type of the beaconT; no change to draggable.js
+'disable' the dragged block, but leave it in place
+disable the whole slot it's from
+*** TODO show the whole list in viewFragment
+*** TODO drop beacons should be distinct from draggable beacons
 ie the closestBounding fn should filter on type
 ** TODO when dragging lifeblocks, do we move on pickup or on drop?
 which is easier to understand?
 which is easier to implement?
 if move on pickup, need to store where to put it back
-    (or just the old model? ie undo)
-
+    (or just the old model? ie und
+*** TODO consider changing from dropzones to drop range
+how to display that?
+highlight the place where it'll go on hover in some way
+*** TODO validation?
 * TODO get a minimal version of the app running
   - [ ] sequentially picking lifepaths
     - [ ] get dnd working; able to drop first lifepath of a new block
