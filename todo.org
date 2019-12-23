@@ -144,3 +144,4 @@ the whole point was to not do dropzones
 ie normalize the model
 ** TODO handle the errors from draggable.js in decodeDragEvents
 ** TODO add on-hover text explaining the ui
+** TODO add a util/common module with flipped dict lookup
