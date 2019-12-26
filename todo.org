@@ -5,8 +5,6 @@ should just go by the type of the beaconT; no change to draggable.js
 'disable' the dragged block, but leave it in place
 disable the whole slot it's from
 *** TODO show the whole list in viewFragment
-*** TODO drop beacons should be distinct from draggable beacons
-ie the closestBounding fn should filter on type
 ** TODO when dragging lifeblocks, do we move on pickup or on drop?
 which is easier to understand?
 which is easier to implement?
@@ -16,6 +14,9 @@ if move on pickup, need to store where to put it back
 how to display that?
 highlight the place where it'll go on hover in some way
 *** TODO validation?
+** TODO split on drag
+should be able to reorder a pair of lifepaths in a block
+should be able to arbitrarily split off a new block
 * TODO get a minimal version of the app running
   - [ ] sequentially picking lifepaths
     - [ ] get dnd working; able to drop first lifepath of a new block

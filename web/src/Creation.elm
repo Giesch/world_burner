@@ -3,6 +3,7 @@ port module Creation exposing (..)
 import Api exposing (ApiResult, noFilters)
 import Array exposing (Array)
 import Colors exposing (..)
+import Common
 import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
@@ -42,10 +43,10 @@ type alias Model =
 
 
 type alias TrackedBeacons =
-    Dict Int BeaconT
+    Dict Int Beacon
 
 
-type BeaconT
+type Beacon
     = Drag DragBeacon
     | Drop DropBeacon
 
@@ -149,11 +150,11 @@ type DragEvent
 
 type alias DragData =
     { cursor : Point
-    , beacons : List Beacon
+    , beacons : List BeaconBox
     }
 
 
-type alias Beacon =
+type alias BeaconBox =
     { beaconId : Int
     , box : Box
     }
@@ -236,7 +237,7 @@ update msg model =
 
         DeleteLifeBlock id ->
             let
-                beacons : Dict Int BeaconT
+                beacons : Dict Int Beacon
                 beacons =
                     Dict.remove id model.beacons
 
@@ -330,7 +331,7 @@ beginSearchDebounce input =
         |> Task.perform (\_ -> SearchTimePassed input)
 
 
-onlyDrag : BeaconT -> Maybe DragBeacon
+onlyDrag : Beacon -> Maybe DragBeacon
 onlyDrag beacon =
     case beacon of
         Drag drag ->
@@ -340,14 +341,14 @@ onlyDrag beacon =
             Nothing
 
 
-dropOnBeacon : Model -> Beacon -> Point -> Model
+dropOnBeacon : Model -> BeaconBox -> Point -> Model
 dropOnBeacon model dropBeacon cursor =
     let
         draggedBlock : Maybe DragBeacon
         draggedBlock =
             model.draggedBlock
                 |> Maybe.map .beaconId
-                |> Maybe.andThen (\id -> Dict.get id model.beacons)
+                |> Maybe.andThen (Common.lookup model.beacons)
                 |> Maybe.andThen onlyDrag
 
         doDrop : LifeBlock -> Model
@@ -406,7 +407,7 @@ copyOnDrag model draggedBlock lifeBlock =
         newDraggedBlock =
             { draggedBlock | beaconId = newId }
 
-        sidebarPath : BeaconT
+        sidebarPath : Beacon
         sidebarPath =
             Drag <| SidebarPath { lifeBlock | beaconId = newId }
     in
@@ -419,7 +420,10 @@ copyOnDrag model draggedBlock lifeBlock =
 pickupOnDrag : Model -> DraggedBlock -> LifeBlock -> Model
 pickupOnDrag model draggedBlock lifeBlock =
     -- TODO
-    model
+    -- need to leave a ghost in the original slot, being dropped below yourself does nothing
+    -- this is separate from 'split on drag'
+    -- have a static 'originSlot' that displays a ghost of draggedBlock
+    { model | draggedBlock = Just draggedBlock }
 
 
 bump : Model -> ( Int, Model )
@@ -441,7 +445,7 @@ view model =
 lookupBenchBlocks : Model -> List LifeBlock
 lookupBenchBlocks { beacons, benchBlocks } =
     benchBlocks
-        |> List.map (\id -> Dict.get id beacons)
+        |> List.map (Common.lookup beacons)
         |> List.map (Maybe.andThen onlyDrag)
         |> List.filterMap identity
         |> List.map dragBlock
@@ -509,10 +513,10 @@ slotAttrs =
 viewDraggedBlock : Maybe DraggedBlock -> TrackedBeacons -> Element Msg
 viewDraggedBlock draggedBlock blocks =
     let
-        maybeBlock : Maybe BeaconT
+        maybeBlock : Maybe Beacon
         maybeBlock =
             Maybe.map .beaconId draggedBlock
-                |> Maybe.andThen (\id -> Dict.get id blocks)
+                |> Maybe.andThen (Common.lookup blocks)
 
         top : DraggedBlock -> String
         top { cursorOnScreen, cursorOnDraggable } =
@@ -543,7 +547,7 @@ viewDraggedBlock draggedBlock blocks =
             none
 
 
-viewDraggedPath : BeaconT -> Element Msg
+viewDraggedPath : Beacon -> Element Msg
 viewDraggedPath beacon =
     case beacon of
         Drag (SidebarPath block) ->
@@ -583,7 +587,7 @@ lookupSidebarLifepaths beacons status =
 
         Loaded sidebarIds ->
             sidebarIds
-                |> List.map (\id -> Dict.get id beacons)
+                |> List.map (Common.lookup beacons)
                 |> List.map (Maybe.andThen onlyDrag)
                 |> List.filterMap identity
                 |> List.map dragBlock
@@ -831,7 +835,7 @@ dragData json =
     { cursor = json.cursor
     , beacons =
         List.map
-            (\( beaconId, box ) -> Beacon beaconId box)
+            (\( beaconId, box ) -> BeaconBox beaconId box)
             json.beacons
     }
 
@@ -925,23 +929,9 @@ boxDecoder =
         (Decode.field "height" Decode.float)
 
 
-closestBoundingBeacon : DragData -> Maybe Beacon
+closestBoundingBeacon : DragData -> Maybe BeaconBox
 closestBoundingBeacon { cursor, beacons } =
     beacons
         |> List.sortBy (Geom.distance cursor << Geom.center << .box)
         |> List.head
-        |> keepIf (\beacon -> Geom.bounds beacon.box cursor)
-
-
-{-| aka Maybe.filter
--}
-keepIf : (a -> Bool) -> Maybe a -> Maybe a
-keepIf pred =
-    Maybe.andThen
-        (\something ->
-            if pred something then
-                Just something
-
-            else
-                Nothing
-        )
+        |> Common.keepIf (\beacon -> Geom.bounds beacon.box cursor)
