@@ -1,3 +1,34 @@
+* DONE merge lifeblock back into Creation
+* TODO split TrackedBeacons into its own module
+change it to use newtype ids
+change it to separate drag beacons and drop beacons
+should it be generic and the model has two? seems better
+
+* How to handle moving dragged block on hover
+use a newtype for BeaconId; switch to Feldman's Dict replacement
+consider keeping drop beacons and drag beacons in separate dicts
+  and have separate id types
+  could have TrackedBeacons do this internally
+
+store a custom Maybe HoverState
+  type alias HoverState = {
+    hoveredDropBeacon : BeaconId,
+    undoState : ModelRef (model)? (minus hoverstate)
+  }
+
+on mouse move, HoverState can:
+  hover : Model -> BeaconId -> Model
+    Nothing -> Just (hovered beacon, current model as undo state)
+  unhover
+    Just state -> Nothing (overwrite model with the undo state)
+  changeHover
+    Just state -> Just state (keep the same undo state)
+
+when viewing lifeblocks
+  check for if you're the dragged block, highlight somehow
+  check for if one of your drop beacons is hovered
+    if hovered, display the hypothetical merge, or the validation failure
+
 * TODO get drag and drop working
 ** TODO i can drop other lifepaths before or after a benchblock
 *** TODO need to implement move on drag vs copy on drag
@@ -146,3 +177,5 @@ ie normalize the model
 ** TODO handle the errors from draggable.js in decodeDragEvents
 ** TODO add on-hover text explaining the ui
 ** TODO add a util/common module with flipped dict lookup
+
+

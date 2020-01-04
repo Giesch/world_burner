@@ -17,7 +17,6 @@ import Html.Events
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
-import LifeBlock exposing (LifeBlock)
 import Lifepath exposing (Lead, Lifepath, Skill, StatMod, StatModType(..))
 import Process
 import Session exposing (..)
@@ -54,6 +53,13 @@ type Beacon
 type DragBeacon
     = SidebarPath LifeBlock
     | BenchBlock LifeBlock
+
+
+type alias LifeBlock =
+    { first : Lifepath
+    , rest : Array Lifepath
+    , beaconId : Int
+    }
 
 
 dragBlock : DragBeacon -> LifeBlock
@@ -177,7 +183,7 @@ update msg model =
                     cleanSidebarBeacons model
 
                 ( newModel, blocks ) =
-                    LifeBlock.addBatch cleanModel lifepaths (Drag << SidebarPath)
+                    addBatch cleanModel lifepaths (Drag << SidebarPath)
             in
             ( { newModel | sidebarLifepaths = Loaded (List.map .beaconId blocks) }
             , Cmd.none
@@ -208,22 +214,7 @@ update msg model =
             ( newModel, Cmd.none )
 
         DragMsg (Move data) ->
-            let
-                newModel : Model
-                newModel =
-                    model.draggedBlock
-                        |> Maybe.andThen updateDraggedBlock
-                        |> Maybe.withDefault model
-
-                updateDraggedBlock : DraggedBlock -> Maybe Model
-                updateDraggedBlock draggedBlock =
-                    Just
-                        { model
-                            | draggedBlock =
-                                Just { draggedBlock | cursorOnScreen = data.cursor }
-                        }
-            in
-            ( newModel, Cmd.none )
+            ( moveDraggedBlock model data, Cmd.none )
 
         DragMsg (Stop data) ->
             case closestBoundingBeacon data of
@@ -288,6 +279,52 @@ update msg model =
 
         NoOp ->
             ( model, Cmd.none )
+
+
+addBatch : Model -> List Lifepath -> (LifeBlock -> Beacon) -> ( Model, List LifeBlock )
+addBatch ({ nextBeaconId, beacons } as model) lifepaths constructor =
+    let
+        makeBlock : Lifepath -> ( Int, List LifeBlock ) -> ( Int, List LifeBlock )
+        makeBlock path ( nextId, blockList ) =
+            ( nextId + 1, LifeBlock path Array.empty nextId :: blockList )
+
+        ( newNextId, blocksWithIds ) =
+            List.foldl makeBlock ( nextBeaconId, [] ) lifepaths
+
+        insertBlock : LifeBlock -> TrackedBeacons -> TrackedBeacons
+        insertBlock block dict =
+            Dict.insert block.beaconId (constructor block) dict
+
+        newBlocks : Dict Int Beacon
+        newBlocks =
+            List.foldl insertBlock beacons blocksWithIds
+    in
+    ( { model | nextBeaconId = newNextId, beacons = newBlocks }
+    , List.reverse blocksWithIds
+    )
+
+
+moveDraggedBlock : Model -> DragData -> Model
+moveDraggedBlock model data =
+    let
+        updateDraggedBlock : DraggedBlock -> Model
+        updateDraggedBlock draggedBlock =
+            { model | draggedBlock = Just <| move draggedBlock }
+
+        move : DraggedBlock -> DraggedBlock
+        move draggedBlock =
+            { draggedBlock | cursorOnScreen = data.cursor }
+    in
+    model.draggedBlock
+        |> Maybe.map updateDraggedBlock
+        |> Maybe.withDefault model
+
+
+placeDraggedBlock : Model -> DragData -> Model
+placeDraggedBlock model data =
+    -- TODO how do we manage 2 things with the same id?
+    -- which one is the phantom copy? do we just cache an undo state?
+    Debug.todo "put a copy in the right spot; handle ids"
 
 
 cleanSidebarBeacons : Model -> Model
@@ -433,6 +470,10 @@ bump model =
     )
 
 
+
+-- VIEW
+
+
 view : Model -> Element Msg
 view model =
     row [ width fill, height fill, scrollbarY, spacing 40 ]
@@ -476,7 +517,7 @@ viewMainArea fragments =
 
 viewFragment : LifeBlock -> Element Msg
 viewFragment block =
-    column []
+    column [ width <| px 350 ]
         [ Input.button [ alignRight ]
             { onPress = Just <| DeleteLifeBlock block.beaconId
             , label = text "X"
@@ -563,7 +604,7 @@ viewDraggedPath beacon =
 viewSidebar : Model -> Element Msg
 viewSidebar model =
     column
-        [ width fill
+        [ width <| px 350
         , height fill
         , scrollbarY
         , Background.color Colors.darkened
@@ -615,7 +656,7 @@ viewSidebarLifepaths sidebarLifepaths =
 
 viewLifepathSearch : Api.LifepathFilters -> Element Msg
 viewLifepathSearch { searchTerm, born } =
-    column [ alignRight, padding 40 ]
+    column [ alignRight, padding 40, width fill ]
         [ bornCheckbox <| Maybe.withDefault False born
         , searchInput <| Maybe.withDefault "" searchTerm
         ]
