@@ -1,37 +1,39 @@
 * How to handle moving dragged block on hover
-store a custom Maybe HoverState
-  type alias HoverState = {
-    hoveredDropBeacon : BeaconId,
-    undoState : ModelRef (model)? (minus hoverstate)
-  }
-
-on mouse move, HoverState can:
-  hover : Model -> BeaconId -> Model
-    Nothing -> Just (hovered beacon, current model as undo state)
-  unhover
-    Just state -> Nothing (overwrite model with the undo state)
-  changeHover
-    Just state -> Just state (keep the same undo state)
-
-when viewing lifeblocks
-  check for if you're the dragged block, highlight somehow
-  check for if one of your drop beacons is hovered
-    if hovered, display the hypothetical merge, or the validation failure
-
-custom drag state that includes hover state
+store a custom DragState
   variants:
     not dragging
+      contains nothing?
     dragging (but not hovering)
+      contains draggedBlock
     hovering
+      constains draggedBlock and HoverState
   transitions:
     not dragging -> dragging
+      add draggedBlock
     dragging -> not dragging
+      remove draggedBlock
     dragging -> hovering
-      'push' undo state
+      add drop beacon
     hovering -> dragging
-      'pop' undo state
+      remove drop beacon
     hovering -> hovering
-      keep undo state
+      change drop beacon
+    hovering -> not dragging
+      on drop (valid or inavalid)
+
+when viewing lifeblocks
+  check for if you're the original dragged block
+    highlight somehow
+  check for if one of your drop beacons is hovered
+    if hovered, display the appropriate thing
+        new slot
+        hypothetical merge
+        validation failure
+
+on drop
+  if invalid, just go to not-dragging state
+  if valid & sidebar block, do the merge or add the slot
+  if valid & bench block, do the mrege or add the slot, and clean up the original
 
 * TODO get drag and drop working
 ** TODO i can drop other lifepaths before or after a benchblock

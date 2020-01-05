@@ -37,7 +37,7 @@ type alias Model =
     , dropBeacons : Dict Int DropBeacon
     , benchBlocks : List Int
     , nextBeaconId : Int
-    , draggedBlock : Maybe DraggedBlock
+    , dragState : DragState
     }
 
 
@@ -47,19 +47,14 @@ type DragBeacon
 
 
 type alias LifeBlock =
-    { first : Lifepath
-    , rest : List Lifepath
+    { path : Lifepath
     , beaconId : Int
     }
 
 
-blockPaths : LifeBlock -> List Lifepath
-blockPaths { first, rest } =
-    first :: rest
-
-
 dragBlock : DragBeacon -> LifeBlock
 dragBlock beacon =
+    -- TODO think about splitting these into two dicts?
     case beacon of
         SidebarPath block ->
             block
@@ -70,6 +65,41 @@ dragBlock beacon =
 
 type DropBeacon
     = Static StaticBeacon
+
+
+type DragState
+    = NotDragging
+    | Dragging DraggedBlock
+    | Hovering HoverState
+
+
+type alias HoverState =
+    { draggedBlock : DraggedBlock
+    , hoveredDropBeacon : Int
+    }
+
+
+hoverState : DragState -> Maybe HoverState
+hoverState dragState =
+    case dragState of
+        Hovering hover ->
+            Just hover
+
+        _ ->
+            Nothing
+
+
+getDraggedBlock : DragState -> Maybe DraggedBlock
+getDraggedBlock dragState =
+    case dragState of
+        NotDragging ->
+            Nothing
+
+        Dragging draggedBlock ->
+            Just draggedBlock
+
+        Hovering { draggedBlock } ->
+            Just draggedBlock
 
 
 type alias DraggedBlock =
@@ -98,8 +128,8 @@ init session =
       , dragBeacons = Dict.empty
       , dropBeacons = initialDropBeacons
       , nextBeaconId = 1
-      , draggedBlock = Nothing
       , benchBlocks = []
+      , dragState = NotDragging
       }
     , fetchLifepaths searchFilters
     )
@@ -138,7 +168,7 @@ fetchLifepaths searchFilters =
 type Msg
     = GotLifepaths (ApiResult (List Lifepath))
     | DragMsg DragEvent
-    | DeleteLifeBlock Int
+    | DeleteBenchBlock Int
     | EnteredSearchText String
     | SearchTimePassed String
     | ClickedBornCheckbox Bool
@@ -199,13 +229,10 @@ update msg model =
             let
                 newModel =
                     case Dict.get draggedBlock.beaconId model.dragBeacons of
-                        Just (SidebarPath referenceBlock) ->
-                            copyOnDrag model draggedBlock referenceBlock
+                        Just _ ->
+                            { model | dragState = Dragging draggedBlock }
 
-                        Just (BenchBlock referenceBlock) ->
-                            pickupOnDrag model draggedBlock referenceBlock
-
-                        _ ->
+                        Nothing ->
                             model
             in
             ( newModel, Cmd.none )
@@ -214,28 +241,10 @@ update msg model =
             ( moveDraggedBlock model data, Cmd.none )
 
         DragMsg (Stop data) ->
-            case closestBoundingBeacon data of
-                Nothing ->
-                    ( cleanUpDraggedBlock model, Cmd.none )
+            ( dropDraggedBlock model data, Cmd.none )
 
-                Just dropBeacon ->
-                    ( dropOnBeacon model dropBeacon data.cursor
-                    , Cmd.none
-                    )
-
-        DeleteLifeBlock id ->
-            let
-                dragBeacons : Dict Int DragBeacon
-                dragBeacons =
-                    Dict.remove id model.dragBeacons
-
-                benchBlocks : List Int
-                benchBlocks =
-                    List.filter (\beaconId -> beaconId /= id) model.benchBlocks
-            in
-            ( { model | dragBeacons = dragBeacons, benchBlocks = benchBlocks }
-            , Cmd.none
-            )
+        DeleteBenchBlock id ->
+            ( deleteBenchBlock model id, Cmd.none )
 
         EnteredSearchText input ->
             let
@@ -260,22 +269,31 @@ update msg model =
 
         ClickedBornCheckbox checked ->
             let
-                searchFilters =
-                    model.searchFilters
-
-                newSearchFilters =
+                updateFilters filters =
                     if checked then
-                        { searchFilters | born = Just True }
+                        { filters | born = Just True }
 
                     else
-                        { searchFilters | born = Nothing }
+                        { filters | born = Nothing }
+
+                searchFilters =
+                    updateFilters model.searchFilters
             in
-            ( { model | searchFilters = newSearchFilters }
-            , fetchLifepaths newSearchFilters
+            ( { model | searchFilters = searchFilters }
+            , fetchLifepaths searchFilters
             )
 
         NoOp ->
             ( model, Cmd.none )
+
+
+deleteBenchBlock : Model -> Int -> Model
+deleteBenchBlock model id =
+    { model
+        | dragBeacons = Dict.remove id model.dragBeacons
+        , benchBlocks =
+            List.filter (\beaconId -> beaconId /= id) model.benchBlocks
+    }
 
 
 addBatch : Model -> List Lifepath -> (LifeBlock -> DragBeacon) -> ( Model, List LifeBlock )
@@ -283,7 +301,7 @@ addBatch ({ nextBeaconId, dragBeacons } as model) lifepaths constructor =
     let
         makeBlock : Lifepath -> ( Int, List LifeBlock ) -> ( Int, List LifeBlock )
         makeBlock path ( nextId, blockList ) =
-            ( nextId + 1, LifeBlock path [] nextId :: blockList )
+            ( nextId + 1, LifeBlock path nextId :: blockList )
 
         ( newNextId, blocksWithIds ) =
             List.foldl makeBlock ( nextBeaconId, [] ) lifepaths
@@ -301,27 +319,89 @@ addBatch ({ nextBeaconId, dragBeacons } as model) lifepaths constructor =
     )
 
 
+nearestDropBeacon : Dict Int DropBeacon -> DragData -> Maybe BeaconBox
+nearestDropBeacon dropBeacons { cursor, beacons } =
+    let
+        dropBeaconIds : Set Int
+        dropBeaconIds =
+            Set.fromList <| Dict.keys dropBeacons
+
+        isDropBeacon : BeaconBox -> Bool
+        isDropBeacon beacon =
+            Set.member beacon.beaconId dropBeaconIds
+
+        distanceFromCursor : BeaconBox -> Float
+        distanceFromCursor =
+            .box >> Geom.center >> Geom.distance cursor
+    in
+    beacons
+        |> List.filter isDropBeacon
+        |> Common.minimumBy distanceFromCursor
+
+
+boundingDropBeacon : Dict Int DropBeacon -> DragData -> Maybe BeaconBox
+boundingDropBeacon dropBeacons data =
+    -- TODO use a range instead of bound
+    nearestDropBeacon dropBeacons data
+        |> Common.keepIf (\beacon -> Geom.bounds beacon.box data.cursor)
+
+
+draggedBlockAndDropBeaconId : Model -> DragData -> ( Maybe DraggedBlock, Maybe Int )
+draggedBlockAndDropBeaconId model data =
+    ( getDraggedBlock model.dragState
+    , boundingDropBeacon model.dropBeacons data |> Maybe.map .beaconId
+    )
+
+
 moveDraggedBlock : Model -> DragData -> Model
 moveDraggedBlock model data =
     let
-        updateDraggedBlock : DraggedBlock -> Model
-        updateDraggedBlock draggedBlock =
-            { model | draggedBlock = Just <| move draggedBlock }
-
         move : DraggedBlock -> DraggedBlock
         move draggedBlock =
             { draggedBlock | cursorOnScreen = data.cursor }
+
+        drag : DraggedBlock -> DragState
+        drag draggedBlock =
+            Dragging <| move draggedBlock
+
+        hover : DraggedBlock -> Int -> DragState
+        hover draggedBlock dropBeaconId =
+            Hovering <| HoverState (move draggedBlock) dropBeaconId
     in
-    model.draggedBlock
-        |> Maybe.map updateDraggedBlock
-        |> Maybe.withDefault model
+    case draggedBlockAndDropBeaconId model data of
+        ( Nothing, _ ) ->
+            model
+
+        ( Just draggedBlock, Nothing ) ->
+            { model | dragState = drag draggedBlock }
+
+        ( Just draggedBlock, Just beaconId ) ->
+            { model | dragState = hover draggedBlock beaconId }
 
 
-placeDraggedBlock : Model -> DragData -> Model
-placeDraggedBlock model data =
-    -- TODO how do we manage 2 things with the same id?
-    -- which one is the phantom copy? do we just cache an undo state?
-    Debug.todo "put a copy in the right spot; handle ids"
+dropDraggedBlock : Model -> DragData -> Model
+dropDraggedBlock model data =
+    let
+        dropAndDoNothing : Model
+        dropAndDoNothing =
+            { model | dragState = NotDragging }
+    in
+    case draggedBlockAndDropBeaconId model data of
+        ( Just draggedBlock, Just dropBeaconId ) ->
+            if isValidDrop model dropBeaconId then
+                Debug.todo "do the drop"
+
+            else
+                dropAndDoNothing
+
+        _ ->
+            dropAndDoNothing
+
+
+isValidDrop : Model -> Int -> Bool
+isValidDrop model dropBeaconId =
+    -- TODO
+    False
 
 
 cleanSidebarBeacons : Model -> Model
@@ -365,95 +445,11 @@ beginSearchDebounce input =
         |> Task.perform (\_ -> SearchTimePassed input)
 
 
-dropOnBeacon : Model -> BeaconBox -> Point -> Model
-dropOnBeacon model dropBeacon cursor =
-    let
-        draggedBlock : Maybe DragBeacon
-        draggedBlock =
-            model.draggedBlock
-                |> Maybe.map .beaconId
-                |> Maybe.andThen (Common.lookup model.dragBeacons)
-
-        doDrop : LifeBlock -> Model
-        doDrop block =
-            let
-                dragBeacons =
-                    Dict.insert block.beaconId
-                        (BenchBlock block)
-                        model.dragBeacons
-            in
-            { model
-                | benchBlocks = model.benchBlocks ++ [ block.beaconId ]
-                , dragBeacons = dragBeacons
-                , draggedBlock = Nothing
-            }
-
-        droppedOn : Maybe DropBeacon
-        droppedOn =
-            Dict.get dropBeacon.beaconId model.dropBeacons
-    in
-    case ( draggedBlock, droppedOn ) of
-        ( Nothing, _ ) ->
-            model
-
-        ( Just (SidebarPath _), Nothing ) ->
-            cleanUpDraggedBlock model
-
-        ( Just (BenchBlock _), Nothing ) ->
-            -- TODO clean up the origin location
-            cleanUpDraggedBlock model
-
-        ( Just (SidebarPath lifeBlock), Just (Static OpenSlot) ) ->
-            doDrop lifeBlock
-
-        ( Just (BenchBlock lifeBlock), Just (Static OpenSlot) ) ->
-            Debug.todo "remove it from where it was then do drop"
-
-
-cleanUpDraggedBlock : Model -> Model
-cleanUpDraggedBlock model =
-    case model.draggedBlock of
-        Nothing ->
-            model
-
-        Just block ->
-            { model
-                | draggedBlock = Nothing
-                , dragBeacons = Dict.remove block.beaconId model.dragBeacons
-            }
-
-
-copyOnDrag : Model -> DraggedBlock -> LifeBlock -> Model
-copyOnDrag model draggedBlock lifeBlock =
-    let
-        ( newId, newModel ) =
-            bump model
-
-        newDraggedBlock : DraggedBlock
-        newDraggedBlock =
-            { draggedBlock | beaconId = newId }
-
-        sidebarPath : DragBeacon
-        sidebarPath =
-            SidebarPath { lifeBlock | beaconId = newId }
-    in
-    { newModel
-        | draggedBlock = Just newDraggedBlock
-        , dragBeacons = Dict.insert newId sidebarPath model.dragBeacons
-    }
-
-
-pickupOnDrag : Model -> DraggedBlock -> LifeBlock -> Model
-pickupOnDrag model draggedBlock lifeBlock =
-    -- TODO
-    -- need to leave a ghost in the original slot, being dropped below yourself does nothing
-    -- this is separate from 'split on drag'
-    -- have a static 'originSlot' that displays a ghost of draggedBlock
-    { model | draggedBlock = Just draggedBlock }
-
-
 bump : Model -> ( Int, Model )
 bump model =
+    -- TODO use this on drop
+    -- always copy the dragged block
+    -- then maybe delete the original and its references
     ( model.nextBeaconId
     , { model | nextBeaconId = model.nextBeaconId + 1 }
     )
@@ -467,8 +463,8 @@ view : Model -> Element Msg
 view model =
     row [ width fill, height fill, scrollbarY, spacing 40 ]
         [ viewSidebar model
-        , viewMainArea <| lookupBenchBlocks model
-        , viewDraggedBlock model.draggedBlock model.dragBeacons
+        , viewMainArea (lookupBenchBlocks model) (hoverState model.dragState)
+        , viewDraggedBlock (getDraggedBlock model.dragState) model.dragBeacons
         ]
 
 
@@ -480,11 +476,11 @@ lookupBenchBlocks { dragBeacons, benchBlocks } =
         |> List.map dragBlock
 
 
-viewMainArea : List LifeBlock -> Element Msg
-viewMainArea fragments =
+viewMainArea : List LifeBlock -> Maybe HoverState -> Element Msg
+viewMainArea fragments hover =
     let
         filledSlots =
-            List.map viewFragment fragments ++ [ openSlot ]
+            List.map viewFragment fragments ++ [ openSlot hover ]
 
         slots =
             filledSlots
@@ -507,21 +503,36 @@ viewFragment : LifeBlock -> Element Msg
 viewFragment block =
     column [ width <| px 350 ]
         [ Input.button [ alignRight ]
-            { onPress = Just <| DeleteLifeBlock block.beaconId
+            { onPress = Just <| DeleteBenchBlock block.beaconId
             , label = text "X"
             }
-        , viewLifepath block.first { withBeacon = Just block.beaconId }
+        , viewLifepath block.path { withBeacon = Just block.beaconId }
         ]
 
 
-openSlot : Element Msg
-openSlot =
-    el
-        (beaconAttribute (staticBeaconId OpenSlot)
-            :: Border.width 1
-            :: slotAttrs
-        )
-        (el [ centerX, centerY ] <| text "+")
+openSlot : Maybe HoverState -> Element Msg
+openSlot hover =
+    -- TODO this should take a maybe lifeblock, where that's the hovering lifeblock
+    -- hovering lifeblock =
+    -- Common.keepIf id matches OpenSlot
+    -- Maybe.map lookup the lifeblock
+    let
+        weAreHovered : Bool
+        weAreHovered =
+            hover
+                |> Maybe.map (\state -> state.hoveredDropBeacon == staticBeaconId OpenSlot)
+                |> Maybe.withDefault False
+    in
+    if weAreHovered then
+        Debug.todo "display the hovering block as it will appear after drop"
+
+    else
+        el
+            (beaconAttribute (staticBeaconId OpenSlot)
+                :: Border.width 1
+                :: slotAttrs
+            )
+            (el [ centerX, centerY ] <| text "+")
 
 
 slotAttrs : List (Attribute msg)
@@ -580,10 +591,10 @@ viewDraggedPath : DragBeacon -> Element Msg
 viewDraggedPath beacon =
     case beacon of
         SidebarPath block ->
-            viewLifepath block.first { withBeacon = Nothing }
+            viewLifepath block.path { withBeacon = Nothing }
 
         BenchBlock block ->
-            viewLifepath block.first { withBeacon = Nothing }
+            viewLifepath block.path { withBeacon = Nothing }
 
 
 viewSidebar : Model -> Element Msg
@@ -624,7 +635,7 @@ viewSidebarLifepaths sidebarLifepaths =
     let
         viewBlock =
             \block ->
-                viewLifepath block.first { withBeacon = Just block.beaconId }
+                viewLifepath block.path { withBeacon = Just block.beaconId }
     in
     case sidebarLifepaths of
         Loading ->
@@ -848,10 +859,10 @@ msgDecoder : Decode.Decoder Msg
 msgDecoder =
     Decode.succeed BeaconJson
         |> required "type" eventDecoder
-        |> required "cursor" coordsDecoder
+        |> required "cursor" Geom.pointDecoder
         |> required "beacons" beaconsDecoder
         |> optional "startBeaconId" (Decode.map Just Decode.string) Nothing
-        |> optional "cursorOnDraggable" (Decode.map Just coordsDecoder) Nothing
+        |> optional "cursorOnDraggable" (Decode.map Just Geom.pointDecoder) Nothing
         |> Decode.andThen dragEvent
 
 
@@ -929,30 +940,14 @@ eventDecoder =
             )
 
 
-coordsDecoder : Decode.Decoder Point
-coordsDecoder =
-    Decode.map2 Point
-        (Decode.field "x" Decode.float)
-        (Decode.field "y" Decode.float)
-
-
 beaconsDecoder : Decode.Decoder (List ( Int, Box ))
 beaconsDecoder =
     Decode.list
         (Decode.map2
             Tuple.pair
             (Decode.field "id" Decode.int)
-            boxDecoder
+            Geom.boxDecoder
         )
-
-
-boxDecoder : Decode.Decoder Box
-boxDecoder =
-    Decode.map4 Box
-        (Decode.field "x" Decode.float)
-        (Decode.field "y" Decode.float)
-        (Decode.field "width" Decode.float)
-        (Decode.field "height" Decode.float)
 
 
 closestBoundingBeacon : DragData -> Maybe BeaconBox

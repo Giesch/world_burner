@@ -1,5 +1,7 @@
 module Geom exposing (..)
 
+import Json.Decode as Decode
+
 
 type alias Point =
     { x : Float
@@ -40,3 +42,23 @@ distance a b =
             a.y - b.y
     in
     sqrt ((dx ^ 2) + (dy ^ 2))
+
+
+
+-- DECODE
+
+
+pointDecoder : Decode.Decoder Point
+pointDecoder =
+    Decode.map2 Point
+        (Decode.field "x" Decode.float)
+        (Decode.field "y" Decode.float)
+
+
+boxDecoder : Decode.Decoder Box
+boxDecoder =
+    Decode.map4 Box
+        (Decode.field "x" Decode.float)
+        (Decode.field "y" Decode.float)
+        (Decode.field "width" Decode.float)
+        (Decode.field "height" Decode.float)

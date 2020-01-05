@@ -27,3 +27,21 @@ lookup =
 flip : (a -> b -> c) -> b -> a -> c
 flip fn b a =
     fn a b
+
+
+minimumBy : (a -> comparable) -> List a -> Maybe a
+minimumBy by list =
+    let
+        keepLower left right =
+            if compare (by left) (by right) == GT then
+                right
+
+            else
+                left
+    in
+    case list of
+        [] ->
+            Nothing
+
+        first :: rest ->
+            Just <| List.foldl keepLower first rest
