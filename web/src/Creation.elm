@@ -375,8 +375,8 @@ moveDraggedBlock model data =
         ( Just draggedBlock, Nothing ) ->
             { model | dragState = drag draggedBlock }
 
-        ( Just draggedBlock, Just beaconId ) ->
-            { model | dragState = hover draggedBlock beaconId }
+        ( Just draggedBlock, Just dropBeaconId ) ->
+            { model | dragState = hover draggedBlock dropBeaconId }
 
 
 dropDraggedBlock : Model -> DragData -> Model
@@ -388,20 +388,23 @@ dropDraggedBlock model data =
     in
     case draggedBlockAndDropBeaconId model data of
         ( Just draggedBlock, Just dropBeaconId ) ->
-            if isValidDrop model dropBeaconId then
-                Debug.todo "do the drop"
-
-            else
-                dropAndDoNothing
+            let
+                theBeacon : Maybe DropBeacon
+                theBeacon =
+                    Dict.get dropBeaconId model.dropBeacons
+            in
+            -- TODO
+            -- need to:
+            -- look up the dropBeacon type by the id
+            -- look up the dragBeacon type by its id
+            -- find the validation for that beacon
+            -- execute that validation, short circuiting
+            -- find the transformation for that beacon
+            -- execute that transformation
+            Debug.todo "do the drop"
 
         _ ->
             dropAndDoNothing
-
-
-isValidDrop : Model -> Int -> Bool
-isValidDrop model dropBeaconId =
-    -- TODO
-    False
 
 
 cleanSidebarBeacons : Model -> Model
@@ -463,8 +466,13 @@ view : Model -> Element Msg
 view model =
     row [ width fill, height fill, scrollbarY, spacing 40 ]
         [ viewSidebar model
-        , viewMainArea (lookupBenchBlocks model) (hoverState model.dragState)
-        , viewDraggedBlock (getDraggedBlock model.dragState) model.dragBeacons
+        , viewMainArea
+            (lookupBenchBlocks model)
+            (hoverState model.dragState)
+            model.dragBeacons
+        , viewDraggedBlock
+            (getDraggedBlock model.dragState)
+            model.dragBeacons
         ]
 
 
@@ -476,11 +484,11 @@ lookupBenchBlocks { dragBeacons, benchBlocks } =
         |> List.map dragBlock
 
 
-viewMainArea : List LifeBlock -> Maybe HoverState -> Element Msg
-viewMainArea fragments hover =
+viewMainArea : List LifeBlock -> Maybe HoverState -> Dict Int DragBeacon -> Element Msg
+viewMainArea fragments hover dragBeacons =
     let
         filledSlots =
-            List.map viewFragment fragments ++ [ openSlot hover ]
+            List.map viewFragment fragments ++ [ openSlot hover dragBeacons ]
 
         slots =
             filledSlots
@@ -510,29 +518,60 @@ viewFragment block =
         ]
 
 
-openSlot : Maybe HoverState -> Element Msg
-openSlot hover =
-    -- TODO this should take a maybe lifeblock, where that's the hovering lifeblock
-    -- hovering lifeblock =
-    -- Common.keepIf id matches OpenSlot
-    -- Maybe.map lookup the lifeblock
+hoveringLifeBlock : Model -> Int -> Maybe LifeBlock
+hoveringLifeBlock model dropBeaconId =
+    case model.dragState of
+        Hovering { draggedBlock, hoveredDropBeacon } ->
+            case Dict.get draggedBlock.beaconId model.dragBeacons of
+                Just something ->
+                    Debug.todo "wat"
+
+                Nothing ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
+openSlot : Maybe HoverState -> Dict Int DragBeacon -> Element Msg
+openSlot hover dragBeacons =
+    -- TODO the argument should be the maybe hovering block instead of the dragBeacons
     let
-        weAreHovered : Bool
-        weAreHovered =
+        emptyView =
+            el
+                (beaconAttribute (staticBeaconId OpenSlot)
+                    :: Border.width 1
+                    :: slotAttrs
+                )
+                (el [ centerX, centerY ] <| text "+")
+
+        beingHovered : Bool
+        beingHovered =
             hover
-                |> Maybe.map (\state -> state.hoveredDropBeacon == staticBeaconId OpenSlot)
+                |> Maybe.map
+                    (\state ->
+                        state.hoveredDropBeacon == staticBeaconId OpenSlot
+                    )
                 |> Maybe.withDefault False
     in
-    if weAreHovered then
-        Debug.todo "display the hovering block as it will appear after drop"
+    if beingHovered then
+        let
+            hoveringBlock : Maybe LifeBlock
+            hoveringBlock =
+                hover
+                    |> Maybe.map (\state -> state.draggedBlock.beaconId)
+                    |> Maybe.andThen (Common.lookup dragBeacons)
+                    |> Maybe.map dragBlock
+        in
+        case hoveringBlock of
+            Just block ->
+                viewFragment block
+
+            Nothing ->
+                emptyView
 
     else
-        el
-            (beaconAttribute (staticBeaconId OpenSlot)
-                :: Border.width 1
-                :: slotAttrs
-            )
-            (el [ centerX, centerY ] <| text "+")
+        emptyView
 
 
 slotAttrs : List (Attribute msg)
