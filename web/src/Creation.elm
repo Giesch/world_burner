@@ -549,29 +549,37 @@ openSlot hover dragBeacons =
         beingHovered =
             hover
                 |> Maybe.map
-                    (\state ->
-                        state.hoveredDropBeacon == staticBeaconId OpenSlot
-                    )
+                    (\state -> state.hoveredDropBeacon == staticBeaconId OpenSlot)
                 |> Maybe.withDefault False
+
+        hoveringBlock : Maybe LifeBlock
+        hoveringBlock =
+            hover
+                |> Maybe.map (.draggedBlock >> .beaconId)
+                |> Maybe.andThen (Common.lookup dragBeacons)
+                |> Maybe.map dragBlock
     in
-    if beingHovered then
-        let
-            hoveringBlock : Maybe LifeBlock
-            hoveringBlock =
-                hover
-                    |> Maybe.map (\state -> state.draggedBlock.beaconId)
-                    |> Maybe.andThen (Common.lookup dragBeacons)
-                    |> Maybe.map dragBlock
-        in
-        case hoveringBlock of
-            Just block ->
-                viewFragment block
+    case ( beingHovered, hoveringBlock ) of
+        ( True, Just block ) ->
+            viewPhantomFragment block (staticBeaconId OpenSlot)
 
-            Nothing ->
-                emptyView
+        _ ->
+            emptyView
 
-    else
-        emptyView
+
+{-| Like viewFragment, but for a hypothetical drop
+It uses only the original beacon id
+-}
+viewPhantomFragment : LifeBlock -> Int -> Element Msg
+viewPhantomFragment block beaconId =
+    column
+        (beaconAttribute beaconId :: slotAttrs)
+        [ Input.button [ alignRight ]
+            { onPress = Just <| DeleteBenchBlock block.beaconId
+            , label = text "X"
+            }
+        , viewLifepath block.path { withBeacon = Nothing }
+        ]
 
 
 slotAttrs : List (Attribute msg)
