@@ -1,6 +1,7 @@
-port module Creation exposing (..)
+module Creation exposing (..)
 
 import Api exposing (ApiResult, noFilters)
+import Beacons
 import Colors exposing (..)
 import Common
 import Dict exposing (Dict)
@@ -13,8 +14,6 @@ import Geom exposing (Box, Point)
 import Html
 import Html.Attributes
 import Html.Events
-import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
 import Lifepath exposing (Lead, Lifepath, Skill, StatMod, StatModType(..))
 import Process
@@ -54,7 +53,7 @@ type alias LifeBlock =
 
 dragBlock : DragBeacon -> LifeBlock
 dragBlock beacon =
-    -- TODO think about splitting these into two dicts?
+    -- TODO think about splitting these into two dicts
     case beacon of
         SidebarPath block ->
             block
@@ -67,19 +66,21 @@ type DropBeacon
     = Static StaticBeacon
 
 
-type DragState
+type
+    DragState
+    -- TODO consider state for hovering without dragged item
     = NotDragging
-    | Dragging DraggedBlock
+    | Dragging Beacons.DraggedItem
     | Hovering HoverState
 
 
 type alias HoverState =
-    { draggedBlock : DraggedBlock
+    { draggedBlock : Beacons.DraggedItem
     , hoveredDropBeacon : Int
     }
 
 
-getDraggedBlock : DragState -> Maybe DraggedBlock
+getDraggedBlock : DragState -> Maybe Beacons.DraggedItem
 getDraggedBlock dragState =
     case dragState of
         NotDragging ->
@@ -90,13 +91,6 @@ getDraggedBlock dragState =
 
         Hovering { draggedBlock } ->
             Just draggedBlock
-
-
-type alias DraggedBlock =
-    { beaconId : Int
-    , cursorOnScreen : Point
-    , cursorOnDraggable : Point
-    }
 
 
 type Status a
@@ -157,18 +151,12 @@ fetchLifepaths searchFilters =
 
 type Msg
     = GotLifepaths (ApiResult (List Lifepath))
-    | DragMsg DragEvent
+    | DragMsg Beacons.Msg
     | DeleteBenchBlock Int
     | EnteredSearchText String
     | SearchTimePassed String
     | ClickedBornCheckbox Bool
     | NoOp
-
-
-type DragEvent
-    = Start DraggedBlock
-    | Move DragData
-    | Stop DragData
 
 
 type alias DragData =
@@ -215,7 +203,7 @@ update msg model =
             , Cmd.none
             )
 
-        DragMsg (Start draggedBlock) ->
+        DragMsg (Beacons.Start draggedBlock) ->
             let
                 newModel =
                     case Dict.get draggedBlock.beaconId model.dragBeacons of
@@ -227,10 +215,10 @@ update msg model =
             in
             ( newModel, Cmd.none )
 
-        DragMsg (Move data) ->
+        DragMsg (Beacons.Move data) ->
             ( moveDraggedBlock model data, Cmd.none )
 
-        DragMsg (Stop data) ->
+        DragMsg (Beacons.Stop data) ->
             ( dropDraggedBlock model data, Cmd.none )
 
         DeleteBenchBlock id ->
@@ -272,6 +260,9 @@ update msg model =
             ( { model | searchFilters = searchFilters }
             , fetchLifepaths searchFilters
             )
+
+        DragMsg Beacons.NoOp ->
+            ( model, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )
@@ -336,7 +327,7 @@ boundingDropBeacon dropBeacons data =
         |> Common.keepIf (\beacon -> Geom.bounds beacon.box data.cursor)
 
 
-draggedBlockAndDropBeaconId : Model -> DragData -> ( Maybe DraggedBlock, Maybe Int )
+draggedBlockAndDropBeaconId : Model -> DragData -> ( Maybe Beacons.DraggedItem, Maybe Int )
 draggedBlockAndDropBeaconId model data =
     ( getDraggedBlock model.dragState
     , boundingDropBeacon model.dropBeacons data |> Maybe.map .beaconId
@@ -346,15 +337,15 @@ draggedBlockAndDropBeaconId model data =
 moveDraggedBlock : Model -> DragData -> Model
 moveDraggedBlock model data =
     let
-        move : DraggedBlock -> DraggedBlock
+        move : Beacons.DraggedItem -> Beacons.DraggedItem
         move draggedBlock =
             { draggedBlock | cursorOnScreen = data.cursor }
 
-        drag : DraggedBlock -> DragState
+        drag : Beacons.DraggedItem -> DragState
         drag draggedBlock =
             Dragging <| move draggedBlock
 
-        hover : DraggedBlock -> Int -> DragState
+        hover : Beacons.DraggedItem -> Int -> DragState
         hover draggedBlock dropBeaconId =
             Hovering <| HoverState (move draggedBlock) dropBeaconId
     in
@@ -371,48 +362,46 @@ moveDraggedBlock model data =
 
 dropDraggedBlock : Model -> DragData -> Model
 dropDraggedBlock model data =
-    let
-        -- TODO flatten the function so this is unnecessary
-        dropAndDoNothing : Model
-        dropAndDoNothing =
-            { model | dragState = NotDragging }
-    in
-    case draggedBlockAndDropBeaconId model data of
-        ( Just draggedBlock, Just dropBeaconId ) ->
+    case lookupDraggedBlockAndBoundingDropBeacon model data of
+        -- TODO handle other kinds of drop
+        Just ( SidebarPath block, Static OpenSlot ) ->
             let
-                dropBeacon : Maybe DropBeacon
-                dropBeacon =
-                    Dict.get dropBeaconId model.dropBeacons
+                ( beaconId, bumpedModel ) =
+                    bump model
 
-                dragBeacon : Maybe DragBeacon
-                dragBeacon =
-                    Dict.get draggedBlock.beaconId model.dragBeacons
+                benchBlock =
+                    BenchBlock { block | beaconId = beaconId }
             in
-            case ( dragBeacon, dropBeacon ) of
-                ( Just (SidebarPath block), Just (Static OpenSlot) ) ->
-                    let
-                        ( beaconId, bumpedModel ) =
-                            bump model
-
-                        benchBlock =
-                            BenchBlock { block | beaconId = beaconId }
-                    in
-                    -- make a new drag? beacon from the sidebar block
-                    -- add it to drop beacons
-                    -- add its id to benchBlocks
-                    { bumpedModel
-                        | benchBlocks = model.benchBlocks ++ [ beaconId ]
-                        , dragBeacons = Dict.insert beaconId benchBlock model.dragBeacons
-                        , dragState = NotDragging
-
-                        -- TODO drop beacons for before and after this new lp
-                    }
-
-                _ ->
-                    dropAndDoNothing
+            { bumpedModel
+                | benchBlocks = model.benchBlocks ++ [ beaconId ]
+                , dragBeacons = Dict.insert beaconId benchBlock model.dragBeacons
+                , dragState = NotDragging
+            }
 
         _ ->
-            dropAndDoNothing
+            { model | dragState = NotDragging }
+
+
+{-| returns Just iff the model is valid and there is a bounding drop beacon
+TODO return err for invalid model
+-}
+lookupDraggedBlockAndBoundingDropBeacon : Model -> DragData -> Maybe ( DragBeacon, DropBeacon )
+lookupDraggedBlockAndBoundingDropBeacon model data =
+    case draggedBlockAndDropBeaconId model data of
+        ( Just draggedBlock, Just dropBeaconId ) ->
+            case
+                ( Dict.get draggedBlock.beaconId model.dragBeacons
+                , Dict.get dropBeaconId model.dropBeacons
+                )
+            of
+                ( Just dragBeacon, Just dropBeacon ) ->
+                    Just ( dragBeacon, dropBeacon )
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
 
 
 cleanSidebarBeacons : Model -> Model
@@ -608,7 +597,7 @@ viewMainArea : List LifeBlock -> Maybe HoverBeaconsView -> Element Msg
 viewMainArea fragments hover =
     let
         filledSlots =
-            List.map viewFragment fragments ++ [ openSlot hover ]
+            List.map (viewFragment Nothing) fragments ++ [ openSlot hover ]
 
         slots =
             filledSlots
@@ -627,9 +616,18 @@ viewMainArea fragments hover =
         (List.take 4 slots)
 
 
-viewFragment : LifeBlock -> Element Msg
-viewFragment block =
-    column [ width <| px 350 ]
+viewFragment : Maybe Int -> LifeBlock -> Element Msg
+viewFragment maybeBeaconId block =
+    let
+        attrs =
+            case maybeBeaconId of
+                Just beaconId ->
+                    beaconAttribute beaconId :: slotAttrs
+
+                Nothing ->
+                    slotAttrs
+    in
+    column attrs
         [ Input.button [ alignRight ]
             { onPress = Just <| DeleteBenchBlock block.beaconId
             , label = text "X"
@@ -651,7 +649,7 @@ openSlot hover =
     in
     case ( beingHovered, hoveringBlock ) of
         ( Just True, Just block ) ->
-            viewPhantomFragment block (staticBeaconId OpenSlot)
+            viewFragment (Just <| staticBeaconId OpenSlot) block
 
         _ ->
             el
@@ -660,21 +658,6 @@ openSlot hover =
                     :: slotAttrs
                 )
                 (el [ centerX, centerY ] <| text "+")
-
-
-{-| Like viewFragment, but for a hypothetical drop
-It uses only the original beacon id
--}
-viewPhantomFragment : LifeBlock -> Int -> Element Msg
-viewPhantomFragment block beaconId =
-    column
-        (beaconAttribute beaconId :: slotAttrs)
-        [ Input.button [ alignRight ]
-            { onPress = Just <| DeleteBenchBlock block.beaconId
-            , label = text "X"
-            }
-        , viewLifepath block.path { withBeacon = Nothing }
-        ]
 
 
 slotAttrs : List (Attribute msg)
@@ -958,129 +941,12 @@ viewStatMod statMod =
 
 
 
--- DRAG PORT
-
-
-port dragEvents : (Decode.Value -> msg) -> Sub msg
+-- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch [ dragEvents decodeDragEvents ]
+    Sub.map DragMsg Beacons.subscriptions
 
 
-decodeDragEvents : Decode.Value -> Msg
-decodeDragEvents value =
-    case Decode.decodeValue msgDecoder value of
-        Ok msg ->
-            msg
 
-        Err err ->
-            let
-                oops =
-                    Debug.log <| Decode.errorToString err
-            in
-            NoOp
-
-
-msgDecoder : Decode.Decoder Msg
-msgDecoder =
-    Decode.succeed BeaconJson
-        |> required "type" eventDecoder
-        |> required "cursor" Geom.pointDecoder
-        |> required "beacons" beaconsDecoder
-        |> optional "startBeaconId" (Decode.map Just Decode.string) Nothing
-        |> optional "cursorOnDraggable" (Decode.map Just Geom.pointDecoder) Nothing
-        |> Decode.andThen dragEvent
-
-
-dragData : BeaconJson -> DragData
-dragData json =
-    { cursor = json.cursor
-    , beacons =
-        List.map
-            (\( beaconId, box ) -> BeaconBox beaconId box)
-            json.beacons
-    }
-
-
-dragEvent : BeaconJson -> Decode.Decoder Msg
-dragEvent json =
-    let
-        data : DragData
-        data =
-            dragData json
-    in
-    Decode.map DragMsg <|
-        case json.eventType of
-            StartEvent ->
-                startEvent json data.cursor
-
-            MoveEvent ->
-                Decode.succeed <| Move data
-
-            StopEvent ->
-                Decode.succeed <| Stop data
-
-
-startEvent : BeaconJson -> Point -> Decode.Decoder DragEvent
-startEvent { startBeaconId, cursorOnDraggable } cursor =
-    case ( Maybe.andThen String.toInt startBeaconId, cursorOnDraggable ) of
-        ( Just id, Just onDraggable ) ->
-            Decode.succeed <| Start <| DraggedBlock id cursor onDraggable
-
-        _ ->
-            Decode.fail "Recieved start event with no beacon id"
-
-
-type EventType
-    = StartEvent
-    | MoveEvent
-    | StopEvent
-
-
-type alias BeaconJson =
-    { eventType : EventType
-    , cursor : Point
-    , beacons : List ( Int, Box )
-    , startBeaconId : Maybe String
-    , cursorOnDraggable : Maybe Point
-    }
-
-
-eventDecoder : Decode.Decoder EventType
-eventDecoder =
-    Decode.string
-        |> Decode.andThen
-            (\eventType ->
-                case eventType of
-                    "start" ->
-                        Decode.succeed StartEvent
-
-                    "move" ->
-                        Decode.succeed MoveEvent
-
-                    "stop" ->
-                        Decode.succeed StopEvent
-
-                    _ ->
-                        Decode.fail ("Unknown drag event type " ++ eventType)
-            )
-
-
-beaconsDecoder : Decode.Decoder (List ( Int, Box ))
-beaconsDecoder =
-    Decode.list
-        (Decode.map2
-            Tuple.pair
-            (Decode.field "id" Decode.int)
-            Geom.boxDecoder
-        )
-
-
-closestBoundingBeacon : DragData -> Maybe BeaconBox
-closestBoundingBeacon { cursor, beacons } =
-    beacons
-        |> List.sortBy (Geom.distance cursor << Geom.center << .box)
-        |> List.head
-        |> Common.keepIf (\beacon -> Geom.bounds beacon.box cursor)

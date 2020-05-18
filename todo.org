@@ -1,3 +1,10 @@
+* Big Reassess
+** send all lifepaths in a given 'book' at a time
+this could be a big ball of json; need paging
+or bake in the real ones to a static site
+** make a nicer to use version of onhover from the beginning
+translate the 'real' model into a denormalized intermediate view model
+
 * How to handle moving dragged block on hover
 store a custom DragState
   variants:
