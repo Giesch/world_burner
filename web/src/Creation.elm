@@ -1,7 +1,7 @@
 module Creation exposing (..)
 
 import Api exposing (ApiResult, noFilters)
-import Beacons
+import Beacons exposing (DragData, HoverState)
 import Colors exposing (..)
 import Common
 import Dict exposing (Dict)
@@ -36,7 +36,7 @@ type alias Model =
     , dropBeacons : Dict Int DropBeacon
     , benchBlocks : List Int
     , nextBeaconId : Int
-    , dragState : DragState
+    , dragState : Beacons.DragState
     }
 
 
@@ -66,33 +66,6 @@ type DropBeacon
     = Static StaticBeacon
 
 
-type
-    DragState
-    -- TODO consider state for hovering without dragged item
-    = NotDragging
-    | Dragging Beacons.DraggedItem
-    | Hovering HoverState
-
-
-type alias HoverState =
-    { draggedBlock : Beacons.DraggedItem
-    , hoveredDropBeacon : Int
-    }
-
-
-getDraggedBlock : DragState -> Maybe Beacons.DraggedItem
-getDraggedBlock dragState =
-    case dragState of
-        NotDragging ->
-            Nothing
-
-        Dragging draggedBlock ->
-            Just draggedBlock
-
-        Hovering { draggedBlock } ->
-            Just draggedBlock
-
-
 type Status a
     = Loading
     | Loaded a
@@ -113,7 +86,7 @@ init session =
       , dropBeacons = initialDropBeacons
       , nextBeaconId = 1
       , benchBlocks = []
-      , dragState = NotDragging
+      , dragState = Beacons.NotDragging
       }
     , fetchLifepaths searchFilters
     )
@@ -127,7 +100,7 @@ initialDropBeacons =
 
 
 {-| Beacons with non-generated beacon ids.
-They have negative beacon ids to avoid overlap with the generated ones.
+TODO replace this concept with having multiple open slots
 -}
 staticBeaconId : StaticBeacon -> Int
 staticBeaconId beacon =
@@ -151,24 +124,12 @@ fetchLifepaths searchFilters =
 
 type Msg
     = GotLifepaths (ApiResult (List Lifepath))
-    | DragMsg Beacons.Msg
+    | DragMsg Beacons.Transition
     | DeleteBenchBlock Int
     | EnteredSearchText String
     | SearchTimePassed String
     | ClickedBornCheckbox Bool
     | NoOp
-
-
-type alias DragData =
-    { cursor : Point
-    , beacons : List BeaconBox
-    }
-
-
-type alias BeaconBox =
-    { beaconId : Int
-    , box : Box
-    }
 
 
 type alias Box =
@@ -203,23 +164,26 @@ update msg model =
             , Cmd.none
             )
 
-        DragMsg (Beacons.Start draggedBlock) ->
+        DragMsg (Beacons.PickUp draggedItem) ->
             let
                 newModel =
-                    case Dict.get draggedBlock.beaconId model.dragBeacons of
+                    case Dict.get draggedItem.beaconId model.dragBeacons of
                         Just _ ->
-                            { model | dragState = Dragging draggedBlock }
+                            { model | dragState = Beacons.Dragging draggedItem }
 
                         Nothing ->
                             model
             in
             ( newModel, Cmd.none )
 
-        DragMsg (Beacons.Move data) ->
-            ( moveDraggedBlock model data, Cmd.none )
+        DragMsg (Beacons.DragMove dragState) ->
+            ( { model | dragState = dragState }, Cmd.none )
 
-        DragMsg (Beacons.Stop data) ->
-            ( dropDraggedBlock model data, Cmd.none )
+        DragMsg (Beacons.LetGo draggedItem) ->
+            ( { model | dragState = Beacons.NotDragging }, Cmd.none )
+
+        DragMsg (Beacons.Drop hoverState) ->
+            ( dropDraggedBlock model hoverState, Cmd.none )
 
         DeleteBenchBlock id ->
             ( deleteBenchBlock model id, Cmd.none )
@@ -262,6 +226,7 @@ update msg model =
             )
 
         DragMsg Beacons.NoOp ->
+            -- TODO remove/flatten this
             ( model, Cmd.none )
 
         NoOp ->
@@ -300,69 +265,14 @@ addBatch ({ nextBeaconId, dragBeacons } as model) lifepaths constructor =
     )
 
 
-nearestDropBeacon : Dict Int DropBeacon -> DragData -> Maybe BeaconBox
-nearestDropBeacon dropBeacons { cursor, beacons } =
-    let
-        dropBeaconIds : Set Int
-        dropBeaconIds =
-            Set.fromList <| Dict.keys dropBeacons
-
-        isDropBeacon : BeaconBox -> Bool
-        isDropBeacon beacon =
-            Set.member beacon.beaconId dropBeaconIds
-
-        distanceFromCursor : BeaconBox -> Float
-        distanceFromCursor =
-            .box >> Geom.center >> Geom.distance cursor
-    in
-    beacons
-        |> List.filter isDropBeacon
-        |> Common.minimumBy distanceFromCursor
+dropBeaconIds : Model -> Set Int
+dropBeaconIds =
+    .dropBeacons >> Dict.keys >> Set.fromList
 
 
-boundingDropBeacon : Dict Int DropBeacon -> DragData -> Maybe BeaconBox
-boundingDropBeacon dropBeacons data =
-    -- TODO use a range instead of bound
-    nearestDropBeacon dropBeacons data
-        |> Common.keepIf (\beacon -> Geom.bounds beacon.box data.cursor)
-
-
-draggedBlockAndDropBeaconId : Model -> DragData -> ( Maybe Beacons.DraggedItem, Maybe Int )
-draggedBlockAndDropBeaconId model data =
-    ( getDraggedBlock model.dragState
-    , boundingDropBeacon model.dropBeacons data |> Maybe.map .beaconId
-    )
-
-
-moveDraggedBlock : Model -> DragData -> Model
-moveDraggedBlock model data =
-    let
-        move : Beacons.DraggedItem -> Beacons.DraggedItem
-        move draggedBlock =
-            { draggedBlock | cursorOnScreen = data.cursor }
-
-        drag : Beacons.DraggedItem -> DragState
-        drag draggedBlock =
-            Dragging <| move draggedBlock
-
-        hover : Beacons.DraggedItem -> Int -> DragState
-        hover draggedBlock dropBeaconId =
-            Hovering <| HoverState (move draggedBlock) dropBeaconId
-    in
-    case draggedBlockAndDropBeaconId model data of
-        ( Nothing, _ ) ->
-            model
-
-        ( Just draggedBlock, Nothing ) ->
-            { model | dragState = drag draggedBlock }
-
-        ( Just draggedBlock, Just dropBeaconId ) ->
-            { model | dragState = hover draggedBlock dropBeaconId }
-
-
-dropDraggedBlock : Model -> DragData -> Model
-dropDraggedBlock model data =
-    case lookupDraggedBlockAndBoundingDropBeacon model data of
+dropDraggedBlock : Model -> HoverState -> Model
+dropDraggedBlock model hoverState =
+    case lookupDragAndDrop model hoverState of
         -- TODO handle other kinds of drop
         Just ( SidebarPath block, Static OpenSlot ) ->
             let
@@ -375,30 +285,22 @@ dropDraggedBlock model data =
             { bumpedModel
                 | benchBlocks = model.benchBlocks ++ [ beaconId ]
                 , dragBeacons = Dict.insert beaconId benchBlock model.dragBeacons
-                , dragState = NotDragging
+                , dragState = Beacons.NotDragging
             }
 
         _ ->
-            { model | dragState = NotDragging }
+            { model | dragState = Beacons.NotDragging }
 
 
-{-| returns Just iff the model is valid and there is a bounding drop beacon
-TODO return err for invalid model
--}
-lookupDraggedBlockAndBoundingDropBeacon : Model -> DragData -> Maybe ( DragBeacon, DropBeacon )
-lookupDraggedBlockAndBoundingDropBeacon model data =
-    case draggedBlockAndDropBeaconId model data of
-        ( Just draggedBlock, Just dropBeaconId ) ->
-            case
-                ( Dict.get draggedBlock.beaconId model.dragBeacons
-                , Dict.get dropBeaconId model.dropBeacons
-                )
-            of
-                ( Just dragBeacon, Just dropBeacon ) ->
-                    Just ( dragBeacon, dropBeacon )
-
-                _ ->
-                    Nothing
+lookupDragAndDrop : Model -> HoverState -> Maybe ( DragBeacon, DropBeacon )
+lookupDragAndDrop model { draggedItem, hoveredDropBeacon } =
+    case
+        ( Dict.get draggedItem.beaconId model.dragBeacons
+        , Dict.get hoveredDropBeacon model.dropBeacons
+        )
+    of
+        ( Just dragBeacon, Just dropBeacon ) ->
+            Just ( dragBeacon, dropBeacon )
 
         _ ->
             Nothing
@@ -496,7 +398,7 @@ modelView model =
 
 lookupDraggedBlock : Model -> Result InvalidModel (Maybe DraggedLifeBlock)
 lookupDraggedBlock model =
-    case getDraggedBlock model.dragState of
+    case Beacons.getDraggedItem model.dragState of
         Nothing ->
             Ok Nothing
 
@@ -528,19 +430,21 @@ type alias HoverBeaconsView =
 
 lookupDragState : Model -> Result InvalidModel DragStateView
 lookupDragState { dragState, dragBeacons, dropBeacons } =
+    -- TODO make this call a Beacons fn that returns a DragState
+    -- then match on the DragState to get
     case dragState of
-        NotDragging ->
+        Beacons.NotDragging ->
             Ok NotDraggingView
 
-        Dragging dragBeacon ->
+        Beacons.Dragging dragBeacon ->
             dragBeacons
                 |> Dict.get dragBeacon.beaconId
                 |> Maybe.map DraggingView
                 |> Result.fromMaybe InvalidDragState
 
-        Hovering { draggedBlock, hoveredDropBeacon } ->
+        Beacons.Hovering { draggedItem, hoveredDropBeacon } ->
             case
-                ( Dict.get draggedBlock.beaconId dragBeacons
+                ( Dict.get draggedItem.beaconId dragBeacons
                 , Dict.get hoveredDropBeacon dropBeacons
                 )
             of
@@ -566,7 +470,7 @@ view model =
                 [ viewSidebar viewedModel
                 , viewMainArea
                     viewedModel.benchBlocks
-                    (hoverState viewedModel.dragState)
+                    (getHoverState viewedModel.dragState)
                 , viewDraggedBlock viewedModel.draggedLifeBlock
                 ]
 
@@ -574,8 +478,8 @@ view model =
             Debug.todo "display an error message"
 
 
-hoverState : DragStateView -> Maybe HoverBeaconsView
-hoverState dragState =
+getHoverState : DragStateView -> Maybe HoverBeaconsView
+getHoverState dragState =
     case dragState of
         HoveringView hover ->
             Just hover
@@ -946,7 +850,5 @@ viewStatMod statMod =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map DragMsg Beacons.subscriptions
-
-
-
+    Sub.map DragMsg <|
+        Beacons.subscriptions (dropBeaconIds model) model.dragState
