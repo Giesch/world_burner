@@ -5,10 +5,11 @@ module Lifepath exposing
     , StatMod
     , StatModType(..)
     , decoder
+    , lifepathWidth
     , view
     )
 
-import Beacons
+import Beacon
 import Colors exposing (..)
 import Common
 import Dict exposing (Dict)
@@ -148,8 +149,13 @@ skillDecoder =
 -- VIEW
 
 
-view : Length -> Lifepath -> { withBeacon : Maybe Int } -> Element msg
-view lifepathWidth lifepath { withBeacon } =
+lifepathWidth : Element.Length
+lifepathWidth =
+    Element.px 300
+
+
+view : Lifepath -> { withBeacon : Maybe Int } -> Element msg
+view lifepath { withBeacon } =
     let
         defaultAttrs : List (Attribute msg)
         defaultAttrs =
@@ -167,7 +173,7 @@ view lifepathWidth lifepath { withBeacon } =
         attrs =
             case withBeacon of
                 Just beaconId ->
-                    Beacons.attribute beaconId :: defaultAttrs
+                    Beacon.attribute beaconId :: defaultAttrs
 
                 Nothing ->
                     defaultAttrs

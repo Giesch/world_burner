@@ -7,7 +7,7 @@ module LifeBlock exposing
     , view
     )
 
-import Beacons
+import Beacon
 import Common
 import Element exposing (..)
 import Element.Background as Background
@@ -74,20 +74,19 @@ splitUntil ((LifeBlock ( first, rest )) as original) id =
 
 
 type alias ViewOptions msg =
-    { lifepathWidth : Length
-    , baseAttrs : List (Attribute msg)
+    { baseAttrs : List (Attribute msg)
     , dropBeaconId : Maybe Int
     , onDelete : Maybe msg
     }
 
 
 view : ViewOptions msg -> LifeBlock -> Element msg
-view { lifepathWidth, baseAttrs, dropBeaconId, onDelete } (LifeBlock data) =
+view { baseAttrs, dropBeaconId, onDelete } (LifeBlock data) =
     let
         attrs =
             case dropBeaconId of
                 Just id ->
-                    Beacons.attribute id :: baseAttrs
+                    Beacon.attribute id :: baseAttrs
 
                 Nothing ->
                     baseAttrs
@@ -98,10 +97,5 @@ view { lifepathWidth, baseAttrs, dropBeaconId, onDelete } (LifeBlock data) =
             , label = text "X"
             }
             :: List.map
-                (\d ->
-                    Lifepath.view lifepathWidth
-                        d.path
-                        { withBeacon = Just d.beaconId
-                        }
-                )
+                (\d -> Lifepath.view d.path { withBeacon = Just d.beaconId })
                 (NonEmpty.toList <| data)

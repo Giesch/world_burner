@@ -1,4 +1,4 @@
-port module Beacons exposing
+port module Beacon exposing
     ( DragData
     , DragState(..)
     , DraggedItem
