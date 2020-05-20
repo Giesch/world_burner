@@ -15,7 +15,9 @@ import Html
 import Html.Attributes
 import Html.Events
 import Json.Encode as Encode
+import LifeBlock exposing (LifeBlock)
 import Lifepath exposing (Lead, Lifepath, Skill, StatMod, StatModType(..))
+import List.NonEmpty as NonEmpty exposing (NonEmpty)
 import Process
 import Session exposing (..)
 import Set exposing (Set)
@@ -41,22 +43,16 @@ type alias Model =
 
 
 type DragBeacon
-    = SidebarPath LifeBlock
+    = SidebarPath Lifepath Int
     | BenchBlock LifeBlock
-
-
-type alias LifeBlock =
-    { path : Lifepath
-    , beaconId : Int
-    }
 
 
 dragBlock : DragBeacon -> LifeBlock
 dragBlock beacon =
     -- TODO think about splitting these into two dicts
     case beacon of
-        SidebarPath block ->
-            block
+        SidebarPath path id ->
+            LifeBlock.singleton path id
 
         BenchBlock block ->
             block
@@ -101,6 +97,7 @@ initialDropBeacons =
 
 {-| Beacons with non-generated beacon ids.
 TODO replace this concept with having multiple open slots
+make the benchBlocks list into an array
 -}
 staticBeaconId : StaticBeacon -> Int
 staticBeaconId beacon =
@@ -148,10 +145,10 @@ update msg model =
                 cleanModel =
                     cleanSidebarBeacons model
 
-                ( newModel, blocks ) =
+                ( newModel, pairs ) =
                     addBatch cleanModel lifepaths SidebarPath
             in
-            ( { newModel | sidebarLifepaths = Loaded (List.map .beaconId blocks) }
+            ( { newModel | sidebarLifepaths = Loaded (List.map Tuple.second pairs) }
             , Cmd.none
             )
 
@@ -242,19 +239,27 @@ deleteBenchBlock model id =
     }
 
 
-addBatch : Model -> List Lifepath -> (LifeBlock -> DragBeacon) -> ( Model, List LifeBlock )
+addBatch :
+    Model
+    -> List Lifepath
+    -> (Lifepath -> Int -> DragBeacon)
+    -> ( Model, List ( Lifepath, Int ) )
 addBatch ({ nextBeaconId, dragBeacons } as model) lifepaths constructor =
     let
-        makeBlock : Lifepath -> ( Int, List LifeBlock ) -> ( Int, List LifeBlock )
-        makeBlock path ( nextId, blockList ) =
-            ( nextId + 1, LifeBlock path nextId :: blockList )
+        makePair : Lifepath -> ( Int, List ( Lifepath, Int ) ) -> ( Int, List ( Lifepath, Int ) )
+        makePair path ( nextId, pairList ) =
+            let
+                pair =
+                    ( path, nextId )
+            in
+            ( nextId + 1, pair :: pairList )
 
         ( newNextId, blocksWithIds ) =
-            List.foldl makeBlock ( nextBeaconId, [] ) lifepaths
+            List.foldl makePair ( nextBeaconId, [] ) lifepaths
 
-        insertBlock : LifeBlock -> Dict Int DragBeacon -> Dict Int DragBeacon
-        insertBlock block dict =
-            Dict.insert block.beaconId (constructor block) dict
+        insertBlock : ( Lifepath, Int ) -> Dict Int DragBeacon -> Dict Int DragBeacon
+        insertBlock ( p, i ) dict =
+            Dict.insert i (constructor p i) dict
 
         newBlocks : Dict Int DragBeacon
         newBlocks =
@@ -274,13 +279,13 @@ dropDraggedBlock : Model -> HoverState -> Model
 dropDraggedBlock model hoverState =
     case lookupDragAndDrop model hoverState of
         -- TODO handle other kinds of drop
-        Just ( SidebarPath block, Static OpenSlot ) ->
+        Just ( SidebarPath path _, Static OpenSlot ) ->
             let
                 ( beaconId, bumpedModel ) =
                     bump model
 
                 benchBlock =
-                    BenchBlock { block | beaconId = beaconId }
+                    BenchBlock <| LifeBlock.singleton path beaconId
             in
             { bumpedModel
                 | benchBlocks = model.benchBlocks ++ [ beaconId ]
@@ -366,7 +371,7 @@ type alias ModelView =
     , searchFilters : Api.LifepathFilters
     , dragState : DragStateView
     , benchBlocks : List LifeBlock
-    , sidebarLifepaths : Status (List LifeBlock)
+    , sidebarLifepaths : Status (List ( Lifepath, Int ))
     , draggedLifeBlock : Maybe DraggedLifeBlock
     }
 
@@ -501,7 +506,7 @@ viewMainArea : List LifeBlock -> Maybe HoverBeaconsView -> Element Msg
 viewMainArea fragments hover =
     let
         filledSlots =
-            List.map (viewFragment Nothing) fragments ++ [ openSlot hover ]
+            List.map (viewLifeBlock Nothing) fragments ++ [ openSlot hover ]
 
         slots =
             filledSlots
@@ -520,26 +525,6 @@ viewMainArea fragments hover =
         (List.take 4 slots)
 
 
-viewFragment : Maybe Int -> LifeBlock -> Element Msg
-viewFragment maybeBeaconId block =
-    let
-        attrs =
-            case maybeBeaconId of
-                Just beaconId ->
-                    beaconAttribute beaconId :: slotAttrs
-
-                Nothing ->
-                    slotAttrs
-    in
-    column attrs
-        [ Input.button [ alignRight ]
-            { onPress = Just <| DeleteBenchBlock block.beaconId
-            , label = text "X"
-            }
-        , viewLifepath block.path { withBeacon = Just block.beaconId }
-        ]
-
-
 openSlot : Maybe HoverBeaconsView -> Element Msg
 openSlot hover =
     let
@@ -553,15 +538,26 @@ openSlot hover =
     in
     case ( beingHovered, hoveringBlock ) of
         ( Just True, Just block ) ->
-            viewFragment (Just <| staticBeaconId OpenSlot) block
+            viewLifeBlock (Just <| staticBeaconId OpenSlot) block
 
         _ ->
             el
-                (beaconAttribute (staticBeaconId OpenSlot)
+                (Beacons.attribute (staticBeaconId OpenSlot)
                     :: Border.width 1
                     :: slotAttrs
                 )
                 (el [ centerX, centerY ] <| text "+")
+
+
+viewLifeBlock : Maybe Int -> LifeBlock -> Element Msg
+viewLifeBlock maybeBeaconId block =
+    LifeBlock.view
+        { lifepathWidth = lifepathWidth
+        , baseAttrs = slotAttrs
+        , dropBeaconId = maybeBeaconId
+        , onDelete = Just <| DeleteBenchBlock <| LifeBlock.beaconId block
+        }
+        block
 
 
 slotAttrs : List (Attribute msg)
@@ -592,7 +588,7 @@ viewDraggedBlock maybeBlock =
     in
     case maybeBlock of
         Just dragged ->
-            el
+            column
                 ([ htmlAttribute <| Html.Attributes.style "position" "fixed"
                  , htmlAttribute <|
                     Html.Attributes.style "top" (top dragged)
@@ -603,9 +599,12 @@ viewDraggedBlock maybeBlock =
                  , htmlAttribute <| Html.Attributes.style "margin" "0"
                  , width lifepathWidth
                  ]
-                    ++ userSelectNone
+                    ++ Common.userSelectNone
                 )
-                (viewLifepath dragged.lifeBlock.path { withBeacon = Nothing })
+            <|
+                List.map
+                    (\path -> viewLifepath path { withBeacon = Nothing })
+                    (NonEmpty.toList <| LifeBlock.paths dragged.lifeBlock)
 
         _ ->
             none
@@ -628,7 +627,7 @@ viewSidebar model =
 
 lookupSidebarLifepaths :
     Model
-    -> Result InvalidModel (Status (List LifeBlock))
+    -> Result InvalidModel (Status (List ( Lifepath, Int )))
 lookupSidebarLifepaths { dragBeacons, sidebarLifepaths } =
     case sidebarLifepaths of
         Loading ->
@@ -638,19 +637,28 @@ lookupSidebarLifepaths { dragBeacons, sidebarLifepaths } =
             Ok Failed
 
         Loaded sidebarIds ->
+            let
+                lookup : DragBeacon -> Maybe ( Lifepath, Int )
+                lookup beacon =
+                    case beacon of
+                        SidebarPath path id ->
+                            Just ( path, id )
+
+                        BenchBlock _ ->
+                            Nothing
+            in
             sidebarIds
                 |> Common.lookupAll dragBeacons
-                |> Result.map (Loaded << List.map dragBlock)
+                |> Result.map (Loaded << List.filterMap lookup)
                 |> Result.mapError
                     (\(Common.MissingValues ids) -> MissingSidebarPaths ids)
 
 
-viewSidebarLifepaths : Status (List LifeBlock) -> Element Msg
+viewSidebarLifepaths : Status (List ( Lifepath, Int )) -> Element Msg
 viewSidebarLifepaths sidebarLifepaths =
     let
-        viewBlock =
-            \block ->
-                viewLifepath block.path { withBeacon = Just block.beaconId }
+        viewPair ( p, i ) =
+            viewLifepath p { withBeacon = Just i }
     in
     case sidebarLifepaths of
         Loading ->
@@ -659,9 +667,9 @@ viewSidebarLifepaths sidebarLifepaths =
         Failed ->
             text "couldn't load lifepaths"
 
-        Loaded lifeBlocks ->
+        Loaded pairs ->
             column [ spacing 20, padding 20, width fill, height fill, scrollbarY ]
-                (List.map viewBlock lifeBlocks)
+                (List.map viewPair pairs)
 
 
 viewLifepathSearch : Api.LifepathFilters -> Element Msg
@@ -692,156 +700,14 @@ searchInput searchTerm =
         }
 
 
+viewLifepath : Lifepath -> { withBeacon : Maybe Int } -> Element msg
+viewLifepath =
+    Lifepath.view lifepathWidth
+
+
 lifepathWidth : Length
 lifepathWidth =
     px 300
-
-
-viewLifepath : Lifepath -> { withBeacon : Maybe Int } -> Element Msg
-viewLifepath lifepath { withBeacon } =
-    let
-        defaultAttrs : List (Attribute Msg)
-        defaultAttrs =
-            [ Background.color Colors.white
-            , Font.color Colors.black
-            , Border.rounded 8
-            , Border.color Colors.darkened
-            , Border.width 1
-            , padding 12
-            , width lifepathWidth
-            , spacing 10
-            ]
-                ++ userSelectNone
-
-        attrs =
-            case withBeacon of
-                Just beaconId ->
-                    beaconAttribute beaconId :: defaultAttrs
-
-                Nothing ->
-                    defaultAttrs
-    in
-    column attrs
-        [ text <| toTitleCase lifepath.name
-        , row [ width fill, spaceEvenly ]
-            [ text (String.fromInt lifepath.years ++ " years")
-            , text (String.fromInt lifepath.res ++ " res")
-            , viewLifepathStat lifepath.statMod
-            ]
-        , viewSkills lifepath.skillPts lifepath.skills
-        , viewTraits lifepath.traitPts lifepath.traits
-        , viewLeads lifepath.leads
-        ]
-
-
-beaconAttribute : Int -> Attribute msg
-beaconAttribute beaconId =
-    htmlAttribute <|
-        Html.Attributes.attribute "data-beacon"
-            (Encode.encode 0 <| Encode.int beaconId)
-
-
-userSelectNone : List (Attribute msg)
-userSelectNone =
-    List.map (\key -> htmlAttribute <| Html.Attributes.style key "none")
-        [ "-webkit-touch-callout"
-        , "-webkit-user-select"
-        , "-khtml-user-select"
-        , "-moz-user-select"
-        , "-ms-user-select"
-        , "user-select"
-        ]
-
-
-viewLeads : List Lead -> Element Msg
-viewLeads leads =
-    let
-        leadNames =
-            String.join ", " <|
-                List.map (\l -> toTitleCase <| .settingName l) leads
-    in
-    if List.length leads == 0 then
-        none
-
-    else
-        paragraph []
-            [ text <| "Leads: " ++ leadNames ]
-
-
-viewTraits : Int -> List Trait -> Element Msg
-viewTraits pts traits =
-    let
-        traitNames =
-            String.join ", " <| List.map (\tr -> toTitleCase <| Trait.name tr) traits
-    in
-    case ( pts, List.length traits ) of
-        ( 0, 0 ) ->
-            none
-
-        ( _, 0 ) ->
-            paragraph []
-                [ text ("Traits: " ++ String.fromInt pts) ]
-
-        _ ->
-            paragraph []
-                [ text ("Traits: " ++ String.fromInt pts ++ ": " ++ traitNames) ]
-
-
-viewSkills : Int -> List Skill -> Element Msg
-viewSkills pts skills =
-    let
-        skillNames =
-            String.join ", " <| List.map (\sk -> toTitleCase <| .displayName sk) skills
-    in
-    case ( pts, List.length skills ) of
-        ( 0, 0 ) ->
-            none
-
-        ( _, 0 ) ->
-            paragraph []
-                [ text ("Skills: " ++ String.fromInt pts) ]
-
-        _ ->
-            paragraph []
-                [ text ("Skills: " ++ String.fromInt pts ++ ": " ++ skillNames) ]
-
-
-viewLifepathStat : Maybe StatMod -> Element Msg
-viewLifepathStat statMod =
-    case statMod of
-        Nothing ->
-            text <| "stat: --"
-
-        Just mod ->
-            text <| "stat: " ++ viewStatMod mod
-
-
-viewStatMod : StatMod -> String
-viewStatMod statMod =
-    let
-        prefix =
-            -- zero is not a permitted value in the db
-            if statMod.value > 0 then
-                "+"
-
-            else
-                "-"
-
-        suffix =
-            case statMod.taip of
-                Physical ->
-                    " P"
-
-                Mental ->
-                    " M"
-
-                Either ->
-                    " M/P"
-
-                Both ->
-                    " M,P"
-    in
-    prefix ++ String.fromInt statMod.value ++ suffix
 
 
 

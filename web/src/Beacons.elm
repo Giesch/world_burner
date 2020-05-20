@@ -6,14 +6,18 @@ port module Beacons exposing
        -- TODO remove the (..) from Msg
 
     , Transition(..)
+    , attribute
     , getDraggedItem
     , subscriptions
     )
 
 import Common
+import Element
 import Geom exposing (Box, Point)
+import Html.Attributes
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional, required)
+import Json.Encode as Encode
 import Set exposing (Set)
 
 
@@ -91,6 +95,9 @@ subscriptions dropBeaconIds dragState =
         Sub.batch [ dragEvents decodeDragEvents ]
 
 
+{-| Translates move messages into Transitions
+TODO make dropBeaconIds unnecessary; use negative for drop and positive for drag
+-}
 transitions : Set Int -> DragState -> Msg -> Transition
 transitions dropBeaconIds dragState beaconMsg =
     case ( dragState, beaconMsg ) of
@@ -289,3 +296,10 @@ nearestBeacon beaconIds { cursor, beacons } =
     beacons
         |> List.filter keep
         |> Common.minimumBy distanceFromCursor
+
+
+attribute : Int -> Element.Attribute msg
+attribute beaconId =
+    Element.htmlAttribute <|
+        Html.Attributes.attribute "data-beacon"
+            (Encode.encode 0 <| Encode.int beaconId)

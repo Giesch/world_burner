@@ -1,6 +1,9 @@
 module Common exposing (..)
 
 import Dict exposing (Dict)
+import Element
+import Html.Attributes
+import List.NonEmpty as NonEmpty exposing (NonEmpty)
 
 
 {-| AKA Maybe.filter
@@ -74,3 +77,38 @@ minimumBy by list =
 
         first :: rest ->
             Just <| List.foldl keepLower first rest
+
+
+{-| Splits a list into a left of all leading values that do not satisify the predicate,
+and a right of the first value that satisfied the predicate, and the remaining elements.
+Returning nothing means that no matching item was found.
+-}
+splitUntil : (a -> Bool) -> List a -> Maybe ( List a, NonEmpty a )
+splitUntil pred list =
+    let
+        seek : ( List a, List a ) -> Maybe ( List a, NonEmpty a )
+        seek ( seen, unseen ) =
+            case unseen of
+                [] ->
+                    Nothing
+
+                first :: rest ->
+                    if pred first then
+                        Just ( List.reverse seen, ( first, rest ) )
+
+                    else
+                        seek ( first :: seen, rest )
+    in
+    seek ( [], list )
+
+
+userSelectNone : List (Element.Attribute msg)
+userSelectNone =
+    List.map (\key -> Element.htmlAttribute <| Html.Attributes.style key "none")
+        [ "-webkit-touch-callout"
+        , "-webkit-user-select"
+        , "-khtml-user-select"
+        , "-moz-user-select"
+        , "-ms-user-select"
+        , "user-select"
+        ]
