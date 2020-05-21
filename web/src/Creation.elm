@@ -34,11 +34,11 @@ import Trait exposing (Trait)
 
 type alias Model =
     { session : Session
-    , sidebarLifepaths : Status (Array Lifepath)
     , searchFilters : Api.LifepathFilters
+    , sidebarLifepaths : Status (Array Lifepath)
     , benchBlocks : Array LifeBlock
-    , nextBeaconId : Int
     , dragState : Beacon.DragState DragBeaconId DropBeaconId
+    , dragCache : Maybe LifeBlock
     }
 
 
@@ -56,28 +56,14 @@ init session =
             { noFilters | born = Just True }
     in
     ( { session = session
-      , sidebarLifepaths = Loading
       , searchFilters = searchFilters
+      , sidebarLifepaths = Loading
       , benchBlocks = Array.empty
       , dragState = Beacon.NotDragging
+      , dragCache = Nothing
       }
     , fetchLifepaths searchFilters
     )
-
-
-{-| Beacons with non-generated beacon ids.
-TODO replace this concept with having multiple open slots
-make the benchBlocks list into an array
--}
-staticBeaconId : StaticBeacon -> Int
-staticBeaconId beacon =
-    case beacon of
-        OpenSlot ->
-            -1
-
-
-type StaticBeacon
-    = OpenSlot
 
 
 fetchLifepaths : Api.LifepathFilters -> Cmd Msg
@@ -92,26 +78,18 @@ fetchLifepaths searchFilters =
 type Msg
     = GotLifepaths (ApiResult (List Lifepath))
     | DragMsg (Beacon.Transition DragBeaconId DropBeaconId)
-    | DeleteBenchBlock Int
+    | DeleteBenchBlock DragBeaconId
     | EnteredSearchText String
     | SearchTimePassed String
     | ClickedBornCheckbox Bool
     | NoOp
 
 
-type alias Box =
-    { x : Float
-    , y : Float
-    , width : Float
-    , height : Float
-    }
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         GotLifepaths (Ok lifepaths) ->
-            ( { model | sidebarLifepaths = Loaded lifepaths }
+            ( { model | sidebarLifepaths = Loaded <| Array.fromList lifepaths }
             , Cmd.none
             )
 
@@ -121,16 +99,7 @@ update msg model =
             )
 
         DragMsg (Beacon.PickUp draggedItem) ->
-            let
-                newModel =
-                    case Dict.get draggedItem.beaconId model.dragBeacons of
-                        Just _ ->
-                            { model | dragState = Beacon.Dragging draggedItem }
-
-                        Nothing ->
-                            model
-            in
-            ( newModel, Cmd.none )
+            ( pickup model draggedItem, Cmd.none )
 
         DragMsg (Beacon.DragMove dragState) ->
             ( { model | dragState = dragState }, Cmd.none )
@@ -189,46 +158,67 @@ update msg model =
             ( model, Cmd.none )
 
 
-deleteBenchBlock : Model -> Int -> Model
+deleteBenchBlock : Model -> DragBeaconId -> Model
 deleteBenchBlock model id =
     { model
-        | dragBeacons = Dict.remove id model.dragBeacons
-        , benchBlocks =
-            List.filter (\beaconId -> beaconId /= id) model.benchBlocks
+        | benchBlocks =
+            Array.filter (\block -> LifeBlock.beaconId block /= id) model.benchBlocks
+        , dragCache = Nothing
     }
+
+
+pickup : Model -> Beacon.DraggedItem DragBeaconId -> Model
+pickup model draggedItem =
+    case lookupDragged model draggedItem.beaconId of
+        Just lifeblock ->
+            { model
+                | dragState = Beacon.Dragging draggedItem
+                , dragCache = Just lifeblock
+            }
+
+        Nothing ->
+            Debug.todo "this in an error case"
 
 
 dropDraggedBlock : Model -> HoverState DragBeaconId DropBeaconId -> Model
 dropDraggedBlock model hoverState =
-    case lookupDragAndDrop model hoverState of
-        -- TODO handle other kinds of drop
-        Just ( SidebarPath path _, Static OpenSlot ) ->
-            let
-                ( beaconId, bumpedModel ) =
-                    bump model
-
-                benchBlock =
-                    BenchBlock <| LifeBlock.singleton path beaconId
-            in
-            { bumpedModel
-                | benchBlocks = model.benchBlocks ++ [ beaconId ]
-                , dragBeacons = Dict.insert beaconId benchBlock model.dragBeacons
+    -- TODO handle other kinds of drop
+    -- this assumes that we're over the open slot
+    case lookupDragged model hoverState.draggedItem.beaconId of
+        Just lifeblock ->
+            { model
+                | benchBlocks = Array.push lifeblock model.benchBlocks
                 , dragState = Beacon.NotDragging
+                , dragCache = Nothing
             }
 
         _ ->
-            { model | dragState = Beacon.NotDragging }
+            -- TODO this is an error state
+            { model | dragState = Beacon.NotDragging, dragCache = Nothing }
 
 
+{-| Look up a lifeblock in the model by its drag id (aka its original location).
+Returning nothing signifies an error.
+-}
 lookupDragged : Model -> DragBeaconId -> Maybe LifeBlock
-lookupDragged { benchBlocks, sidebarLifepaths } id =
-    case BeaconId.dragLocation id of
-        BeaconId.Bench { benchIndex, blockIndex } ->
-            Debug.todo "get and split the block"
+lookupDragged { benchBlocks, sidebarLifepaths, dragCache } dragId =
+    if Just dragId == Maybe.map LifeBlock.beaconId dragCache then
+        dragCache
 
-        BeaconId.Sidebar sidebarIndex ->
-            Array.get sidebarIndex sidebarLifepaths
-                |> Maybe.map LifeBlock.singleton
+    else
+        case BeaconId.dragLocation dragId of
+            BeaconId.Bench { benchIndex, blockIndex } ->
+                -- TODO split the block
+                Array.get benchIndex benchBlocks
+
+            BeaconId.Sidebar sidebarIndex ->
+                case sidebarLifepaths of
+                    Loaded paths ->
+                        Array.get sidebarIndex paths
+                            |> Maybe.map (\path -> LifeBlock.singleton path dragId)
+
+                    _ ->
+                        Nothing
 
 
 maybeSearch : String -> Api.LifepathFilters -> Cmd Msg
@@ -250,26 +240,18 @@ beginSearchDebounce input =
         |> Task.perform (\_ -> SearchTimePassed input)
 
 
-bump : Model -> ( Int, Model )
-bump model =
-    -- TODO use this on drop
-    -- always copy the dragged block
-    -- then maybe delete the original and its references
-    ( model.nextBeaconId
-    , { model | nextBeaconId = model.nextBeaconId + 1 }
-    )
-
-
 
 -- VIEW
 
 
+{-| TODO can this be removed now?
+-}
 type alias ModelView =
     { session : Session
     , searchFilters : Api.LifepathFilters
     , dragState : DragStateView
-    , benchBlocks : List LifeBlock
-    , sidebarLifepaths : Status (List ( Lifepath, Int ))
+    , benchBlocks : Array LifeBlock
+    , sidebarLifepaths : Status (Array Lifepath)
     , draggedLifeBlock : Maybe DraggedLifeBlock
     }
 
@@ -294,29 +276,34 @@ modelView model =
             }
         )
         (lookupDragState model)
-        (lookupSidebarLifepaths model)
-        (lookupBenchBlocks model)
+        (Ok <| model.sidebarLifepaths)
+        (Ok <| model.benchBlocks)
         (lookupDraggedBlock model)
 
 
 lookupDraggedBlock : Model -> Result InvalidModel (Maybe DraggedLifeBlock)
 lookupDraggedBlock model =
-    case Beacon.getDraggedItem model.dragState of
-        Nothing ->
+    let
+        validate : Beacon.DraggedItem DragBeaconId -> LifeBlock -> Result InvalidModel (Maybe DraggedLifeBlock)
+        validate draggedItem block =
+            if draggedItem.beaconId == LifeBlock.beaconId block then
+                Ok <| Just <| DraggedLifeBlock block draggedItem.cursorOnScreen draggedItem.cursorOnDraggable
+
+            else
+                Err InvalidDragState
+    in
+    case ( model.dragState, model.dragCache ) of
+        ( Beacon.NotDragging, _ ) ->
             Ok Nothing
 
-        Just draggedBlock ->
-            case Dict.get draggedBlock.beaconId model.dragBeacons of
-                Nothing ->
-                    Err <| MissingDragBlock <| draggedBlock.beaconId
+        ( Beacon.Dragging draggedItem, Just block ) ->
+            validate draggedItem block
 
-                Just beacon ->
-                    Ok <|
-                        Just <|
-                            { lifeBlock = dragBlock beacon
-                            , cursorOnScreen = draggedBlock.cursorOnScreen
-                            , cursorOnDraggable = draggedBlock.cursorOnDraggable
-                            }
+        ( Beacon.Hovering { draggedItem }, Just block ) ->
+            validate draggedItem block
+
+        _ ->
+            Err InvalidDragState
 
 
 type DragStateView
@@ -329,34 +316,26 @@ type alias HoverBeaconsView =
     { dragBeacon : LifeBlock
 
     -- TODO keep data of where the drop is here
+    , dropBeacon : ()
     }
 
 
 lookupDragState : Model -> Result InvalidModel DragStateView
-lookupDragState { dragState, dragBeacons, dropBeacons } =
-    -- TODO make this call a Beacons fn that returns a DragState
-    -- then match on the DragState to get
-    case dragState of
-        Beacon.NotDragging ->
+lookupDragState { dragState, dragCache } =
+    -- TODO this just trusts the cache; factor out/reuse the validate function
+    -- or just delete the whole modelview thing
+    case ( dragState, dragCache ) of
+        ( Beacon.NotDragging, _ ) ->
             Ok NotDraggingView
 
-        Beacon.Dragging dragBeacon ->
-            dragBeacons
-                |> Dict.get dragBeacon.beaconId
-                |> Maybe.map DraggingView
-                |> Result.fromMaybe InvalidDragState
+        ( Beacon.Dragging _, Just cached ) ->
+            Ok <| DraggingView cached
 
-        Beacon.Hovering { draggedItem, hoveredDropBeacon } ->
-            case
-                ( Dict.get draggedItem.beaconId dragBeacons
-                , Dict.get hoveredDropBeacon dropBeacons
-                )
-            of
-                ( Just dragBeacon, Just dropBeacon ) ->
-                    Ok <| HoveringView <| HoverBeaconsView dragBeacon dropBeacon
+        ( Beacon.Hovering _, Just cached ) ->
+            Ok <| HoveringView { dragBeacon = cached, dropBeacon = () }
 
-                ( drag, drop ) ->
-                    Err InvalidDragState
+        _ ->
+            Err InvalidDragState
 
 
 type InvalidModel
@@ -392,25 +371,16 @@ getHoverState dragState =
             Nothing
 
 
-lookupBenchBlocks : Model -> Result InvalidModel (List LifeBlock)
-lookupBenchBlocks { dragBeacons, benchBlocks } =
-    benchBlocks
-        |> Common.lookupAll dragBeacons
-        |> Result.map (List.map dragBlock)
-        |> Result.mapError
-            (\(Common.MissingValues ids) -> MissingBenchBlocks ids)
-
-
-viewMainArea : List LifeBlock -> Maybe HoverBeaconsView -> Element Msg
+viewMainArea : Array LifeBlock -> Maybe HoverBeaconsView -> Element Msg
 viewMainArea fragments hover =
     let
         filledSlots =
-            List.map (viewLifeBlock Nothing) fragments ++ [ openSlot hover ]
+            Array.push (openSlot hover) <| Array.map (viewLifeBlock Nothing) fragments
 
         slots =
-            filledSlots
+            Array.toList filledSlots
                 ++ List.repeat
-                    (8 - List.length filledSlots)
+                    (8 - Array.length filledSlots)
                     (el slotAttrs none)
     in
     row
@@ -427,32 +397,34 @@ viewMainArea fragments hover =
 openSlot : Maybe HoverBeaconsView -> Element Msg
 openSlot hover =
     let
-        beingHovered : Maybe Bool
+        beingHovered : Bool
         beingHovered =
-            Maybe.map (\state -> state.dropBeacon == Static OpenSlot) hover
+            -- TODO actually check the drop beacon
+            Maybe.map (\state -> state.dropBeacon == ()) hover
+                |> Maybe.withDefault False
 
         hoveringBlock : Maybe LifeBlock
         hoveringBlock =
-            Maybe.map (.dragBeacon >> dragBlock) hover
+            Maybe.map .dragBeacon hover
     in
     case ( beingHovered, hoveringBlock ) of
-        ( Just True, Just block ) ->
-            viewLifeBlock (Just <| staticBeaconId OpenSlot) block
+        ( True, Just block ) ->
+            viewLifeBlock (Just <| BeaconId.staticOpenSlot) block
 
         _ ->
             el
-                (Beacon.attribute (staticBeaconId OpenSlot)
+                (BeaconId.dropAttribute BeaconId.staticOpenSlot
                     :: Border.width 1
                     :: slotAttrs
                 )
                 (el [ centerX, centerY ] <| text "+")
 
 
-viewLifeBlock : Maybe Int -> LifeBlock -> Element Msg
-viewLifeBlock maybeBeaconId block =
+viewLifeBlock : Maybe DropBeaconId -> LifeBlock -> Element Msg
+viewLifeBlock dropBeaconId block =
     LifeBlock.view
         { baseAttrs = slotAttrs
-        , dropBeaconId = maybeBeaconId
+        , dropBeaconId = dropBeaconId
         , onDelete = Just <| DeleteBenchBlock <| LifeBlock.beaconId block
         }
         block
@@ -506,7 +478,7 @@ viewDraggedBlock maybeBlock =
                 )
             <|
                 List.map
-                    (\path -> viewLifepath path { withBeacon = Nothing })
+                    (\path -> Lifepath.view path { withBeacon = Nothing })
                     (NonEmpty.toList <| LifeBlock.paths dragged.lifeBlock)
 
         _ ->
@@ -528,40 +500,16 @@ viewSidebar model =
         ]
 
 
-lookupSidebarLifepaths :
-    Model
-    -> Result InvalidModel (Status (List ( Lifepath, Int )))
-lookupSidebarLifepaths { dragBeacons, sidebarLifepaths } =
-    case sidebarLifepaths of
-        Loading ->
-            Ok Loading
-
-        Failed ->
-            Ok Failed
-
-        Loaded sidebarIds ->
-            let
-                lookup : DragBeacon -> Maybe ( Lifepath, Int )
-                lookup beacon =
-                    case beacon of
-                        SidebarPath path id ->
-                            Just ( path, id )
-
-                        BenchBlock _ ->
-                            Nothing
-            in
-            sidebarIds
-                |> Common.lookupAll dragBeacons
-                |> Result.map (Loaded << List.filterMap lookup)
-                |> Result.mapError
-                    (\(Common.MissingValues ids) -> MissingSidebarPaths ids)
-
-
-viewSidebarLifepaths : Status (List ( Lifepath, Int )) -> Element Msg
+viewSidebarLifepaths : Status (Array Lifepath) -> Element Msg
 viewSidebarLifepaths sidebarLifepaths =
     let
-        viewPair ( p, i ) =
-            viewLifepath p { withBeacon = Just i }
+        viewPath : Int -> Lifepath -> Element Msg
+        viewPath i path =
+            let
+                id =
+                    BeaconId.dragBeaconId <| BeaconId.Sidebar i
+            in
+            Lifepath.view path { withBeacon = Just id }
     in
     case sidebarLifepaths of
         Loading ->
@@ -570,9 +518,9 @@ viewSidebarLifepaths sidebarLifepaths =
         Failed ->
             text "couldn't load lifepaths"
 
-        Loaded pairs ->
+        Loaded paths ->
             column [ spacing 20, padding 20, width fill, height fill, scrollbarY ]
-                (List.map viewPair pairs)
+                (Array.toList <| Array.indexedMap viewPath paths)
 
 
 viewLifepathSearch : Api.LifepathFilters -> Element Msg
@@ -601,11 +549,6 @@ searchInput searchTerm =
         , placeholder = Nothing
         , label = Input.labelAbove [] <| text "Search"
         }
-
-
-viewLifepath : Lifepath -> { withBeacon : Maybe Int } -> Element msg
-viewLifepath =
-    Lifepath.view
 
 
 

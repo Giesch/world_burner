@@ -1,11 +1,12 @@
 module Creation.BeaconId exposing
     ( DragBeaconId
-    , DragBeaconLocation
+    , DragBeaconLocation(..)
     , DropBeaconId
-    , DropBeaconLocation
+    , DropBeaconLocation(..)
     , dragAttribute
     , dragBeaconId
     , dragIdFromInt
+    , dragLocation
     , dropAttribute
     , dropBeaconId
     , dropIdFromInt
