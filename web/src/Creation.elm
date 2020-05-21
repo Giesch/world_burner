@@ -1,6 +1,7 @@
 module Creation exposing (..)
 
 import Api exposing (ApiResult, noFilters)
+import Array exposing (Array)
 import Beacon exposing (DragData, HoverState)
 import Colors exposing (..)
 import Common
@@ -33,34 +34,12 @@ import Trait exposing (Trait)
 
 type alias Model =
     { session : Session
-    , sidebarLifepaths : Status (List Int)
+    , sidebarLifepaths : Status (Array Lifepath)
     , searchFilters : Api.LifepathFilters
-    , dragBeacons : Dict Int DragBeacon
-    , dropBeacons : Dict Int DropBeacon
-    , benchBlocks : List Int
+    , benchBlocks : Array LifeBlock
     , nextBeaconId : Int
-    , dragState : Beacon.DragState
+    , dragState : Beacon.DragState DragBeaconId DropBeaconId
     }
-
-
-type DragBeacon
-    = SidebarPath Lifepath Int
-    | BenchBlock LifeBlock
-
-
-dragBlock : DragBeacon -> LifeBlock
-dragBlock beacon =
-    -- TODO think about splitting these into two dicts
-    case beacon of
-        SidebarPath path id ->
-            LifeBlock.singleton path id
-
-        BenchBlock block ->
-            block
-
-
-type DropBeacon
-    = Static StaticBeacon
 
 
 type Status a
@@ -79,21 +58,11 @@ init session =
     ( { session = session
       , sidebarLifepaths = Loading
       , searchFilters = searchFilters
-      , dragBeacons = Dict.empty
-      , dropBeacons = initialDropBeacons
-      , nextBeaconId = 1
-      , benchBlocks = []
+      , benchBlocks = Array.empty
       , dragState = Beacon.NotDragging
       }
     , fetchLifepaths searchFilters
     )
-
-
-initialDropBeacons : Dict Int DropBeacon
-initialDropBeacons =
-    [ OpenSlot ]
-        |> List.map (\beacon -> ( staticBeaconId beacon, Static beacon ))
-        |> Dict.fromList
 
 
 {-| Beacons with non-generated beacon ids.
@@ -122,7 +91,7 @@ fetchLifepaths searchFilters =
 
 type Msg
     = GotLifepaths (ApiResult (List Lifepath))
-    | DragMsg Beacon.Transition
+    | DragMsg (Beacon.Transition DragBeaconId DropBeaconId)
     | DeleteBenchBlock Int
     | EnteredSearchText String
     | SearchTimePassed String
@@ -142,23 +111,12 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         GotLifepaths (Ok lifepaths) ->
-            let
-                cleanModel =
-                    cleanSidebarBeacons model
-
-                ( newModel, pairs ) =
-                    addBatch cleanModel lifepaths SidebarPath
-            in
-            ( { newModel | sidebarLifepaths = Loaded (List.map Tuple.second pairs) }
+            ( { model | sidebarLifepaths = Loaded lifepaths }
             , Cmd.none
             )
 
         GotLifepaths (Err error) ->
-            let
-                cleanModel =
-                    cleanSidebarBeacons model
-            in
-            ( { cleanModel | sidebarLifepaths = Failed }
+            ( { model | sidebarLifepaths = Failed }
             , Cmd.none
             )
 
@@ -240,43 +198,7 @@ deleteBenchBlock model id =
     }
 
 
-addBatch :
-    Model
-    -> List Lifepath
-    -> (Lifepath -> Int -> DragBeacon)
-    -> ( Model, List ( Lifepath, Int ) )
-addBatch ({ nextBeaconId, dragBeacons } as model) lifepaths constructor =
-    let
-        makePair : Lifepath -> ( Int, List ( Lifepath, Int ) ) -> ( Int, List ( Lifepath, Int ) )
-        makePair path ( nextId, pairList ) =
-            let
-                pair =
-                    ( path, nextId )
-            in
-            ( nextId + 1, pair :: pairList )
-
-        ( newNextId, blocksWithIds ) =
-            List.foldl makePair ( nextBeaconId, [] ) lifepaths
-
-        insertBlock : ( Lifepath, Int ) -> Dict Int DragBeacon -> Dict Int DragBeacon
-        insertBlock ( p, i ) dict =
-            Dict.insert i (constructor p i) dict
-
-        newBlocks : Dict Int DragBeacon
-        newBlocks =
-            List.foldl insertBlock dragBeacons blocksWithIds
-    in
-    ( { model | nextBeaconId = newNextId, dragBeacons = newBlocks }
-    , List.reverse blocksWithIds
-    )
-
-
-dropBeaconIds : Model -> Set Int
-dropBeaconIds =
-    .dropBeacons >> Dict.keys >> Set.fromList
-
-
-dropDraggedBlock : Model -> HoverState -> Model
+dropDraggedBlock : Model -> HoverState DragBeaconId DropBeaconId -> Model
 dropDraggedBlock model hoverState =
     case lookupDragAndDrop model hoverState of
         -- TODO handle other kinds of drop
@@ -298,40 +220,15 @@ dropDraggedBlock model hoverState =
             { model | dragState = Beacon.NotDragging }
 
 
-lookupDragAndDrop : Model -> HoverState -> Maybe ( DragBeacon, DropBeacon )
-lookupDragAndDrop model { draggedItem, hoveredDropBeacon } =
-    case
-        ( Dict.get draggedItem.beaconId model.dragBeacons
-        , Dict.get hoveredDropBeacon model.dropBeacons
-        )
-    of
-        ( Just dragBeacon, Just dropBeacon ) ->
-            Just ( dragBeacon, dropBeacon )
+lookupDragged : Model -> DragBeaconId -> Maybe LifeBlock
+lookupDragged { benchBlocks, sidebarLifepaths } id =
+    case BeaconId.dragLocation id of
+        BeaconId.Bench { benchIndex, blockIndex } ->
+            Debug.todo "get and split the block"
 
-        _ ->
-            Nothing
-
-
-cleanSidebarBeacons : Model -> Model
-cleanSidebarBeacons model =
-    let
-        sidebarIds : Set Int
-        sidebarIds =
-            case model.sidebarLifepaths of
-                Loaded blocks ->
-                    Set.fromList blocks
-
-                Loading ->
-                    Set.empty
-
-                Failed ->
-                    Set.empty
-
-        dragBeacons : Dict Int DragBeacon
-        dragBeacons =
-            Dict.filter (\id _ -> not <| Set.member id sidebarIds) model.dragBeacons
-    in
-    { model | dragBeacons = dragBeacons }
+        BeaconId.Sidebar sidebarIndex ->
+            Array.get sidebarIndex sidebarLifepaths
+                |> Maybe.map LifeBlock.singleton
 
 
 maybeSearch : String -> Api.LifepathFilters -> Cmd Msg
@@ -424,13 +321,14 @@ lookupDraggedBlock model =
 
 type DragStateView
     = NotDraggingView
-    | DraggingView DragBeacon
+    | DraggingView LifeBlock
     | HoveringView HoverBeaconsView
 
 
 type alias HoverBeaconsView =
-    { dragBeacon : DragBeacon
-    , dropBeacon : DropBeacon
+    { dragBeacon : LifeBlock
+
+    -- TODO keep data of where the drop is here
     }
 
 
@@ -717,4 +615,7 @@ viewLifepath =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.map DragMsg <|
-        Beacon.subscriptions (dropBeaconIds model) model.dragState
+        Beacon.subscriptions
+            BeaconId.dragIdFromInt
+            BeaconId.dropIdFromInt
+            model.dragState

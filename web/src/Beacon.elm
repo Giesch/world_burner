@@ -2,9 +2,7 @@ port module Beacon exposing
     ( DragData
     , DragState(..)
     , DraggedItem
-    ,  HoverState
-       -- TODO remove the (..) from Msg
-
+    , HoverState
     , Transition(..)
     , attribute
     , getDraggedItem
@@ -21,10 +19,10 @@ import Json.Encode as Encode
 import Set exposing (Set)
 
 
-type DragState
+type DragState dragId dropId
     = NotDragging
-    | Dragging DraggedItem
-    | Hovering HoverState
+    | Dragging (DraggedItem dragId)
+    | Hovering (HoverState dragId dropId)
 
 
 {-| Transitions are the external message type
@@ -40,44 +38,44 @@ type DragState
   - NoOp - this represents invalid transitions, is bad, and shoudn't exist
 
 -}
-type Transition
-    = PickUp DraggedItem
-    | LetGo DraggedItem
-    | Drop HoverState
-    | DragMove DragState
+type Transition dragId dropId
+    = PickUp (DraggedItem dragId)
+    | LetGo (DraggedItem dragId)
+    | Drop (HoverState dragId dropId)
+    | DragMove (DragState dragId dropId)
     | NoOp
 
 
-type alias HoverState =
-    { draggedItem : DraggedItem
-    , hoveredDropBeacon : Int
+type alias HoverState dragId dropId =
+    { draggedItem : DraggedItem dragId
+    , hoveredDropBeacon : dropId
     }
 
 
 {-| Internal messages received from the port
 -}
-type Msg
-    = Start DraggedItem
-    | Move DragData
-    | Stop DragData
+type Msg dragId dropId
+    = Start (DraggedItem dragId)
+    | Move (DragData dropId)
+    | Stop (DragData dropId)
     | Error
 
 
-type alias DraggedItem =
-    { beaconId : Int
+type alias DraggedItem dragId =
+    { beaconId : dragId
     , cursorOnScreen : Point
     , cursorOnDraggable : Point
     }
 
 
-type alias DragData =
+type alias DragData dropId =
     { cursor : Point
-    , beacons : List BeaconBox
+    , beacons : List (BeaconBox dropId)
     }
 
 
-type alias BeaconBox =
-    { beaconId : Int
+type alias BeaconBox dropId =
+    { beaconId : dropId
     , box : Box
     }
 
@@ -89,17 +87,25 @@ type alias BeaconBox =
 port dragEvents : (Decode.Value -> msg) -> Sub msg
 
 
-subscriptions : Set Int -> DragState -> Sub Transition
-subscriptions dropBeaconIds dragState =
-    Sub.map (transitions dropBeaconIds dragState) <|
-        Sub.batch [ dragEvents decodeDragEvents ]
+subscriptions :
+    (Int -> Maybe dragId)
+    -> (Int -> Maybe dropId)
+    -> DragState dragId dropId
+    -> Sub (Transition dragId dropId)
+subscriptions toDragId toDropId dragState =
+    Sub.map (transitions toDragId toDropId dragState) <|
+        Sub.batch [ dragEvents (decodeDragEvents toDragId toDropId) ]
 
 
 {-| Translates move messages into Transitions
-TODO make dropBeaconIds unnecessary; use negative for drop and positive for drag
 -}
-transitions : Set Int -> DragState -> Msg -> Transition
-transitions dropBeaconIds dragState beaconMsg =
+transitions :
+    (Int -> Maybe dragId)
+    -> (Int -> Maybe dropId)
+    -> DragState dragId dropId
+    -> Msg dragId dropId
+    -> Transition dragId dropId
+transitions toDragId toDropId dragState beaconMsg =
     case ( dragState, beaconMsg ) of
         ( NotDragging, Start draggedItem ) ->
             PickUp draggedItem
@@ -108,7 +114,7 @@ transitions dropBeaconIds dragState beaconMsg =
             NoOp
 
         ( Dragging draggedItem, Move data ) ->
-            dragMove dropBeaconIds data dragState
+            dragMove data dragState
 
         ( Dragging draggedItem, Stop _ ) ->
             LetGo draggedItem
@@ -117,7 +123,7 @@ transitions dropBeaconIds dragState beaconMsg =
             NoOp
 
         ( Hovering state, Move data ) ->
-            dragMove dropBeaconIds data dragState
+            dragMove data dragState
 
         ( Hovering hoverState, Stop _ ) ->
             Drop hoverState
@@ -126,9 +132,9 @@ transitions dropBeaconIds dragState beaconMsg =
             NoOp
 
 
-decodeDragEvents : Decode.Value -> Msg
-decodeDragEvents value =
-    case Decode.decodeValue msgDecoder value of
+decodeDragEvents : (Int -> Maybe dragId) -> (Int -> Maybe dropId) -> Decode.Value -> Msg dragId dropId
+decodeDragEvents toDragId toDropId value =
+    case Decode.decodeValue (msgDecoder toDragId toDropId) value of
         Ok msg ->
             msg
 
@@ -140,15 +146,15 @@ decodeDragEvents value =
             Error
 
 
-msgDecoder : Decode.Decoder Msg
-msgDecoder =
+msgDecoder : (Int -> Maybe dragId) -> (Int -> Maybe dropId) -> Decode.Decoder (Msg dragId dropId)
+msgDecoder toDragId toDropId =
     Decode.succeed BeaconJson
         |> required "type" eventDecoder
         |> required "cursor" Geom.pointDecoder
         |> required "beacons" beaconsDecoder
         |> optional "startBeaconId" (Decode.map Just Decode.string) Nothing
         |> optional "cursorOnDraggable" (Decode.map Just Geom.pointDecoder) Nothing
-        |> Decode.andThen dragEvent
+        |> Decode.andThen (dragEvent toDragId toDropId)
 
 
 type alias BeaconJson =
@@ -196,16 +202,16 @@ beaconsDecoder =
         )
 
 
-dragEvent : BeaconJson -> Decode.Decoder Msg
-dragEvent json =
+dragEvent : (Int -> Maybe dragId) -> (Int -> Maybe dropId) -> BeaconJson -> Decode.Decoder (Msg dragId dropId)
+dragEvent toDragId toDropId json =
     let
-        data : DragData
+        data : DragData dropId
         data =
-            dragData json
+            dragData toDropId json
     in
     case json.eventType of
         StartEvent ->
-            startEvent json data.cursor
+            startEvent toDragId json data.cursor
 
         MoveEvent ->
             Decode.succeed <| Move data
@@ -214,19 +220,33 @@ dragEvent json =
             Decode.succeed <| Stop data
 
 
-dragData : BeaconJson -> DragData
-dragData json =
+dragData : (Int -> Maybe dropId) -> BeaconJson -> DragData dropId
+dragData toDropId json =
+    let
+        convert : ( Int, Box ) -> Maybe (BeaconBox dropId)
+        convert ( beaconId, box ) =
+            case toDropId beaconId of
+                Just dropId ->
+                    Just <| BeaconBox dropId box
+
+                Nothing ->
+                    Nothing
+    in
     { cursor = json.cursor
-    , beacons =
-        List.map
-            (\( beaconId, box ) -> BeaconBox beaconId box)
-            json.beacons
+    , beacons = List.filterMap convert json.beacons
     }
 
 
-startEvent : BeaconJson -> Point -> Decode.Decoder Msg
-startEvent { startBeaconId, cursorOnDraggable } cursor =
-    case ( Maybe.andThen String.toInt startBeaconId, cursorOnDraggable ) of
+startEvent : (Int -> Maybe dragId) -> BeaconJson -> Point -> Decode.Decoder (Msg dragId dropId)
+startEvent toDragId { startBeaconId, cursorOnDraggable } cursor =
+    let
+        dragId : Maybe dragId
+        dragId =
+            startBeaconId
+                |> Maybe.andThen String.toInt
+                |> Maybe.andThen toDragId
+    in
+    case ( dragId, cursorOnDraggable ) of
         ( Just id, Just onDraggable ) ->
             Decode.succeed <| Start <| DraggedItem id cursor onDraggable
 
@@ -238,17 +258,17 @@ startEvent { startBeaconId, cursorOnDraggable } cursor =
 -- MOVEMENT
 
 
-dragMove : Set Int -> DragData -> DragState -> Transition
-dragMove dropBeaconIds data dragState =
+dragMove : DragData dropId -> DragState dragId dropId -> Transition dragId dropId
+dragMove data dragState =
     let
-        move : DraggedItem -> DraggedItem
+        move : DraggedItem dragId -> DraggedItem dragId
         move draggedItem =
             { draggedItem | cursorOnScreen = data.cursor }
     in
     DragMove <|
         case
             ( getDraggedItem dragState
-            , nearestBeaconId dropBeaconIds data
+            , nearestBeaconId data
             )
         of
             ( Nothing, _ ) ->
@@ -261,7 +281,7 @@ dragMove dropBeaconIds data dragState =
                 Hovering <| HoverState (move draggedItem) dropBeaconId
 
 
-getDraggedItem : DragState -> Maybe DraggedItem
+getDraggedItem : DragState dragId dropId -> Maybe (DraggedItem dragId)
 getDraggedItem dragState =
     case dragState of
         NotDragging ->
@@ -274,28 +294,22 @@ getDraggedItem dragState =
             Just draggedItem
 
 
-nearestBeaconId : Set Int -> DragData -> Maybe Int
-nearestBeaconId beaconIds data =
+nearestBeaconId : DragData dropId -> Maybe dropId
+nearestBeaconId data =
     -- TODO use a range instead of bound
-    nearestBeacon beaconIds data
+    nearestBeacon data
         |> Common.keepIf (\beacon -> Geom.bounds beacon.box data.cursor)
         |> Maybe.map .beaconId
 
 
-nearestBeacon : Set Int -> DragData -> Maybe BeaconBox
-nearestBeacon beaconIds { cursor, beacons } =
+nearestBeacon : DragData dropId -> Maybe (BeaconBox dropId)
+nearestBeacon { cursor, beacons } =
     let
-        keep : BeaconBox -> Bool
-        keep beacon =
-            Set.member beacon.beaconId beaconIds
-
-        distanceFromCursor : BeaconBox -> Float
+        distanceFromCursor : BeaconBox dropId -> Float
         distanceFromCursor =
             .box >> Geom.center >> Geom.distance cursor
     in
-    beacons
-        |> List.filter keep
-        |> Common.minimumBy distanceFromCursor
+    Common.minimumBy distanceFromCursor beacons
 
 
 attribute : Int -> Element.Attribute msg

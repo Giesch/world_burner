@@ -9,6 +9,7 @@ module LifeBlock exposing
 
 import Beacon
 import Common
+import Creation.BeaconId as BeaconId exposing (DragBeaconId, DropBeaconId)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -27,7 +28,7 @@ type LifeBlock
 
 type alias BlockData =
     { path : Lifepath
-    , beaconId : Int
+    , beaconId : DragBeaconId
     }
 
 
@@ -36,12 +37,12 @@ paths (LifeBlock list) =
     NonEmpty.map .path list
 
 
-beaconId : LifeBlock -> Int
+beaconId : LifeBlock -> DragBeaconId
 beaconId (LifeBlock ( data, _ )) =
     data.beaconId
 
 
-singleton : Lifepath -> Int -> LifeBlock
+singleton : Lifepath -> DragBeaconId -> LifeBlock
 singleton path id =
     LifeBlock <| NonEmpty.singleton { path = path, beaconId = id }
 
@@ -60,7 +61,7 @@ type SplitResult a
     | NotFound
 
 
-splitUntil : LifeBlock -> Int -> SplitResult LifeBlock
+splitUntil : LifeBlock -> DragBeaconId -> SplitResult LifeBlock
 splitUntil ((LifeBlock ( first, rest )) as original) id =
     case Common.splitUntil (\block -> block.beaconId == id) (first :: rest) of
         Nothing ->
@@ -75,7 +76,7 @@ splitUntil ((LifeBlock ( first, rest )) as original) id =
 
 type alias ViewOptions msg =
     { baseAttrs : List (Attribute msg)
-    , dropBeaconId : Maybe Int
+    , dropBeaconId : Maybe DropBeaconId
     , onDelete : Maybe msg
     }
 
@@ -86,7 +87,7 @@ view { baseAttrs, dropBeaconId, onDelete } (LifeBlock data) =
         attrs =
             case dropBeaconId of
                 Just id ->
-                    Beacon.attribute id :: baseAttrs
+                    BeaconId.dropAttribute id :: baseAttrs
 
                 Nothing ->
                     baseAttrs

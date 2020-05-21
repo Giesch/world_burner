@@ -12,6 +12,7 @@ module Lifepath exposing
 import Beacon
 import Colors exposing (..)
 import Common
+import Creation.BeaconId as BeaconId exposing (DragBeaconId, DropBeaconId)
 import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
@@ -154,7 +155,7 @@ lifepathWidth =
     Element.px 300
 
 
-view : Lifepath -> { withBeacon : Maybe Int } -> Element msg
+view : Lifepath -> { withBeacon : Maybe DragBeaconId } -> Element msg
 view lifepath { withBeacon } =
     let
         defaultAttrs : List (Attribute msg)
@@ -173,7 +174,7 @@ view lifepath { withBeacon } =
         attrs =
             case withBeacon of
                 Just beaconId ->
-                    Beacon.attribute beaconId :: defaultAttrs
+                    BeaconId.dragAttribute beaconId :: defaultAttrs
 
                 Nothing ->
                     defaultAttrs
