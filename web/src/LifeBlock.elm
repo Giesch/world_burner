@@ -1,10 +1,12 @@
 module LifeBlock exposing
     ( BlockData
     , LifeBlock
+    , append
     , beaconId
     , paths
     , singleton
     , view
+    , withBenchIndex
     )
 
 import Beacon
@@ -28,6 +30,8 @@ type LifeBlock
 
 type alias BlockData =
     { path : Lifepath
+
+    -- TODO remove this and add it to a view record type
     , beaconId : DragBeaconId
     }
 
@@ -47,12 +51,25 @@ singleton path id =
     LifeBlock <| NonEmpty.singleton { path = path, beaconId = id }
 
 
-{-| TODO should this module do validation when joining lists?
-ie return an either
+{-| TODO replace this with a split between a LifeBlock (no id) and a LifeBlockView (with id)
 -}
-append : LifeBlock -> LifeBlock -> LifeBlock
-append (LifeBlock left) (LifeBlock right) =
-    LifeBlock <| NonEmpty.append left right
+withBenchIndex : Int -> LifeBlock -> LifeBlock
+withBenchIndex benchIndex (LifeBlock list) =
+    let
+        makeId blockIndex =
+            BeaconId.benchDragId <| { benchIndex = benchIndex, blockIndex = blockIndex }
+    in
+    LifeBlock <|
+        NonEmpty.indexedMap
+            (\i data -> { data | beaconId = makeId i })
+            list
+
+
+{-| TODO should this module do validation when joining lists? ie return a result
+-}
+append : Int -> LifeBlock -> LifeBlock -> LifeBlock
+append benchIndex (LifeBlock left) (LifeBlock right) =
+    withBenchIndex benchIndex <| LifeBlock <| NonEmpty.append left right
 
 
 type SplitResult a

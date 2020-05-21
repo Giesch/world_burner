@@ -3,15 +3,18 @@ module Creation.BeaconId exposing
     , DragBeaconLocation(..)
     , DropBeaconId
     , DropBeaconLocation(..)
+    , afterSlotDropId
+    , beforeSlotDropId
+    , benchDragId
     , dragAttribute
-    , dragBeaconId
     , dragIdFromInt
     , dragLocation
     , dropAttribute
-    , dropBeaconId
     , dropIdFromInt
+    , dropLocation
     , isDropBeaconId
-    , staticOpenSlot
+    , openSlotDropId
+    , sidebarDragId
     )
 
 import Beacon
@@ -32,10 +35,11 @@ type DragBeaconId
 -}
 type DragBeaconLocation
     = Sidebar Int
-    | Bench
-        { benchIndex : Int
-        , blockIndex : Int
-        }
+    | Bench BenchLocation
+
+
+type alias BenchLocation =
+    { benchIndex : Int, blockIndex : Int }
 
 
 {-| An opaque and deterministic location-based id for a drop area
@@ -58,18 +62,51 @@ type DropBeaconLocation
     | After Int
 
 
-{-| Creates a deterministic id for the given location on the Creation page
+{-| Creates a deterministic id for the given bench location on the Creation page
 -}
-dragBeaconId : DragBeaconLocation -> DragBeaconId
-dragBeaconId location =
-    case location of
-        Bench { benchIndex, blockIndex } ->
-            -- this uses the id range 0 through 99
-            DragBeaconId (benchIndex * 10 + blockIndex)
+benchDragId : BenchLocation -> DragBeaconId
+benchDragId { benchIndex, blockIndex } =
+    -- TODO this should check that indexes are less than 10 and return a result
+    -- this uses the id range 0 through 99
+    DragBeaconId (benchIndex * 10 + blockIndex)
 
-        Sidebar sidebarIndex ->
-            -- this uses the id range 100+
-            DragBeaconId (100 + sidebarIndex)
+
+{-| Creates a deterministic id for the given sidebar index on the Creation page
+-}
+sidebarDragId : Int -> DragBeaconId
+sidebarDragId sidebarIndex =
+    -- this uses the id range 100+
+    DragBeaconId (100 + sidebarIndex)
+
+
+{-| Creates a deterministic id for an open slot on the Creation page
+The bench index must be between 0 and 9 inclusive
+-}
+openSlotDropId : Int -> DropBeaconId
+openSlotDropId benchIndex =
+    -- TODO this should check that indexes are less than 10 and return a result
+    -- this uses the id range -1 through -10
+    DropBeaconId ((benchIndex + 1) * -1)
+
+
+{-| Creates a deterministic id for the area before/above a slot on the Creation page
+The bench index must be between 0 and 9 inclusive
+-}
+beforeSlotDropId : Int -> DropBeaconId
+beforeSlotDropId benchIndex =
+    -- TODO this should check that indexes are less than 10 and return a result
+    -- this uses the id range -11 through -20
+    DropBeaconId ((benchIndex + 11) * -1)
+
+
+{-| Creates a deterministic id for the area below/after a slot on the Creation page
+The bench index must be between 0 and 9 inclusive
+-}
+afterSlotDropId : Int -> DropBeaconId
+afterSlotDropId benchIndex =
+    -- TODO this should check that indexes are less than 10 and return a result
+    -- this uses the id range -21 through -30
+    DropBeaconId ((benchIndex + 21) * -1)
 
 
 dragLocation : DragBeaconId -> DragBeaconLocation
@@ -84,6 +121,19 @@ dragLocation (DragBeaconId id) =
         Sidebar (id - 100)
 
 
+dropLocation : DropBeaconId -> DropBeaconLocation
+dropLocation (DropBeaconId id) =
+    if id < 0 && id >= -10 then
+        Open ((id * -1) - 1)
+
+    else if id < -10 && id >= -20 then
+        Before ((id * -1) - 11)
+
+    else
+        -- This relies on the range check in dropIdFromInt
+        After ((id * -1) - 21)
+
+
 tensPlace : Int -> Int
 tensPlace n =
     if n >= 0 then
@@ -91,24 +141,6 @@ tensPlace n =
 
     else
         -1 * tensPlace -n
-
-
-{-| Creates a deterministic id for the given location on the Creation page
--}
-dropBeaconId : DropBeaconLocation -> DropBeaconId
-dropBeaconId location =
-    case location of
-        Open index ->
-            -- this uses the id range -1 through -10
-            DropBeaconId ((index + 1) * -1)
-
-        Before index ->
-            -- this uses the id range -11 through -20
-            DropBeaconId ((index + 11) * -1)
-
-        After index ->
-            -- this uses the id range -21 through -30
-            DropBeaconId ((index + 21) * -1)
 
 
 dragAttribute : DragBeaconId -> Element.Attribute msg
@@ -137,15 +169,8 @@ dragIdFromInt id =
 
 dropIdFromInt : Int -> Maybe DropBeaconId
 dropIdFromInt id =
-    if id < 0 then
+    if id < 0 && id >= -30 then
         Just <| DropBeaconId id
 
     else
         Nothing
-
-
-{-| TODO replace this
--}
-staticOpenSlot : DropBeaconId
-staticOpenSlot =
-    DropBeaconId -1
