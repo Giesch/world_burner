@@ -95,12 +95,17 @@ type alias ViewOptions msg =
     { baseAttrs : List (Attribute msg)
     , dropBeaconId : Maybe DropBeaconId
     , onDelete : Maybe msg
+    , benchIndex : Int
     }
 
 
 view : ViewOptions msg -> LifeBlock -> Element msg
-view { baseAttrs, dropBeaconId, onDelete } (LifeBlock data) =
+view { baseAttrs, dropBeaconId, onDelete, benchIndex } (LifeBlock data) =
     let
+        dropZone id =
+            el (BeaconId.dropAttribute id :: Border.width 1 :: baseAttrs)
+                (el [ centerX, centerY ] <| text "+")
+
         attrs =
             case dropBeaconId of
                 Just id ->
@@ -108,12 +113,17 @@ view { baseAttrs, dropBeaconId, onDelete } (LifeBlock data) =
 
                 Nothing ->
                     baseAttrs
+
+        middle =
+            Input.button [ alignRight ]
+                { onPress = onDelete
+                , label = text "X"
+                }
+                :: List.map
+                    (\d -> Lifepath.view d.path { withBeacon = Just d.beaconId })
+                    (NonEmpty.toList <| data)
     in
     column attrs <|
-        Input.button [ alignRight ]
-            { onPress = onDelete
-            , label = text "X"
-            }
-            :: List.map
-                (\d -> Lifepath.view d.path { withBeacon = Just d.beaconId })
-                (NonEmpty.toList <| data)
+        dropZone (BeaconId.beforeSlotDropId benchIndex)
+            :: middle
+            ++ [ dropZone <| BeaconId.afterSlotDropId benchIndex ]

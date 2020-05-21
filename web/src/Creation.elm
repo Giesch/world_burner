@@ -108,7 +108,12 @@ update msg model =
             ( { model | dragState = Beacon.NotDragging }, Cmd.none )
 
         DragMsg (Beacon.Drop hoverState) ->
-            ( dropDraggedBlock model hoverState, Cmd.none )
+            case dropDraggedBlock model hoverState of
+                Ok newModel ->
+                    ( newModel, Cmd.none )
+
+                Err oops ->
+                    Debug.todo "display an error or something"
 
         DeleteBenchBlock benchIndex ->
             ( deleteBenchBlock model benchIndex, Cmd.none )
@@ -182,7 +187,7 @@ pickup model draggedItem =
             Debug.todo "oops"
 
 
-dropDraggedBlock : Model -> HoverState DragBeaconId DropBeaconId -> Model
+dropDraggedBlock : Model -> HoverState DragBeaconId DropBeaconId -> Result InvalidModel Model
 dropDraggedBlock model { draggedItem, hoveredDropBeacon } =
     let
         cleanBench : Array (Maybe LifeBlock)
@@ -202,38 +207,42 @@ dropDraggedBlock model { draggedItem, hoveredDropBeacon } =
                 , dragState = Beacon.NotDragging
                 , dragCache = Nothing
             }
+
+        getHoveredBlock : Int -> Result InvalidModel LifeBlock
+        getHoveredBlock benchIndex =
+            case Array.get benchIndex model.benchBlocks of
+                Just (Just hoveredBlock) ->
+                    Ok hoveredBlock
+
+                Just Nothing ->
+                    Err InvalidDragState
+
+                Nothing ->
+                    Err BoundsError
+
+        dropLifeBlock : Int -> (LifeBlock -> LifeBlock) -> Result InvalidModel Model
+        dropLifeBlock benchIndex transformHoveredBlock =
+            getHoveredBlock benchIndex
+                |> Result.map transformHoveredBlock
+                |> Result.map (doDrop benchIndex)
     in
     case ( lookupDragged model draggedItem.beaconId, BeaconId.dropLocation hoveredDropBeacon ) of
-        ( Ok (Just lifeblock), BeaconId.Open benchIndex ) ->
-            doDrop benchIndex <| LifeBlock.withBenchIndex benchIndex lifeblock
+        ( Ok (Just lifeblock), BeaconId.Open dropBenchIndex ) ->
+            Ok <| doDrop dropBenchIndex <| LifeBlock.withBenchIndex dropBenchIndex lifeblock
 
-        ( Ok (Just lifeblock), BeaconId.Before benchIndex ) ->
-            case Array.get benchIndex model.benchBlocks of
-                Just (Just hoveredBlock) ->
-                    doDrop benchIndex <| LifeBlock.append benchIndex lifeblock hoveredBlock
+        ( Ok (Just lifeblock), BeaconId.Before dropBenchIndex ) ->
+            dropLifeBlock dropBenchIndex <|
+                \hoveredBlock -> LifeBlock.append dropBenchIndex lifeblock hoveredBlock
 
-                Just Nothing ->
-                    Debug.todo "invalid model"
-
-                Nothing ->
-                    Debug.todo "out of bounds"
-
-        ( Ok (Just lifeblock), BeaconId.After benchIndex ) ->
-            case Array.get benchIndex model.benchBlocks of
-                Just (Just hoveredBlock) ->
-                    doDrop benchIndex <| LifeBlock.append benchIndex hoveredBlock lifeblock
-
-                Just Nothing ->
-                    Debug.todo "invalid model"
-
-                Nothing ->
-                    Debug.todo "out of bounds"
+        ( Ok (Just lifeblock), BeaconId.After dropBenchIndex ) ->
+            dropLifeBlock dropBenchIndex <|
+                \hoveredBlock -> LifeBlock.append dropBenchIndex hoveredBlock lifeblock
 
         ( Ok Nothing, _ ) ->
-            Debug.todo "invalid drag state"
+            Err InvalidDragState
 
-        ( Err _, _ ) ->
-            Debug.todo "kaboom"
+        ( Err oops, _ ) ->
+            Err oops
 
 
 {-| Look up a lifeblock in the model by its drag id (aka its original location).
@@ -397,7 +406,7 @@ view model =
         Ok viewedModel ->
             row [ width fill, height fill, scrollbarY, spacing 40 ]
                 [ viewSidebar viewedModel
-                , viewMainArea
+                , viewWorkBench
                     viewedModel.benchBlocks
                     (getHoverState viewedModel.dragState)
                 , viewDraggedBlock viewedModel.draggedLifeBlock
@@ -417,8 +426,8 @@ getHoverState dragState =
             Nothing
 
 
-viewMainArea : Array (Maybe LifeBlock) -> Maybe HoverBeaconsView -> Element Msg
-viewMainArea slots hover =
+viewWorkBench : Array (Maybe LifeBlock) -> Maybe HoverBeaconsView -> Element Msg
+viewWorkBench slots hover =
     let
         viewSlot i block =
             case block of
@@ -477,6 +486,7 @@ viewLifeBlock benchIndex dropBeaconId block =
         { baseAttrs = slotAttrs
         , dropBeaconId = dropBeaconId
         , onDelete = Just <| DeleteBenchBlock benchIndex
+        , benchIndex = benchIndex
         }
         lifeBlockView
 
