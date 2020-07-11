@@ -2,9 +2,9 @@ use rocket::http::uri;
 use rocket::response::NamedFile;
 use std::path::Path;
 
-const INDEX_HTML_PATH: &str = "../web/index.html";
-const ELM_JS_PATH: &str = "../web/elm.js";
-const DRAGGABLE_JS_PATH: &str = "../web/draggable.js";
+const INDEX_HTML_PATH: &str = "./web/index.html";
+const ELM_JS_PATH: &str = "./web/elm.js";
+const DRAGGABLE_JS_PATH: &str = "./web/draggable.js";
 
 #[get("/")]
 pub fn index() -> Option<NamedFile> {
