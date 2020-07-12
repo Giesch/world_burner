@@ -27,7 +27,8 @@ type LifeBlock
     = LifeBlock (NonEmpty BlockData)
 
 
-{-| A lifepath and a drag beacon id. Dragging a lifepath should also drag the tail of the block.
+{-| A lifepath and a drag beacon id.
+Dragging a lifepath should also drag the tail of the block.
 -}
 type alias BlockData =
     { path : Lifepath
@@ -42,6 +43,7 @@ paths (LifeBlock list) =
 
 beaconId : LifeBlock -> DragBeaconId
 beaconId (LifeBlock ( data, _ )) =
+    -- TODO rename this primary/first beacon id
     data.beaconId
 
 
@@ -74,7 +76,7 @@ type SplitResult a
 
 
 splitUntil : LifeBlock -> DragBeaconId -> SplitResult LifeBlock
-splitUntil ((LifeBlock ( first, rest )) as original) id =
+splitUntil (LifeBlock ( first, rest )) id =
     case Common.splitUntil (\block -> block.beaconId == id) (first :: rest) of
         Nothing ->
             NotFound

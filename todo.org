@@ -35,13 +35,17 @@ on drop
   if valid & sidebar block, do the merge or add the slot
   if valid & bench block, do the mrege or add the slot, and clean up the original
 
-* TODO get drag and drop working
+* TODO get basic drag and drop working
 ** DONE clean up the source lifeblock when it's dropped before/after its own slot
-** TODO consider changing from dropzones to drop range
-** TODO validation on hover?
 ** TODO split on drag
-should be able to reorder a pair of lifepaths in a block
 should be able to arbitrarily split off a new block
+should be able to reorder lifepaths within a block
+* TODO drag and drop validation
+** TODO validation in place
+- [ ] missing lifepath requirement
+- [ ] missing born lifepath
+** TODO validation on hover
+- [ ] missing setting lead
 * TODO get a minimal version of the app running
   - [ ] sequentially picking lifepaths
     - [ ] get dnd working; able to drop first lifepath of a new block

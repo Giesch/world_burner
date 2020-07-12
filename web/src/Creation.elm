@@ -1,6 +1,7 @@
 module Creation exposing (..)
 
-import Api exposing (ApiResult, noFilters, withBorn)
+import Api exposing (ApiResult)
+import Api.LifepathFilter as LifepathFilter exposing (LifepathFilter)
 import Array exposing (Array)
 import Beacon exposing (DragData, HoverState)
 import Colors exposing (..)
@@ -34,7 +35,7 @@ import Trait exposing (Trait)
 
 type alias Model =
     { session : Session
-    , searchFilters : Api.LifepathFilters
+    , searchFilter : LifepathFilter
     , sidebarLifepaths : Status (Array Lifepath)
     , benchBlocks : Array (Maybe LifeBlock)
     , dragState : Beacon.DragState DragBeaconId DropBeaconId
@@ -51,24 +52,25 @@ type Status a
 init : Session -> ( Model, Cmd Msg )
 init session =
     let
-        searchFilters : Api.LifepathFilters
-        searchFilters =
-            { noFilters | born = Just True }
+        searchFilter : LifepathFilter
+        searchFilter =
+            LifepathFilter.none
+                |> LifepathFilter.withBorn (Just True)
     in
     ( { session = session
-      , searchFilters = searchFilters
+      , searchFilter = searchFilter
       , sidebarLifepaths = Loading
       , benchBlocks = Array.repeat 4 Nothing
       , dragState = Beacon.NotDragging
       , dragCache = Nothing
       }
-    , fetchLifepaths searchFilters
+    , fetchLifepaths searchFilter
     )
 
 
-fetchLifepaths : Api.LifepathFilters -> Cmd Msg
-fetchLifepaths searchFilters =
-    Api.listLifepaths GotLifepaths searchFilters
+fetchLifepaths : LifepathFilter -> Cmd Msg
+fetchLifepaths searchFilter =
+    Api.listLifepaths GotLifepaths searchFilter
 
 
 
@@ -120,8 +122,8 @@ update msg model =
 
         EnteredSearchText input ->
             let
-                searchFilters =
-                    model.searchFilters
+                searchFilter =
+                    model.searchFilter
 
                 searchTerm =
                     if String.length input > 0 then
@@ -130,31 +132,35 @@ update msg model =
                     else
                         Nothing
             in
-            ( { model | searchFilters = { searchFilters | searchTerm = searchTerm } }
+            ( { model
+                | searchFilter =
+                    { searchFilter | searchTerm = searchTerm }
+              }
             , beginSearchDebounce input
             )
 
         SearchTimePassed searchTerm ->
             ( model
-            , maybeSearch searchTerm model.searchFilters
+            , maybeSearch searchTerm model.searchFilter
             )
 
         ClickedBornCheckbox checked ->
             let
-                searchFilters =
-                    withBorn model.searchFilters <|
-                        if checked then
-                            Just True
+                born =
+                    if checked then
+                        Just True
 
-                        else
-                            Nothing
+                    else
+                        Nothing
+
+                searchFilter =
+                    LifepathFilter.withBorn born model.searchFilter
             in
-            ( { model | searchFilters = searchFilters }
-            , fetchLifepaths searchFilters
+            ( { model | searchFilter = searchFilter }
+            , fetchLifepaths searchFilter
             )
 
         DragMsg Beacon.NoOp ->
-            -- TODO remove/flatten this
             ( model, Cmd.none )
 
         NoOp ->
@@ -163,7 +169,7 @@ update msg model =
 
 letGo : Model -> Model
 letGo model =
-    { model | dragState = Beacon.NotDragging }
+    { model | dragState = Beacon.NotDragging, dragCache = Nothing }
 
 
 deleteBenchBlock : Model -> Int -> Model
@@ -177,14 +183,11 @@ deleteBenchBlock model benchIndex =
 pickup : Model -> Beacon.DraggedItem DragBeaconId -> Model
 pickup model draggedItem =
     case lookupDragged model draggedItem.beaconId of
-        Ok (Just lifeblock) ->
+        Ok lifeblock ->
             { model
                 | dragState = Beacon.Dragging draggedItem
                 , dragCache = Just lifeblock
             }
-
-        Ok Nothing ->
-            Debug.todo "kaboom"
 
         Err _ ->
             Debug.todo "oops"
@@ -197,7 +200,7 @@ dropDraggedBlock model { draggedItem, hoveredDropBeacon } =
         cleanBench =
             case BeaconId.dragLocation draggedItem.beaconId of
                 BeaconId.Bench { benchIndex } ->
-                    -- TODO clean up with split
+                    -- TODO this needs to handle splitting
                     Array.set benchIndex Nothing model.benchBlocks
 
                 BeaconId.Sidebar _ ->
@@ -224,40 +227,46 @@ dropDraggedBlock model { draggedItem, hoveredDropBeacon } =
                 |> Result.map (Maybe.withDefault <| letGo model)
     in
     case ( lookupDragged model draggedItem.beaconId, BeaconId.dropLocation hoveredDropBeacon ) of
-        ( Ok (Just lifeblock), BeaconId.Open dropBenchIndex ) ->
+        ( Ok lifeblock, BeaconId.Open dropBenchIndex ) ->
             Ok <| doDrop dropBenchIndex <| LifeBlock.withBenchIndex dropBenchIndex lifeblock
 
-        ( Ok (Just lifeblock), BeaconId.Before dropBenchIndex ) ->
+        ( Ok lifeblock, BeaconId.Before dropBenchIndex ) ->
             dropLifeBlock dropBenchIndex <|
                 \hoveredBlock -> LifeBlock.append dropBenchIndex lifeblock hoveredBlock
 
-        ( Ok (Just lifeblock), BeaconId.After dropBenchIndex ) ->
+        ( Ok lifeblock, BeaconId.After dropBenchIndex ) ->
             dropLifeBlock dropBenchIndex <|
                 \hoveredBlock -> LifeBlock.append dropBenchIndex hoveredBlock lifeblock
-
-        ( Ok Nothing, _ ) ->
-            Err InvalidDragState
 
         ( Err oops, _ ) ->
             Err oops
 
 
 {-| Look up a lifeblock in the model by its drag id (aka its original location).
-Returning nothing signifies an error.
 -}
-lookupDragged : Model -> DragBeaconId -> Result InvalidModel (Maybe LifeBlock)
-lookupDragged { benchBlocks, sidebarLifepaths, dragCache } dragId =
+lookupDragged : Model -> DragBeaconId -> Result InvalidModel LifeBlock
+lookupDragged ({ benchBlocks, sidebarLifepaths, dragCache } as model) dragId =
     case dragCache of
-        Just cachedValue ->
-            -- TODO this should validate the id
-            Ok <| Just cachedValue
+        Just cachedBlock ->
+            if LifeBlock.beaconId cachedBlock == dragId then
+                Ok cachedBlock
+
+            else
+                lookupDragged { model | dragCache = Nothing } dragId
 
         Nothing ->
             case BeaconId.dragLocation dragId of
                 BeaconId.Bench { benchIndex, blockIndex } ->
-                    -- TODO split the block
-                    Array.get benchIndex benchBlocks
-                        |> Result.fromMaybe BoundsError
+                    -- TODO this needs to handle splitting
+                    case Array.get benchIndex benchBlocks of
+                        Just (Just block) ->
+                            Ok block
+
+                        Just Nothing ->
+                            Err InvalidDragState
+
+                        Nothing ->
+                            Err BoundsError
 
                 BeaconId.Sidebar sidebarIndex ->
                     case sidebarLifepaths of
@@ -265,20 +274,19 @@ lookupDragged { benchBlocks, sidebarLifepaths, dragCache } dragId =
                             Array.get sidebarIndex paths
                                 |> Maybe.map (\path -> LifeBlock.singleton path dragId)
                                 |> Result.fromMaybe BoundsError
-                                |> Result.map Just
 
                         _ ->
                             Err InvalidDragState
 
 
-maybeSearch : String -> Api.LifepathFilters -> Cmd Msg
-maybeSearch oldInput searchFilters =
+maybeSearch : String -> LifepathFilter -> Cmd Msg
+maybeSearch oldInput searchFilter =
     let
         shouldSearch val =
             String.length val >= 2 && val == oldInput
     in
-    if Maybe.map shouldSearch searchFilters.searchTerm == Just True then
-        fetchLifepaths searchFilters
+    if Maybe.map shouldSearch searchFilter.searchTerm == Just True then
+        fetchLifepaths searchFilter
 
     else
         Cmd.none
@@ -294,11 +302,9 @@ beginSearchDebounce input =
 -- VIEW
 
 
-{-| TODO can this be removed now?
--}
 type alias ModelView =
     { session : Session
-    , searchFilters : Api.LifepathFilters
+    , searchFilter : LifepathFilter
     , dragState : DragStateView
     , benchBlocks : Array (Maybe LifeBlock)
     , sidebarLifepaths : Status (Array Lifepath)
@@ -318,7 +324,7 @@ modelView model =
     Result.map4
         (\dragState sidebarLifepaths benchBlocks draggedLifeBlock ->
             { session = model.session
-            , searchFilters = model.searchFilters
+            , searchFilter = model.searchFilter
             , dragState = dragState
             , benchBlocks = benchBlocks
             , sidebarLifepaths = sidebarLifepaths
@@ -334,10 +340,17 @@ modelView model =
 lookupDraggedBlock : Model -> Result InvalidModel (Maybe DraggedLifeBlock)
 lookupDraggedBlock model =
     let
+        draggedLifeBlock : Beacon.DraggedItem DragBeaconId -> LifeBlock -> DraggedLifeBlock
+        draggedLifeBlock draggedItem lifeBlock =
+            { lifeBlock = lifeBlock
+            , cursorOnScreen = draggedItem.cursorOnScreen
+            , cursorOnDraggable = draggedItem.cursorOnDraggable
+            }
+
         validate : Beacon.DraggedItem DragBeaconId -> LifeBlock -> Result InvalidModel (Maybe DraggedLifeBlock)
-        validate draggedItem block =
-            if draggedItem.beaconId == LifeBlock.beaconId block then
-                Ok <| Just <| DraggedLifeBlock block draggedItem.cursorOnScreen draggedItem.cursorOnDraggable
+        validate draggedItem lifeBlock =
+            if draggedItem.beaconId == LifeBlock.beaconId lifeBlock then
+                Ok <| Just <| draggedLifeBlock draggedItem lifeBlock
 
             else
                 Err InvalidDragState
@@ -364,16 +377,12 @@ type DragStateView
 
 type alias HoverBeaconsView =
     { dragBeacon : LifeBlock
-
-    -- TODO keep data of where the drop is here
     , dropBeacon : BeaconId.DropBeaconLocation
     }
 
 
 lookupDragState : Model -> Result InvalidModel DragStateView
 lookupDragState { dragState, dragCache } =
-    -- TODO this just trusts the cache; factor out/reuse the validate function
-    -- or just delete the whole modelview thing
     case ( dragState, dragCache ) of
         ( Beacon.NotDragging, _ ) ->
             Ok NotDraggingView
@@ -452,7 +461,6 @@ openSlot benchIndex hover =
     let
         beingHovered : Bool
         beingHovered =
-            -- TODO actually check the drop beacon
             Maybe.map (\state -> state.dropBeacon == BeaconId.Open benchIndex) hover
                 |> Maybe.withDefault False
 
@@ -506,7 +514,6 @@ slotAttrs =
 
 
 {-| Displays the hovering block at the users cursor
-TODO should this be in LifeBlock?
 -}
 viewDraggedBlock : Maybe DraggedLifeBlock -> Element Msg
 viewDraggedBlock maybeBlock =
@@ -535,6 +542,7 @@ viewDraggedBlock maybeBlock =
                     ++ Common.userSelectNone
                 )
             <|
+                -- TODO move this to LifeBlock module
                 List.map
                     (\path -> Lifepath.view path { withBeacon = Nothing })
                     (NonEmpty.toList <| LifeBlock.paths dragged.lifeBlock)
@@ -553,7 +561,7 @@ viewSidebar model =
         , Font.color Colors.white
         , spacing 20
         ]
-        [ viewLifepathSearch model.searchFilters
+        [ viewLifepathSearch model.searchFilter
         , viewSidebarLifepaths model.sidebarLifepaths
         ]
 
@@ -581,7 +589,7 @@ viewSidebarLifepaths sidebarLifepaths =
                 (Array.toList <| Array.indexedMap viewPath paths)
 
 
-viewLifepathSearch : Api.LifepathFilters -> Element Msg
+viewLifepathSearch : LifepathFilter -> Element Msg
 viewLifepathSearch { searchTerm, born } =
     column [ alignRight, padding 40, width fill ]
         [ bornCheckbox <| Maybe.withDefault False born
