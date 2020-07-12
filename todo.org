@@ -1,10 +1,3 @@
-* Big Reassess
-** send all lifepaths in a given 'book' at a time
-this could be a big ball of json; need paging
-or bake in the real ones to a static site
-** make a nicer to use version of onhover from the beginning
-translate the 'real' model into a denormalized intermediate view model
-
 * How to handle moving dragged block on hover
 store a custom DragState
   variants:
@@ -43,21 +36,9 @@ on drop
   if valid & bench block, do the mrege or add the slot, and clean up the original
 
 * TODO get drag and drop working
-** TODO i can drop other lifepaths before or after a benchblock
-*** TODO need to implement move on drag vs copy on drag
-should just go by the type of the beaconT; no change to draggable.js
-'disable' the dragged block, but leave it in place
-disable the whole slot it's from
-*** TODO show the whole list in viewFragment
-** TODO when dragging lifeblocks, do we move on pickup or on drop?
-which is easier to understand?
-which is easier to implement?
-if move on pickup, need to store where to put it back
-    (or just the old model? ie und
-*** TODO consider changing from dropzones to drop range
-how to display that?
-highlight the place where it'll go on hover in some way
-*** TODO validation?
+** DONE clean up the source lifeblock when it's dropped before/after its own slot
+** TODO consider changing from dropzones to drop range
+** TODO validation on hover?
 ** TODO split on drag
 should be able to reorder a pair of lifepaths in a block
 should be able to arbitrarily split off a new block
@@ -190,5 +171,5 @@ ie normalize the model
 ** TODO handle the errors from draggable.js in decodeDragEvents
 ** TODO add on-hover text explaining the ui
 ** TODO add a util/common module with flipped dict lookup
-
-
+** TODO use a static site generator and load the book lifepaths at build time
+** TODO do all filtering and searching of lifepaths on the client side

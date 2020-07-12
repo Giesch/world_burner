@@ -7,6 +7,7 @@ module Api exposing
     , ServerError
     , listLifepaths
     , noFilters
+    , withBorn
     )
 
 import Http
@@ -40,6 +41,11 @@ noFilters =
     , settingIds = Nothing
     , searchTerm = Nothing
     }
+
+
+withBorn : LifepathFilters -> Maybe Bool -> LifepathFilters
+withBorn filters born =
+    { filters | born = born }
 
 
 encodeLifepathFilters : LifepathFilters -> Encode.Value

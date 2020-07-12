@@ -1,6 +1,6 @@
 module Creation exposing (..)
 
-import Api exposing (ApiResult, noFilters)
+import Api exposing (ApiResult, noFilters, withBorn)
 import Array exposing (Array)
 import Beacon exposing (DragData, HoverState)
 import Colors exposing (..)
@@ -105,7 +105,7 @@ update msg model =
             ( { model | dragState = dragState }, Cmd.none )
 
         DragMsg (Beacon.LetGo draggedItem) ->
-            ( { model | dragState = Beacon.NotDragging }, Cmd.none )
+            ( letGo model, Cmd.none )
 
         DragMsg (Beacon.Drop hoverState) ->
             case dropDraggedBlock model hoverState of
@@ -141,15 +141,13 @@ update msg model =
 
         ClickedBornCheckbox checked ->
             let
-                updateFilters filters =
-                    if checked then
-                        { filters | born = Just True }
-
-                    else
-                        { filters | born = Nothing }
-
                 searchFilters =
-                    updateFilters model.searchFilters
+                    withBorn model.searchFilters <|
+                        if checked then
+                            Just True
+
+                        else
+                            Nothing
             in
             ( { model | searchFilters = searchFilters }
             , fetchLifepaths searchFilters
@@ -161,6 +159,11 @@ update msg model =
 
         NoOp ->
             ( model, Cmd.none )
+
+
+letGo : Model -> Model
+letGo model =
+    { model | dragState = Beacon.NotDragging }
 
 
 deleteBenchBlock : Model -> Int -> Model
@@ -193,7 +196,7 @@ dropDraggedBlock model { draggedItem, hoveredDropBeacon } =
         cleanBench : Array (Maybe LifeBlock)
         cleanBench =
             case BeaconId.dragLocation draggedItem.beaconId of
-                BeaconId.Bench { benchIndex, blockIndex } ->
+                BeaconId.Bench { benchIndex } ->
                     -- TODO clean up with split
                     Array.set benchIndex Nothing model.benchBlocks
 
@@ -208,23 +211,17 @@ dropDraggedBlock model { draggedItem, hoveredDropBeacon } =
                 , dragCache = Nothing
             }
 
-        getHoveredBlock : Int -> Result InvalidModel LifeBlock
+        getHoveredBlock : Int -> Result InvalidModel (Maybe LifeBlock)
         getHoveredBlock benchIndex =
-            case Array.get benchIndex model.benchBlocks of
-                Just (Just hoveredBlock) ->
-                    Ok hoveredBlock
-
-                Just Nothing ->
-                    Err InvalidDragState
-
-                Nothing ->
-                    Err BoundsError
+            Array.get benchIndex cleanBench
+                |> Result.fromMaybe BoundsError
 
         dropLifeBlock : Int -> (LifeBlock -> LifeBlock) -> Result InvalidModel Model
         dropLifeBlock benchIndex transformHoveredBlock =
             getHoveredBlock benchIndex
-                |> Result.map transformHoveredBlock
-                |> Result.map (doDrop benchIndex)
+                |> Result.map (Maybe.map transformHoveredBlock)
+                |> Result.map (Maybe.map <| doDrop benchIndex)
+                |> Result.map (Maybe.withDefault <| letGo model)
     in
     case ( lookupDragged model draggedItem.beaconId, BeaconId.dropLocation hoveredDropBeacon ) of
         ( Ok (Just lifeblock), BeaconId.Open dropBenchIndex ) ->
@@ -477,14 +474,14 @@ openSlot benchIndex hover =
 
 
 viewLifeBlock : Int -> Maybe DropBeaconId -> LifeBlock -> Element Msg
-viewLifeBlock benchIndex dropBeaconId block =
+viewLifeBlock benchIndex dropBeaconOverride block =
     let
         lifeBlockView =
             LifeBlock.withBenchIndex benchIndex block
     in
     LifeBlock.view
         { baseAttrs = slotAttrs
-        , dropBeaconId = dropBeaconId
+        , dropBeaconOverride = dropBeaconOverride
         , onDelete = Just <| DeleteBenchBlock benchIndex
         , benchIndex = benchIndex
         }

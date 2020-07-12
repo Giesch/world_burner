@@ -22,16 +22,15 @@ import List.NonEmpty as NonEmpty exposing (NonEmpty)
 
 
 {-| A non-empty linked list of lifepaths with beacon ids.
-Each beacon id is considered to apply to the whole list tail.
 -}
 type LifeBlock
     = LifeBlock (NonEmpty BlockData)
 
 
+{-| A lifepath and a drag beacon id. Dragging a lifepath should also drag the tail of the block.
+-}
 type alias BlockData =
     { path : Lifepath
-
-    -- TODO remove this and add it to a view record type
     , beaconId : DragBeaconId
     }
 
@@ -51,8 +50,6 @@ singleton path id =
     LifeBlock <| NonEmpty.singleton { path = path, beaconId = id }
 
 
-{-| TODO replace this with a split between a LifeBlock (no id) and a LifeBlockView (with id)
--}
 withBenchIndex : Int -> LifeBlock -> LifeBlock
 withBenchIndex benchIndex (LifeBlock list) =
     let
@@ -65,8 +62,6 @@ withBenchIndex benchIndex (LifeBlock list) =
             list
 
 
-{-| TODO should this module do validation when joining lists? ie return a result
--}
 append : Int -> LifeBlock -> LifeBlock -> LifeBlock
 append benchIndex (LifeBlock left) (LifeBlock right) =
     withBenchIndex benchIndex <| LifeBlock <| NonEmpty.append left right
@@ -93,21 +88,25 @@ splitUntil ((LifeBlock ( first, rest )) as original) id =
 
 type alias ViewOptions msg =
     { baseAttrs : List (Attribute msg)
-    , dropBeaconId : Maybe DropBeaconId
+    , dropBeaconOverride : Maybe DropBeaconId -- used during hover
     , onDelete : Maybe msg
     , benchIndex : Int
     }
 
 
 view : ViewOptions msg -> LifeBlock -> Element msg
-view { baseAttrs, dropBeaconId, onDelete, benchIndex } (LifeBlock data) =
+view { baseAttrs, dropBeaconOverride, onDelete, benchIndex } (LifeBlock data) =
     let
         dropZone id =
             el (BeaconId.dropAttribute id :: Border.width 1 :: baseAttrs)
                 (el [ centerX, centerY ] <| text "+")
 
+        fakeDropZone =
+            el (Border.width 1 :: baseAttrs)
+                (el [ centerX, centerY ] <| text "+")
+
         attrs =
-            case dropBeaconId of
+            case dropBeaconOverride of
                 Just id ->
                     BeaconId.dropAttribute id :: baseAttrs
 
@@ -124,6 +123,11 @@ view { baseAttrs, dropBeaconId, onDelete, benchIndex } (LifeBlock data) =
                     (NonEmpty.toList <| data)
     in
     column attrs <|
-        dropZone (BeaconId.beforeSlotDropId benchIndex)
-            :: middle
-            ++ [ dropZone <| BeaconId.afterSlotDropId benchIndex ]
+        case dropBeaconOverride of
+            Just _ ->
+                fakeDropZone :: middle ++ [ fakeDropZone ]
+
+            Nothing ->
+                dropZone (BeaconId.beforeSlotDropId benchIndex)
+                    :: middle
+                    ++ [ dropZone <| BeaconId.afterSlotDropId benchIndex ]

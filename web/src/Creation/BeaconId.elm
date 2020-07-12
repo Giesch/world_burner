@@ -39,7 +39,9 @@ type DragBeaconLocation
 
 
 type alias BenchLocation =
-    { benchIndex : Int, blockIndex : Int }
+    { benchIndex : Int
+    , blockIndex : Int
+    }
 
 
 {-| An opaque and deterministic location-based id for a drop area
