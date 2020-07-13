@@ -193,53 +193,75 @@ pickup model draggedItem =
             Debug.todo "oops"
 
 
-dropDraggedBlock : Model -> HoverState DragBeaconId DropBeaconId -> Result InvalidModel Model
+dropDraggedBlock :
+    Model
+    -> HoverState DragBeaconId DropBeaconId
+    -> Result InvalidModel Model
 dropDraggedBlock model { draggedItem, hoveredDropBeacon } =
     let
-        cleanBench : Array (Maybe LifeBlock)
-        cleanBench =
+        benchAfterPickup : Result InvalidModel (Array (Maybe LifeBlock))
+        benchAfterPickup =
             case BeaconId.dragLocation draggedItem.beaconId of
-                BeaconId.Bench { benchIndex } ->
-                    -- TODO this needs to handle splitting
-                    Array.set benchIndex Nothing model.benchBlocks
-
                 BeaconId.Sidebar _ ->
-                    model.benchBlocks
+                    Ok model.benchBlocks
 
-        doDrop : Int -> LifeBlock -> Model
-        doDrop benchIndex block =
+                BeaconId.Bench { benchIndex, blockIndex } ->
+                    case Array.get benchIndex model.benchBlocks of
+                        Just Nothing ->
+                            Err InvalidDragState
+
+                        Nothing ->
+                            Err BoundsError
+
+                        Just (Just benchBlock) ->
+                            case LifeBlock.splitUntil benchBlock draggedItem.beaconId of
+                                LifeBlock.Whole _ ->
+                                    Ok <| Array.set benchIndex Nothing model.benchBlocks
+
+                                LifeBlock.Split ( left, right ) ->
+                                    Ok <| Array.set benchIndex (Just left) model.benchBlocks
+
+                                LifeBlock.NotFound ->
+                                    Err InvalidDragState
+
+        doDrop : Int -> Array (Maybe LifeBlock) -> LifeBlock -> Model
+        doDrop benchIndex bench block =
             { model
-                | benchBlocks = Array.set benchIndex (Just block) cleanBench
+                | benchBlocks = Array.set benchIndex (Just block) bench
                 , dragState = Beacon.NotDragging
                 , dragCache = Nothing
             }
 
-        getHoveredBlock : Int -> Result InvalidModel (Maybe LifeBlock)
-        getHoveredBlock benchIndex =
-            Array.get benchIndex cleanBench
+        transformAndDrop : Array (Maybe LifeBlock) -> Int -> (LifeBlock -> LifeBlock) -> Result InvalidModel Model
+        transformAndDrop bench benchIndex transform =
+            Array.get benchIndex bench
                 |> Result.fromMaybe BoundsError
-
-        dropLifeBlock : Int -> (LifeBlock -> LifeBlock) -> Result InvalidModel Model
-        dropLifeBlock benchIndex transformHoveredBlock =
-            getHoveredBlock benchIndex
-                |> Result.map (Maybe.map transformHoveredBlock)
-                |> Result.map (Maybe.map <| doDrop benchIndex)
+                |> Result.map (Maybe.map <| transform >> doDrop benchIndex bench)
                 |> Result.map (Maybe.withDefault <| letGo model)
     in
-    case ( lookupDragged model draggedItem.beaconId, BeaconId.dropLocation hoveredDropBeacon ) of
-        ( Ok lifeblock, BeaconId.Open dropBenchIndex ) ->
-            Ok <| doDrop dropBenchIndex <| LifeBlock.withBenchIndex dropBenchIndex lifeblock
-
-        ( Ok lifeblock, BeaconId.Before dropBenchIndex ) ->
-            dropLifeBlock dropBenchIndex <|
-                \hoveredBlock -> LifeBlock.append dropBenchIndex lifeblock hoveredBlock
-
-        ( Ok lifeblock, BeaconId.After dropBenchIndex ) ->
-            dropLifeBlock dropBenchIndex <|
-                \hoveredBlock -> LifeBlock.append dropBenchIndex hoveredBlock lifeblock
-
-        ( Err oops, _ ) ->
+    case benchAfterPickup of
+        Err oops ->
             Err oops
+
+        Ok cleanBench ->
+            case ( lookupDragged model draggedItem.beaconId, BeaconId.dropLocation hoveredDropBeacon ) of
+                ( Ok lifeBlock, BeaconId.Open dropBenchIndex ) ->
+                    let
+                        dropBlock =
+                            LifeBlock.withBenchIndex dropBenchIndex lifeBlock
+                    in
+                    Ok <| doDrop dropBenchIndex cleanBench dropBlock
+
+                ( Ok lifeBlock, BeaconId.Before dropBenchIndex ) ->
+                    transformAndDrop cleanBench dropBenchIndex <|
+                        \hoveredBlock -> LifeBlock.append dropBenchIndex lifeBlock hoveredBlock
+
+                ( Ok lifeBlock, BeaconId.After dropBenchIndex ) ->
+                    transformAndDrop cleanBench dropBenchIndex <|
+                        \hoveredBlock -> LifeBlock.append dropBenchIndex hoveredBlock lifeBlock
+
+                ( Err oops, _ ) ->
+                    Err oops
 
 
 {-| Look up a lifeblock in the model by its drag id (aka its original location).
@@ -248,7 +270,7 @@ lookupDragged : Model -> DragBeaconId -> Result InvalidModel LifeBlock
 lookupDragged ({ benchBlocks, sidebarLifepaths, dragCache } as model) dragId =
     case dragCache of
         Just cachedBlock ->
-            if LifeBlock.beaconId cachedBlock == dragId then
+            if LifeBlock.firstBeaconId cachedBlock == dragId then
                 Ok cachedBlock
 
             else
@@ -257,10 +279,17 @@ lookupDragged ({ benchBlocks, sidebarLifepaths, dragCache } as model) dragId =
         Nothing ->
             case BeaconId.dragLocation dragId of
                 BeaconId.Bench { benchIndex, blockIndex } ->
-                    -- TODO this needs to handle splitting
                     case Array.get benchIndex benchBlocks of
                         Just (Just block) ->
-                            Ok block
+                            case LifeBlock.splitUntil block dragId of
+                                LifeBlock.Whole resultBlock ->
+                                    Ok resultBlock
+
+                                LifeBlock.Split ( _, split ) ->
+                                    Ok split
+
+                                LifeBlock.NotFound ->
+                                    Err InvalidDragState
 
                         Just Nothing ->
                             Err InvalidDragState
@@ -349,7 +378,7 @@ lookupDraggedBlock model =
 
         validate : Beacon.DraggedItem DragBeaconId -> LifeBlock -> Result InvalidModel (Maybe DraggedLifeBlock)
         validate draggedItem lifeBlock =
-            if draggedItem.beaconId == LifeBlock.beaconId lifeBlock then
+            if draggedItem.beaconId == LifeBlock.firstBeaconId lifeBlock then
                 Ok <| Just <| draggedLifeBlock draggedItem lifeBlock
 
             else

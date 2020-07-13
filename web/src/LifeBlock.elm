@@ -1,10 +1,12 @@
 module LifeBlock exposing
     ( BlockData
     , LifeBlock
+    , SplitResult(..)
     , append
-    , beaconId
+    , firstBeaconId
     , paths
     , singleton
+    , splitUntil
     , view
     , withBenchIndex
     )
@@ -41,9 +43,8 @@ paths (LifeBlock list) =
     NonEmpty.map .path list
 
 
-beaconId : LifeBlock -> DragBeaconId
-beaconId (LifeBlock ( data, _ )) =
-    -- TODO rename this primary/first beacon id
+firstBeaconId : LifeBlock -> DragBeaconId
+firstBeaconId (LifeBlock ( data, _ )) =
     data.beaconId
 
 
