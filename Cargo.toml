@@ -30,4 +30,4 @@ features = ["diesel_postgres_pool", "json"]
 
 [dev-dependencies]
 mockall = "0.5.0"
-parking_lot = { version = "0.9", features = ["nightly"] }
+parking_lot = { version = "0.11", features = ["nightly"] }

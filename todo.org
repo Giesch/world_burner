@@ -1,23 +1,51 @@
-* TODO get drag and drop working
-** TODO there's a filterable list on the left
-*** TODO show the born filter toggle
-*** DONE implement simple/dumb search on the backend
-** TODO i can drop other lifepaths before or after a benchblock
-*** TODO validation?
-*** TODO show the whole list in viewFragment
-*** TODO need to implement move on drag vs copy on drag
-*** TODO consider changing from dropzones to drop range
-how to display that?
-highlight the place where it'll go on hover in some way
-*** TODO need a JS pickup event like start? or just go by the type in elm
-** TODO drop beacons should be distinct from draggable beacons
-ie the closestBounding fn should filter on type
-** TODO when dragging lifeblocks, do we move on pickup or on drop?
-which is easier to understand?
-which is easier to implement?
-if move on pickup, need to store where to put it back
-    (or just the old model? ie undo)
+* How to handle moving dragged block on hover
+store a custom DragState
+  variants:
+    not dragging
+      contains nothing?
+    dragging (but not hovering)
+      contains draggedBlock
+    hovering
+      constains draggedBlock and HoverState
+  transitions:
+    not dragging -> dragging
+      add draggedBlock
+    dragging -> not dragging
+      remove draggedBlock
+    dragging -> hovering
+      add drop beacon
+    hovering -> dragging
+      remove drop beacon
+    hovering -> hovering
+      change drop beacon
+    hovering -> not dragging
+      on drop (valid or inavalid)
 
+when viewing lifeblocks
+  check for if you're the original dragged block
+    highlight somehow
+  check for if one of your drop beacons is hovered
+    if hovered, display the appropriate thing
+        new slot
+        hypothetical merge
+        validation failure
+
+on drop
+  if invalid, just go to not-dragging state
+  if valid & sidebar block, do the merge or add the slot
+  if valid & bench block, do the mrege or add the slot, and clean up the original
+
+* TODO get basic drag and drop working
+** DONE clean up the source lifeblock when it's dropped before/after its own slot
+** TODO split on drag
+should be able to arbitrarily split off a new block
+should be able to reorder lifepaths within a block
+* TODO drag and drop validation
+** TODO validation in place
+- [ ] missing lifepath requirement
+- [ ] missing born lifepath
+** TODO validation on hover
+- [ ] missing setting lead
 * TODO get a minimal version of the app running
   - [ ] sequentially picking lifepaths
     - [ ] get dnd working; able to drop first lifepath of a new block
@@ -146,3 +174,6 @@ the whole point was to not do dropzones
 ie normalize the model
 ** TODO handle the errors from draggable.js in decodeDragEvents
 ** TODO add on-hover text explaining the ui
+** TODO add a util/common module with flipped dict lookup
+** TODO use a static site generator and load the book lifepaths at build time
+** TODO do all filtering and searching of lifepaths on the client side

@@ -16,11 +16,11 @@ extern crate rocket;
 extern crate rocket_contrib;
 
 pub mod db;
-pub mod models;
 pub mod repos;
 pub mod routes;
 pub mod schema;
 pub mod seeding;
+pub mod services;
 
 use db::DbConn;
 use dotenv::dotenv;

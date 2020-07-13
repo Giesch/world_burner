@@ -1,71 +1,136 @@
 module LifeBlock exposing
-    ( LifeBlock
-    , add
-    , addBatch
+    ( BlockData
+    , LifeBlock
+    , SplitResult(..)
+    , append
+    , firstBeaconId
+    , paths
+    , singleton
+    , splitUntil
+    , view
+    , withBenchIndex
     )
 
-import Array exposing (Array)
-import Dict exposing (Dict)
+import Beacon
+import Common
+import Creation.BeaconId as BeaconId exposing (DragBeaconId, DropBeaconId)
+import Element exposing (..)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
+import Element.Input as Input
 import Lifepath exposing (Lifepath)
+import List.NonEmpty as NonEmpty exposing (NonEmpty)
 
 
-type alias LifeBlock =
-    { first : Lifepath
-    , rest : Array Lifepath
-    , beaconId : Int
+{-| A non-empty linked list of lifepaths with beacon ids.
+-}
+type LifeBlock
+    = LifeBlock (NonEmpty BlockData)
+
+
+{-| A lifepath and a drag beacon id.
+Dragging a lifepath should also drag the tail of the block.
+-}
+type alias BlockData =
+    { path : Lifepath
+    , beaconId : DragBeaconId
     }
 
 
-type alias Model a b =
-    { a
-        | nextBeaconId : Int
-        , beacons : Dict Int b
+paths : LifeBlock -> NonEmpty Lifepath
+paths (LifeBlock list) =
+    NonEmpty.map .path list
+
+
+firstBeaconId : LifeBlock -> DragBeaconId
+firstBeaconId (LifeBlock ( data, _ )) =
+    data.beaconId
+
+
+singleton : Lifepath -> DragBeaconId -> LifeBlock
+singleton path id =
+    LifeBlock <| NonEmpty.singleton { path = path, beaconId = id }
+
+
+withBenchIndex : Int -> LifeBlock -> LifeBlock
+withBenchIndex benchIndex (LifeBlock list) =
+    let
+        makeId blockIndex =
+            BeaconId.benchDragId <| { benchIndex = benchIndex, blockIndex = blockIndex }
+    in
+    LifeBlock <|
+        NonEmpty.indexedMap
+            (\i data -> { data | beaconId = makeId i })
+            list
+
+
+append : Int -> LifeBlock -> LifeBlock -> LifeBlock
+append benchIndex (LifeBlock left) (LifeBlock right) =
+    withBenchIndex benchIndex <| LifeBlock <| NonEmpty.append left right
+
+
+type SplitResult a
+    = Whole a
+    | Split ( a, a )
+    | NotFound
+
+
+splitUntil : LifeBlock -> DragBeaconId -> SplitResult LifeBlock
+splitUntil (LifeBlock ( first, rest )) id =
+    case Common.splitUntil (\block -> block.beaconId == id) (first :: rest) of
+        Nothing ->
+            NotFound
+
+        Just ( [], right ) ->
+            Whole <| LifeBlock right
+
+        Just ( leftFirst :: leftRest, right ) ->
+            Split ( LifeBlock ( leftFirst, leftRest ), LifeBlock right )
+
+
+type alias ViewOptions msg =
+    { baseAttrs : List (Attribute msg)
+    , dropBeaconOverride : Maybe DropBeaconId -- used during hover
+    , onDelete : Maybe msg
+    , benchIndex : Int
     }
 
 
-addBatch :
-    Model a b
-    -> List Lifepath
-    -> (LifeBlock -> b)
-    -> ( Model a b, List LifeBlock )
-addBatch ({ nextBeaconId, beacons } as model) lifepaths constructor =
+view : ViewOptions msg -> LifeBlock -> Element msg
+view { baseAttrs, dropBeaconOverride, onDelete, benchIndex } (LifeBlock data) =
     let
-        makeBlock : Lifepath -> ( Int, List LifeBlock ) -> ( Int, List LifeBlock )
-        makeBlock path ( nextId, blockList ) =
-            ( nextId + 1, LifeBlock path Array.empty nextId :: blockList )
+        dropZone id =
+            el (BeaconId.dropAttribute id :: Border.width 1 :: baseAttrs)
+                (el [ centerX, centerY ] <| text "+")
 
-        ( newNextId, blocksWithIds ) =
-            List.foldl makeBlock ( nextBeaconId, [] ) lifepaths
+        fakeDropZone =
+            el (Border.width 1 :: baseAttrs)
+                (el [ centerX, centerY ] <| text "+")
 
-        insertBlock : LifeBlock -> Dict Int b -> Dict Int b
-        insertBlock block dict =
-            Dict.insert block.beaconId (constructor block) dict
+        attrs =
+            case dropBeaconOverride of
+                Just id ->
+                    BeaconId.dropAttribute id :: baseAttrs
 
-        newBlocks : Dict Int b
-        newBlocks =
-            List.foldl insertBlock beacons blocksWithIds
+                Nothing ->
+                    baseAttrs
+
+        middle =
+            Input.button [ alignRight ]
+                { onPress = onDelete
+                , label = text "X"
+                }
+                :: List.map
+                    (\d -> Lifepath.view d.path { withBeacon = Just d.beaconId })
+                    (NonEmpty.toList <| data)
     in
-    ( { model | nextBeaconId = newNextId, beacons = newBlocks }
-    , List.reverse blocksWithIds
-    )
+    column attrs <|
+        case dropBeaconOverride of
+            Just _ ->
+                fakeDropZone :: middle ++ [ fakeDropZone ]
 
-
-add : Model a b -> Lifepath -> (LifeBlock -> b) -> ( Model a b, Int )
-add model path constructor =
-    let
-        ( bumpedModel, id ) =
-            bump model
-
-        beacons =
-            Dict.insert id
-                (constructor <| LifeBlock path Array.empty id)
-                model.beacons
-    in
-    ( { bumpedModel | beacons = beacons }, id )
-
-
-bump : Model a b -> ( Model a b, Int )
-bump model =
-    ( { model | nextBeaconId = model.nextBeaconId + 1 }
-    , model.nextBeaconId
-    )
+            Nothing ->
+                dropZone (BeaconId.beforeSlotDropId benchIndex)
+                    :: middle
+                    ++ [ dropZone <| BeaconId.afterSlotDropId benchIndex ]

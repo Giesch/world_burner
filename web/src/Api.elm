@@ -3,12 +3,11 @@ module Api exposing
     , ApiResult
     , ErrorResponse
     , ErrorSource
-    , LifepathFilters
     , ServerError
     , listLifepaths
-    , noFilters
     )
 
+import Api.LifepathFilter as LifepathFilter exposing (LifepathFilter)
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline as Pipeline exposing (optional, required)
@@ -18,32 +17,17 @@ import Trait exposing (Trait)
 import Url exposing (Url)
 
 
-listLifepaths : (ApiResult (List Lifepath) -> msg) -> LifepathFilters -> Cmd msg
+listLifepaths : (ApiResult (List Lifepath) -> msg) -> LifepathFilter -> Cmd msg
 listLifepaths toMsg filters =
     Http.post
         { url = "/api/lifepaths/search"
-        , body = Http.jsonBody <| encodeLifepathFilters filters
+        , body = Http.jsonBody <| encodeLifepathFilter filters
         , expect = expect lifepathsDecoder toMsg
         }
 
 
-type alias LifepathFilters =
-    { born : Maybe Bool
-    , settingIds : Maybe (List Int)
-    , searchTerm : Maybe String
-    }
-
-
-noFilters : LifepathFilters
-noFilters =
-    { born = Nothing
-    , settingIds = Nothing
-    , searchTerm = Nothing
-    }
-
-
-encodeLifepathFilters : LifepathFilters -> Encode.Value
-encodeLifepathFilters filters =
+encodeLifepathFilter : LifepathFilter -> Encode.Value
+encodeLifepathFilter filters =
     Encode.object
         [ ( "born", maybeEncode Encode.bool filters.born )
         , ( "setting_ids", maybeEncode (Encode.list Encode.int) filters.settingIds )
