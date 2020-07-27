@@ -11,7 +11,7 @@ impl Lifepaths {
     pub fn list(
         db: impl LifepathRepo,
         filters: &LifepathFilters,
-    ) -> Result<Vec<Lifepath>, LifepathsError> {
+    ) -> LifepathsResult<Vec<Lifepath>> {
         let lp_rows = db.lifepaths(filters)?;
         let lifepath_ids: Vec<_> = lp_rows.iter().map(|lp| lp.id).collect();
 
@@ -24,16 +24,24 @@ impl Lifepaths {
         let lead_rows = db.lifepath_leads(&lifepath_ids)?;
         let mut leads = group_leads(lead_rows);
 
-        let to_lifepath =
-            |row| add_associations(row, &mut skill_lists, &mut trait_lists, &mut leads);
+        let req_rows = db.lifepath_reqs(&lifepath_ids)?;
+        let mut reqs = group_requirements(req_rows)?;
+
+        let to_lifepath = |row| {
+            add_associations(
+                row,
+                &mut skill_lists,
+                &mut trait_lists,
+                &mut leads,
+                &mut reqs,
+            )
+        };
 
         lp_rows.into_iter().map(to_lifepath).collect()
     }
 }
 
-fn group_trait_lists(
-    rows: Vec<LifepathTraitRow>,
-) -> Result<HashMap<i32, Vec<Trait>>, LifepathsError> {
+fn group_trait_lists(rows: Vec<LifepathTraitRow>) -> LifepathsResult<HashMap<i32, Vec<Trait>>> {
     rows.into_iter()
         .group_by(|row| row.lifepath_id)
         .into_iter()
@@ -43,9 +51,30 @@ fn group_trait_lists(
 
 fn convert_trait_rows(
     (id, rows): (i32, impl Iterator<Item = LifepathTraitRow>),
-) -> Result<(i32, Vec<Trait>), LifepathsError> {
+) -> LifepathsResult<(i32, Vec<Trait>)> {
     let traits: Result<_, LifepathsError> = rows.map(TryInto::try_into).collect();
     Ok((id, traits?))
+}
+
+fn group_requirements(rows: Vec<LifepathReqRow>) -> LifepathsResult<HashMap<i32, Requirement>> {
+    rows.into_iter()
+        .group_by(|row| row.lifepath_id)
+        .into_iter()
+        .map(convert_req_rows)
+        .collect()
+}
+
+fn convert_req_rows(
+    (id, rows): (i32, impl Iterator<Item = LifepathReqRow>),
+) -> LifepathsResult<(i32, Requirement)> {
+    let reqs: LifepathsResult<Vec<Requirement>> = rows.map(TryInto::try_into).collect();
+    let mut reqs = reqs?;
+
+    if reqs.len() == 1 {
+        Ok((id, reqs.remove(0)))
+    } else {
+        Err(LifepathsError::Useless)
+    }
 }
 
 fn group_skill_lists(rows: Vec<LifepathSkillRow>) -> HashMap<i32, Vec<Skill>> {
@@ -69,7 +98,8 @@ fn add_associations(
     skill_lists: &mut HashMap<i32, Vec<Skill>>,
     trait_lists: &mut HashMap<i32, Vec<Trait>>,
     leads: &mut HashMap<i32, Vec<Lead>>,
-) -> Result<Lifepath, LifepathsError> {
+    reqs: &mut HashMap<i32, Requirement>,
+) -> LifepathsResult<Lifepath> {
     let stat_mod = stat_mod(&row)?;
     let years = row.years.ok_or(LifepathsError::Useless)?;
     let res = row.res.ok_or(LifepathsError::Useless)?;
@@ -78,6 +108,7 @@ fn add_associations(
     let skills = skill_lists.remove(&row.id).unwrap_or_default();
     let traits = trait_lists.remove(&row.id).unwrap_or_default();
     let leads = leads.remove(&row.id).unwrap_or_default();
+    let requirement = reqs.remove(&row.id);
 
     Ok(Lifepath {
         id: row.id,
@@ -94,10 +125,11 @@ fn add_associations(
         skills,
         traits,
         born: row.born,
+        requirement,
     })
 }
 
-fn stat_mod(row: &LifepathRow) -> Result<Option<StatMod>, LifepathsError> {
+fn stat_mod(row: &LifepathRow) -> LifepathsResult<Option<StatMod>> {
     use schema::StatMod as SchemaMod;
     use StatMod::*;
 
@@ -133,6 +165,7 @@ pub struct Lifepath {
     pub skills: Vec<Skill>,
     pub traits: Vec<Trait>,
     pub born: bool,
+    pub requirement: Option<Requirement>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -238,13 +271,55 @@ impl TryFrom<LifepathTraitRow> for Trait {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Requirement {
+    predicate: ReqPredicate,
+    description: String,
+}
+
+/// The requirements of a lifepath, stored as a tree in jsonb.
+#[serde(tag = "type", content = "value")]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
+pub enum ReqPredicate {
+    /// requires a specific lifepath 'count' number of times
+    Lifepath { lifepath_id: i32, count: i32 },
+    /// requires 'count' previous lifepaths of any kind
+    PreviousLifepaths { count: i32 },
+    /// requires 'count' previous lifepaths from a specific setting
+    Setting { setting_id: i32, count: i32 },
+    /// met if any of the sub-requirements are met
+    Any(Vec<ReqPredicate>),
+    /// met only if all of the sub-requirements are met
+    All(Vec<ReqPredicate>),
+}
+
+impl TryFrom<LifepathReqRow> for Requirement {
+    type Error = LifepathsError;
+
+    fn try_from(row: LifepathReqRow) -> Result<Self, Self::Error> {
+        Ok(Requirement {
+            predicate: serde_json::from_value(row.predicate)?,
+            description: row.description,
+        })
+    }
+}
+
+pub type LifepathsResult<T> = Result<T, LifepathsError>;
+
 pub enum LifepathsError {
     Useless,
     MissingValue(String),
+    InvalidJson,
 }
 
 impl From<LifepathRepoError> for LifepathsError {
     fn from(_err: LifepathRepoError) -> Self {
         Self::Useless
+    }
+}
+
+impl From<serde_json::Error> for LifepathsError {
+    fn from(_err: serde_json::Error) -> Self {
+        Self::InvalidJson
     }
 }

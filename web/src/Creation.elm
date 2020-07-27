@@ -3,30 +3,23 @@ module Creation exposing (..)
 import Api exposing (ApiResult)
 import Api.LifepathFilter as LifepathFilter exposing (LifepathFilter)
 import Array exposing (Array)
-import Beacon exposing (DragData, HoverState)
+import Beacon exposing (HoverState)
 import Colors exposing (..)
 import Common
 import Creation.BeaconId as BeaconId exposing (DragBeaconId, DropBeaconId)
-import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Geom exposing (Box, Point)
-import Html
+import Geom exposing (Point)
 import Html.Attributes
-import Html.Events
-import Json.Encode as Encode
 import LifeBlock exposing (LifeBlock)
-import Lifepath exposing (Lead, Lifepath, Skill, StatMod, StatModType(..))
-import List.NonEmpty as NonEmpty exposing (NonEmpty)
+import Lifepath exposing (Lifepath, StatModType(..))
+import List.NonEmpty as NonEmpty
 import Process
 import Session exposing (..)
-import Set exposing (Set)
-import String.Extra exposing (toTitleCase)
 import Task
-import Trait exposing (Trait)
 
 
 

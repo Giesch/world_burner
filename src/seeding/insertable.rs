@@ -103,6 +103,6 @@ pub struct NewTraitList {
 #[table_name = "lifepath_reqs"]
 pub struct NewRequirement {
     pub lifepath_id: i32,
-    pub requirement: serde_json::Value,
+    pub predicate: serde_json::Value,
     pub description: String,
 }

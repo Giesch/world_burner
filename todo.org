@@ -1,60 +1,22 @@
-* How to handle moving dragged block on hover
-store a custom DragState
-  variants:
-    not dragging
-      contains nothing?
-    dragging (but not hovering)
-      contains draggedBlock
-    hovering
-      constains draggedBlock and HoverState
-  transitions:
-    not dragging -> dragging
-      add draggedBlock
-    dragging -> not dragging
-      remove draggedBlock
-    dragging -> hovering
-      add drop beacon
-    hovering -> dragging
-      remove drop beacon
-    hovering -> hovering
-      change drop beacon
-    hovering -> not dragging
-      on drop (valid or inavalid)
-
-when viewing lifeblocks
-  check for if you're the original dragged block
-    highlight somehow
-  check for if one of your drop beacons is hovered
-    if hovered, display the appropriate thing
-        new slot
-        hypothetical merge
-        validation failure
-
-on drop
-  if invalid, just go to not-dragging state
-  if valid & sidebar block, do the merge or add the slot
-  if valid & bench block, do the mrege or add the slot, and clean up the original
-
-* TODO get basic drag and drop working
-** DONE clean up the source lifeblock when it's dropped before/after its own slot
-** TODO split on drag
-should be able to arbitrarily split off a new block
-should be able to reorder lifepaths within a block
+* TODO fix flickering on hover
 * TODO drag and drop validation
+** TODO validation on hover
+- [X] deserialize requirement predicates
+- [ ] missing setting lead
+- [ ] before born lifepath
 ** TODO validation in place
 - [ ] missing lifepath requirement
 - [ ] missing born lifepath
-** TODO validation on hover
-- [ ] missing setting lead
 * TODO get a minimal version of the app running
-  - [ ] sequentially picking lifepaths
-    - [ ] get dnd working; able to drop first lifepath of a new block
+  - [-] sequentially picking lifepaths
+    - [X] get dnd working; able to drop first lifepath of a new block
+    - [ ] add validation to dnd
     - [ ] easy search for allowed next lifepaths
   - [ ] think about a 'suggestions' endpoint
         send a character fragment in the request
-        filter by:
-          'i meet the requirements'
-          'satisfies my unmet requirements'
+        filter or sort by:
+          for next lp - 'i meet the requirements'
+          for previous lp - 'satisfies my unmet requirements'
         need to disallow born lifepaths on invalid character fragments
   - [ ] include skill roots in lifepath skills response
   - [ ] get google oauth flow working
@@ -162,18 +124,15 @@ in each other's json
 ** look into tracing or simple logger crates
 
 * Soon (TM)
-** TODO LifeBlock shouldn't get it's own module
-** TODO TrackedBeacons should get its own module
-** TODO static beacons shouldn't be confusable with draggables
 ** TODO find a better way to handle same lifepath in different settings
 *** the diminishing returns rules care
 *** for now, just have the diminishing returns do their own truncation
 ** TODO closest bounding beacon should go by distance/overlap
 the whole point was to not do dropzones
-** TODO benchblocks should be just a list of ids
-ie normalize the model
 ** TODO handle the errors from draggable.js in decodeDragEvents
 ** TODO add on-hover text explaining the ui
-** TODO add a util/common module with flipped dict lookup
 ** TODO use a static site generator and load the book lifepaths at build time
 ** TODO do all filtering and searching of lifepaths on the client side
+** TODO use thiserror and anyhow for rust errors
+** TODO use diesel associations for lifepaths?
+** TODO add nice logging with pretty env logger or tracing
