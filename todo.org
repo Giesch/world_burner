@@ -35,26 +35,30 @@ on drop
   if valid & sidebar block, do the merge or add the slot
   if valid & bench block, do the mrege or add the slot, and clean up the original
 
-* TODO get basic drag and drop working
+* DONE get basic drag and drop working
 ** DONE clean up the source lifeblock when it's dropped before/after its own slot
-** TODO split on drag
+** DONE split on drag
 should be able to arbitrarily split off a new block
 should be able to reorder lifepaths within a block
+* TODO fix flickering on hover
 * TODO drag and drop validation
+** TODO validation on hover
+- [X] deserialize requirement predicates
+- [ ] missing setting lead
+- [ ] before born lifepath
 ** TODO validation in place
 - [ ] missing lifepath requirement
 - [ ] missing born lifepath
-** TODO validation on hover
-- [ ] missing setting lead
 * TODO get a minimal version of the app running
-  - [ ] sequentially picking lifepaths
-    - [ ] get dnd working; able to drop first lifepath of a new block
+  - [-] sequentially picking lifepaths
+    - [X] get dnd working; able to drop first lifepath of a new block
+    - [ ] add validation to dnd
     - [ ] easy search for allowed next lifepaths
   - [ ] think about a 'suggestions' endpoint
         send a character fragment in the request
-        filter by:
-          'i meet the requirements'
-          'satisfies my unmet requirements'
+        filter or sort by:
+          for next lp - 'i meet the requirements'
+          for previous lp - 'satisfies my unmet requirements'
         need to disallow born lifepaths on invalid character fragments
   - [ ] include skill roots in lifepath skills response
   - [ ] get google oauth flow working

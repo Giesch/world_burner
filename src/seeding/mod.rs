@@ -13,6 +13,8 @@ use deserialize::*;
 mod insertable;
 use insertable::*;
 
+use crate::services::lifepaths::ReqPredicate;
+
 type StdError = Box<dyn std::error::Error>;
 type StdResult<T> = Result<T, StdError>;
 
@@ -233,22 +235,6 @@ fn seed_settings(
     Ok(())
 }
 
-// TODO move this to repo layer
-/// The requirements of a lifepath, stored as a tree in jsonb.
-#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
-pub enum LifepathRequirement {
-    /// requires a specific lifepath 'count' number of times
-    Lifepath { lifepath_id: i32, count: i32 },
-    /// requires 'count' previous lifepaths of any kind
-    PreviousLifepaths { count: i32 },
-    /// requires 'count' previous lifepaths from a specific setting
-    Setting { setting_id: i32, count: i32 },
-    /// met if any of the sub-requirements are met
-    Any(Vec<LifepathRequirement>),
-    /// met only if all of the sub-requirements are met
-    All(Vec<LifepathRequirement>),
-}
-
 fn new_requirements(
     all_lifepaths: &[&deserialize::Lifepath],
     lifepath_ids: &HashMap<String, i32>,
@@ -262,12 +248,12 @@ fn new_requirements(
                 .get(&lifepath.name)
                 .ok_or_else(|| format!("missing lifepath id for {:#?}", lifepath))?;
 
-            let requirement = convert_req(req, lifepath_ids, setting_ids)?;
-            let requirement = serde_json::to_value(requirement)?;
+            let predicate = convert_req(req, lifepath_ids, setting_ids)?;
+            let predicate = serde_json::to_value(predicate)?;
 
             let new_req = NewRequirement {
                 lifepath_id,
-                requirement,
+                predicate,
                 description: desc.clone(),
             };
             new_requirements.push(new_req);
@@ -281,9 +267,8 @@ fn convert_req(
     req: &deserialize::LifepathReq,
     lifepath_ids: &HashMap<String, i32>,
     setting_ids: &HashMap<String, i32>,
-) -> StdResult<LifepathRequirement> {
+) -> StdResult<ReqPredicate> {
     use deserialize::LifepathReq as Req;
-    use LifepathRequirement::*;
 
     let requirement = match req {
         Req::LP(name, count) => {
@@ -291,17 +276,19 @@ fn convert_req(
                 .get(name)
                 .ok_or_else(|| format!("missing lifepath id for {:#?}", name))?;
             let count = *count;
-            Lifepath { lifepath_id, count }
+
+            ReqPredicate::Lifepath { lifepath_id, count }
         }
 
-        Req::PreviousLifepaths(count) => PreviousLifepaths { count: *count },
+        Req::PreviousLifepaths(count) => ReqPredicate::PreviousLifepaths { count: *count },
 
         Req::Setting(count, name) => {
             let &setting_id = setting_ids
                 .get(name)
                 .ok_or_else(|| format!("missing setting id for {:#?}", name))?;
             let count = *count;
-            Setting { setting_id, count }
+
+            ReqPredicate::Setting { setting_id, count }
         }
 
         Req::Any(sub_reqs) => {
@@ -309,7 +296,8 @@ fn convert_req(
                 .iter()
                 .map(|req| convert_req(req, lifepath_ids, setting_ids))
                 .collect();
-            Any(sub_reqs?)
+
+            ReqPredicate::Any(sub_reqs?)
         }
 
         Req::All(sub_reqs) => {
@@ -317,7 +305,8 @@ fn convert_req(
                 .iter()
                 .map(|req| convert_req(req, lifepath_ids, setting_ids))
                 .collect();
-            All(sub_reqs?)
+
+            ReqPredicate::All(sub_reqs?)
         }
     };
 

@@ -31,6 +31,7 @@ impl From<LifepathsError> for RouteError {
         match error {
             LifepathsError::Useless => RouteError::useless(),
             LifepathsError::MissingValue(_msg) => RouteError::useless(),
+            LifepathsError::InvalidJson => RouteError::useless(),
         }
     }
 }

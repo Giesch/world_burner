@@ -83,7 +83,7 @@ table! {
 
     lifepath_reqs (lifepath_id) {
         lifepath_id -> Int4,
-        requirement -> Jsonb,
+        predicate -> Jsonb,
         description -> Text,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,

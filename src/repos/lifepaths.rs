@@ -10,6 +10,7 @@ pub trait LifepathRepo {
     fn lifepath_skills(&self, lifepath_ids: &[i32]) -> LifepathRepoResult<Vec<LifepathSkillRow>>;
     fn lifepath_traits(&self, lifepath_ids: &[i32]) -> LifepathRepoResult<Vec<LifepathTraitRow>>;
     fn lifepath_leads(&self, lifepath_ids: &[i32]) -> LifepathRepoResult<Vec<LeadRow>>;
+    fn lifepath_reqs(&self, lifepath_ids: &[i32]) -> LifepathRepoResult<Vec<LifepathReqRow>>;
 }
 
 const LIFEPATH_LIMIT: i64 = 20;
@@ -131,6 +132,22 @@ impl LifepathRepo for DbConn {
 
         Ok(rows)
     }
+
+    fn lifepath_reqs(&self, lifepath_ids: &[i32]) -> LifepathRepoResult<Vec<LifepathReqRow>> {
+        use schema::lifepath_reqs;
+
+        let rows = lifepath_reqs::table
+            .select((
+                lifepath_reqs::lifepath_id,
+                lifepath_reqs::predicate,
+                lifepath_reqs::description,
+            ))
+            .filter(lifepath_reqs::lifepath_id.eq(any(lifepath_ids)))
+            .order_by(lifepath_reqs::lifepath_id)
+            .load::<LifepathReqRow>(&**self)?;
+
+        Ok(rows)
+    }
 }
 
 type LifepathRepoResult<T> = Result<T, LifepathRepoError>;
@@ -190,4 +207,11 @@ pub struct LifepathTraitRow {
     pub page: Option<i32>,
     pub cost: Option<i32>,
     pub taip: Option<schema::TraitType>,
+}
+
+#[derive(Queryable, Debug)]
+pub struct LifepathReqRow {
+    pub lifepath_id: i32,
+    pub requirement: serde_json::Value,
+    pub description: String,
 }
