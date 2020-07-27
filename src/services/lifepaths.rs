@@ -300,10 +300,8 @@ impl TryFrom<LifepathReqRow> for Requirement {
     type Error = LifepathsError;
 
     fn try_from(row: LifepathReqRow) -> Result<Self, Self::Error> {
-        let predicate: ReqPredicate = serde_json::from_value(row.requirement)?;
-
         Ok(Requirement {
-            predicate,
+            predicate: serde_json::from_value(row.predicate)?,
             description: row.description,
         })
     }

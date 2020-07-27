@@ -212,6 +212,6 @@ pub struct LifepathTraitRow {
 #[derive(Queryable, Debug)]
 pub struct LifepathReqRow {
     pub lifepath_id: i32,
-    pub requirement: serde_json::Value,
+    pub predicate: serde_json::Value,
     pub description: String,
 }
