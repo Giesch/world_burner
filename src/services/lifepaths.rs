@@ -67,7 +67,7 @@ fn group_requirements(rows: Vec<LifepathReqRow>) -> LifepathsResult<HashMap<i32,
 fn convert_req_rows(
     (id, rows): (i32, impl Iterator<Item = LifepathReqRow>),
 ) -> LifepathsResult<(i32, Requirement)> {
-    let reqs: Result<Vec<Requirement>, LifepathsError> = rows.map(TryInto::try_into).collect();
+    let reqs: LifepathsResult<Vec<Requirement>> = rows.map(TryInto::try_into).collect();
     let mut reqs = reqs?;
 
     if reqs.len() == 1 {

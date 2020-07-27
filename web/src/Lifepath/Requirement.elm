@@ -5,7 +5,7 @@ module Lifepath.Requirement exposing
     )
 
 import Json.Decode as Decode exposing (Decoder)
-import Json.Decode.Pipeline as Pipeline exposing (optional, required)
+import Json.Decode.Pipeline exposing (required)
 
 
 type alias Requirement =
@@ -23,7 +23,9 @@ type ReqPredicate
 
 
 type alias LifepathPredicate =
-    { lifepathId : Int, count : Int }
+    { lifepathId : Int
+    , count : Int
+    }
 
 
 type alias PreviousLifepathsPredicate =
@@ -31,7 +33,9 @@ type alias PreviousLifepathsPredicate =
 
 
 type alias SettingPredicate =
-    { settingId : Int, count : Int }
+    { settingId : Int
+    , count : Int
+    }
 
 
 

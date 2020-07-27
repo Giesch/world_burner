@@ -11,13 +11,10 @@ module LifeBlock exposing
     , withBenchIndex
     )
 
-import Beacon
 import Common
 import Creation.BeaconId as BeaconId exposing (DragBeaconId, DropBeaconId)
 import Element exposing (..)
-import Element.Background as Background
 import Element.Border as Border
-import Element.Font as Font
 import Element.Input as Input
 import Lifepath exposing (Lifepath)
 import List.NonEmpty as NonEmpty exposing (NonEmpty)

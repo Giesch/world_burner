@@ -9,18 +9,15 @@ module Lifepath exposing
     , view
     )
 
-import Beacon
 import Colors exposing (..)
 import Common
-import Creation.BeaconId as BeaconId exposing (DragBeaconId, DropBeaconId)
-import Dict exposing (Dict)
+import Creation.BeaconId as BeaconId exposing (DragBeaconId)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Element.Input as Input
 import Json.Decode as Decode exposing (Decoder)
-import Json.Decode.Pipeline as Pipeline exposing (optional, required)
+import Json.Decode.Pipeline exposing (optional, required)
 import Lifepath.Requirement as Requirement exposing (Requirement)
 import String.Extra exposing (toTitleCase)
 import Trait exposing (Trait)

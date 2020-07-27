@@ -124,19 +124,15 @@ in each other's json
 ** look into tracing or simple logger crates
 
 * Soon (TM)
-** TODO LifeBlock shouldn't get it's own module
-** TODO TrackedBeacons should get its own module
-** TODO static beacons shouldn't be confusable with draggables
 ** TODO find a better way to handle same lifepath in different settings
 *** the diminishing returns rules care
 *** for now, just have the diminishing returns do their own truncation
 ** TODO closest bounding beacon should go by distance/overlap
 the whole point was to not do dropzones
-** TODO benchblocks should be just a list of ids
-ie normalize the model
 ** TODO handle the errors from draggable.js in decodeDragEvents
 ** TODO add on-hover text explaining the ui
-** TODO add a util/common module with flipped dict lookup
 ** TODO use a static site generator and load the book lifepaths at build time
 ** TODO do all filtering and searching of lifepaths on the client side
 ** TODO use thiserror and anyhow for rust errors
+** TODO use diesel associations for lifepaths?
+** TODO add nice logging with pretty env logger or tracing
