@@ -24,11 +24,8 @@ impl Lifepaths {
         let lead_rows = db.lifepath_leads(&lifepath_ids)?;
         let mut leads = group_leads(lead_rows);
 
-        println!("just before req rows");
         let req_rows = db.lifepath_reqs(&lifepath_ids)?;
-        println!("just before group requirements");
         let mut reqs = group_requirements(req_rows)?;
-        println!("just after group requirements");
 
         let to_lifepath = |row| {
             add_associations(
