@@ -16,7 +16,6 @@ import Html.Attributes
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
-import Set exposing (Set)
 
 
 type DragState dragId dropId
@@ -296,7 +295,6 @@ getDraggedItem dragState =
 
 nearestBeaconId : DragData dropId -> Maybe dropId
 nearestBeaconId data =
-    -- TODO use a range instead of bound
     nearestBeacon data
         |> Common.keepIf (\beacon -> Geom.bounds beacon.box data.cursor)
         |> Maybe.map .beaconId

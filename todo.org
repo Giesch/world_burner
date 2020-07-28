@@ -1,4 +1,6 @@
 * TODO fix flickering on hover
+** only happens sometimes :/
+** seems to be when over the x? or the edge
 * TODO drag and drop validation
 ** TODO validation on hover
 - [X] deserialize requirement predicates
@@ -21,7 +23,7 @@
   - [ ] include skill roots in lifepath skills response
   - [ ] get google oauth flow working
   - [ ] integration tests for endpoint
-  - [ ] unit tests for model
+  - [ ] unit tests for model & related modules
   - [ ] unit tests for json decoders
 
 
@@ -136,3 +138,5 @@ the whole point was to not do dropzones
 ** TODO use thiserror and anyhow for rust errors
 ** TODO use diesel associations for lifepaths?
 ** TODO add nice logging with pretty env logger or tracing
+** TODO add a Creation.Workbench module that wraps the array
+** TODO make lifepaths expandable/collapsable

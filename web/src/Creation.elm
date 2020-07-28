@@ -1,17 +1,24 @@
-module Creation exposing (..)
+module Creation exposing
+    ( Model
+    , Msg
+    , init
+    , subscriptions
+    , update
+    , view
+    )
 
 import Api exposing (ApiResult)
 import Api.LifepathFilter as LifepathFilter exposing (LifepathFilter)
 import Array exposing (Array)
 import Beacon exposing (HoverState)
-import Colors exposing (..)
+import Colors
 import Common
 import Creation.BeaconId as BeaconId exposing (DragBeaconId, DropBeaconId)
+import Creation.Workbench as Workbench exposing (Workbench)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Element.Input as Input
 import Geom exposing (Point)
 import Html.Attributes
 import LifeBlock exposing (LifeBlock)
@@ -47,8 +54,7 @@ init session =
     let
         searchFilter : LifepathFilter
         searchFilter =
-            LifepathFilter.none
-                |> LifepathFilter.withBorn (Just True)
+            LifepathFilter.default
     in
     ( { session = session
       , searchFilter = searchFilter
@@ -88,7 +94,7 @@ update msg model =
             , Cmd.none
             )
 
-        GotLifepaths (Err error) ->
+        GotLifepaths (Err _) ->
             ( { model | sidebarLifepaths = Failed }
             , Cmd.none
             )
@@ -99,7 +105,7 @@ update msg model =
         DragMsg (Beacon.DragMove dragState) ->
             ( { model | dragState = dragState }, Cmd.none )
 
-        DragMsg (Beacon.LetGo draggedItem) ->
+        DragMsg (Beacon.LetGo _) ->
             ( letGo model, Cmd.none )
 
         DragMsg (Beacon.Drop hoverState) ->
@@ -107,7 +113,7 @@ update msg model =
                 Ok newModel ->
                     ( newModel, Cmd.none )
 
-                Err oops ->
+                Err _ ->
                     Debug.todo "display an error or something"
 
         DeleteBenchBlock benchIndex ->
@@ -116,7 +122,7 @@ update msg model =
         EnteredSearchText input ->
             let
                 searchFilter =
-                    model.searchFilter
+                    LifepathFilter.withSearchTerm searchTerm model.searchFilter
 
                 searchTerm =
                     if String.length input > 0 then
@@ -125,10 +131,7 @@ update msg model =
                     else
                         Nothing
             in
-            ( { model
-                | searchFilter =
-                    { searchFilter | searchTerm = searchTerm }
-              }
+            ( { model | searchFilter = searchFilter }
             , beginSearchDebounce input
             )
 
@@ -200,22 +203,26 @@ dropDraggedBlock model { draggedItem, hoveredDropBeacon } =
 
                 BeaconId.Bench { benchIndex, blockIndex } ->
                     case Array.get benchIndex model.benchBlocks of
-                        Just Nothing ->
-                            Err InvalidDragState
-
                         Nothing ->
                             Err BoundsError
 
+                        Just Nothing ->
+                            Err InvalidDragState
+
                         Just (Just benchBlock) ->
-                            case LifeBlock.splitUntil benchBlock draggedItem.beaconId of
+                            case LifeBlock.splitAt benchBlock blockIndex of
                                 LifeBlock.Whole _ ->
                                     Ok <| Array.set benchIndex Nothing model.benchBlocks
 
-                                LifeBlock.Split ( left, right ) ->
+                                LifeBlock.Split ( left, _ ) ->
                                     Ok <| Array.set benchIndex (Just left) model.benchBlocks
 
                                 LifeBlock.NotFound ->
                                     Err InvalidDragState
+
+        draggedBlock : Result InvalidModel LifeBlock
+        draggedBlock =
+            lookupDragged model draggedItem.beaconId
 
         doDrop : Int -> Array (Maybe LifeBlock) -> LifeBlock -> Model
         doDrop benchIndex bench block =
@@ -225,36 +232,36 @@ dropDraggedBlock model { draggedItem, hoveredDropBeacon } =
                 , dragCache = Nothing
             }
 
-        transformAndDrop : Array (Maybe LifeBlock) -> Int -> (LifeBlock -> LifeBlock) -> Result InvalidModel Model
-        transformAndDrop bench benchIndex transform =
+        doFallibleDrop : Array (Maybe LifeBlock) -> Int -> (LifeBlock -> Result String LifeBlock) -> LifeBlock -> Model
+        doFallibleDrop bench idx combine block =
+            combine block
+                |> Result.map (\combinedBlock -> doDrop idx bench combinedBlock)
+                |> Result.withDefault (letGo model)
+
+        combineAndDrop :
+            Array (Maybe LifeBlock)
+            -> Int
+            -> (LifeBlock -> Result String LifeBlock)
+            -> Result InvalidModel Model
+        combineAndDrop bench benchIndex combine =
             Array.get benchIndex bench
                 |> Result.fromMaybe BoundsError
-                |> Result.map (Maybe.map <| transform >> doDrop benchIndex bench)
+                |> Result.map (Maybe.map <| doFallibleDrop bench benchIndex combine)
                 |> Result.map (Maybe.withDefault <| letGo model)
     in
-    case benchAfterPickup of
-        Err oops ->
-            Err oops
+    Common.withBothOk benchAfterPickup draggedBlock <|
+        \cleanBench lifeBlock ->
+            case BeaconId.dropLocation hoveredDropBeacon of
+                BeaconId.Open dropBenchIndex ->
+                    Ok <| doDrop dropBenchIndex cleanBench lifeBlock
 
-        Ok cleanBench ->
-            case ( lookupDragged model draggedItem.beaconId, BeaconId.dropLocation hoveredDropBeacon ) of
-                ( Ok lifeBlock, BeaconId.Open dropBenchIndex ) ->
-                    let
-                        dropBlock =
-                            LifeBlock.withBenchIndex dropBenchIndex lifeBlock
-                    in
-                    Ok <| doDrop dropBenchIndex cleanBench dropBlock
+                BeaconId.Before dropBenchIndex ->
+                    combineAndDrop cleanBench dropBenchIndex <|
+                        \hoveredBlock -> LifeBlock.combine lifeBlock hoveredBlock
 
-                ( Ok lifeBlock, BeaconId.Before dropBenchIndex ) ->
-                    transformAndDrop cleanBench dropBenchIndex <|
-                        \hoveredBlock -> LifeBlock.append dropBenchIndex lifeBlock hoveredBlock
-
-                ( Ok lifeBlock, BeaconId.After dropBenchIndex ) ->
-                    transformAndDrop cleanBench dropBenchIndex <|
-                        \hoveredBlock -> LifeBlock.append dropBenchIndex hoveredBlock lifeBlock
-
-                ( Err oops, _ ) ->
-                    Err oops
+                BeaconId.After dropBenchIndex ->
+                    combineAndDrop cleanBench dropBenchIndex <|
+                        \hoveredBlock -> LifeBlock.combine hoveredBlock lifeBlock
 
 
 {-| Look up a lifeblock in the model by its drag id (aka its original location).
@@ -263,23 +270,19 @@ lookupDragged : Model -> DragBeaconId -> Result InvalidModel LifeBlock
 lookupDragged ({ benchBlocks, sidebarLifepaths, dragCache } as model) dragId =
     case dragCache of
         Just cachedBlock ->
-            if LifeBlock.firstBeaconId cachedBlock == dragId then
-                Ok cachedBlock
-
-            else
-                lookupDragged { model | dragCache = Nothing } dragId
+            Ok cachedBlock
 
         Nothing ->
             case BeaconId.dragLocation dragId of
                 BeaconId.Bench { benchIndex, blockIndex } ->
                     case Array.get benchIndex benchBlocks of
                         Just (Just block) ->
-                            case LifeBlock.splitUntil block dragId of
+                            case LifeBlock.splitAt block blockIndex of
                                 LifeBlock.Whole resultBlock ->
                                     Ok resultBlock
 
-                                LifeBlock.Split ( _, split ) ->
-                                    Ok split
+                                LifeBlock.Split ( _, right ) ->
+                                    Ok right
 
                                 LifeBlock.NotFound ->
                                     Err InvalidDragState
@@ -294,7 +297,7 @@ lookupDragged ({ benchBlocks, sidebarLifepaths, dragCache } as model) dragId =
                     case sidebarLifepaths of
                         Loaded paths ->
                             Array.get sidebarIndex paths
-                                |> Maybe.map (\path -> LifeBlock.singleton path dragId)
+                                |> Maybe.map LifeBlock.singleton
                                 |> Result.fromMaybe BoundsError
 
                         _ ->
@@ -368,24 +371,16 @@ lookupDraggedBlock model =
             , cursorOnScreen = draggedItem.cursorOnScreen
             , cursorOnDraggable = draggedItem.cursorOnDraggable
             }
-
-        validate : Beacon.DraggedItem DragBeaconId -> LifeBlock -> Result InvalidModel (Maybe DraggedLifeBlock)
-        validate draggedItem lifeBlock =
-            if draggedItem.beaconId == LifeBlock.firstBeaconId lifeBlock then
-                Ok <| Just <| draggedLifeBlock draggedItem lifeBlock
-
-            else
-                Err InvalidDragState
     in
     case ( model.dragState, model.dragCache ) of
         ( Beacon.NotDragging, _ ) ->
             Ok Nothing
 
-        ( Beacon.Dragging draggedItem, Just block ) ->
-            validate draggedItem block
+        ( Beacon.Dragging draggedItem, Just lifeBlock ) ->
+            Ok <| Just <| draggedLifeBlock draggedItem lifeBlock
 
-        ( Beacon.Hovering { draggedItem }, Just block ) ->
-            validate draggedItem block
+        ( Beacon.Hovering { draggedItem }, Just lifeBlock ) ->
+            Ok <| Just <| draggedLifeBlock draggedItem lifeBlock
 
         _ ->
             Err InvalidDragState
@@ -440,7 +435,7 @@ view model =
                 , viewDraggedBlock viewedModel.draggedLifeBlock
                 ]
 
-        Err err ->
+        Err _ ->
             Debug.todo "display an error message"
 
 
@@ -505,17 +500,13 @@ openSlot benchIndex hover =
 
 viewLifeBlock : Int -> Maybe DropBeaconId -> LifeBlock -> Element Msg
 viewLifeBlock benchIndex dropBeaconOverride block =
-    let
-        lifeBlockView =
-            LifeBlock.withBenchIndex benchIndex block
-    in
     LifeBlock.view
         { baseAttrs = slotAttrs
         , dropBeaconOverride = dropBeaconOverride
         , onDelete = Just <| DeleteBenchBlock benchIndex
         , benchIndex = benchIndex
         }
-        lifeBlockView
+        block
 
 
 {-| Attributes common to open and filled slots on the bench
@@ -583,7 +574,11 @@ viewSidebar model =
         , Font.color Colors.white
         , spacing 20
         ]
-        [ viewLifepathSearch model.searchFilter
+        [ LifepathFilter.view
+            { enteredSearchText = EnteredSearchText
+            , clickedBornCheckbox = ClickedBornCheckbox
+            }
+            model.searchFilter
         , viewSidebarLifepaths model.sidebarLifepaths
         ]
 
@@ -609,34 +604,6 @@ viewSidebarLifepaths sidebarLifepaths =
         Loaded paths ->
             column [ spacing 20, padding 20, width fill, height fill, scrollbarY ]
                 (Array.toList <| Array.indexedMap viewPath paths)
-
-
-viewLifepathSearch : LifepathFilter -> Element Msg
-viewLifepathSearch { searchTerm, born } =
-    column [ alignRight, padding 40, width fill ]
-        [ bornCheckbox <| Maybe.withDefault False born
-        , searchInput <| Maybe.withDefault "" searchTerm
-        ]
-
-
-bornCheckbox : Bool -> Element Msg
-bornCheckbox checked =
-    Input.checkbox [ alignRight ]
-        { onChange = ClickedBornCheckbox
-        , icon = Input.defaultCheckbox
-        , checked = checked
-        , label = Input.labelLeft [ alignRight ] <| text "Born"
-        }
-
-
-searchInput : String -> Element Msg
-searchInput searchTerm =
-    Input.search [ Font.color Colors.black ]
-        { onChange = EnteredSearchText
-        , text = searchTerm
-        , placeholder = Nothing
-        , label = Input.labelAbove [] <| text "Search"
-        }
 
 
 
