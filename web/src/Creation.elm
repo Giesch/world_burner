@@ -10,7 +10,6 @@ module Creation exposing
 import Api exposing (ApiResult)
 import Api.LifepathFilter as LifepathFilter exposing (LifepathFilter)
 import Array exposing (Array)
-import Beacon
 import Colors
 import Common
 import Creation.BeaconId as BeaconId
@@ -21,6 +20,7 @@ import Creation.BeaconId as BeaconId
         , dragLocation
         )
 import Creation.Workbench as Workbench exposing (Workbench)
+import DragState exposing (DragState)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
@@ -43,7 +43,7 @@ type alias Model =
     , searchFilter : LifepathFilter
     , sidebarLifepaths : Status (Array Lifepath)
     , workbench : Workbench
-    , dragState : Beacon.DragState DragBeaconId DropBeaconId DragCache
+    , dragState : DragState DragBeaconId DropBeaconId DragCache
     }
 
 
@@ -66,7 +66,7 @@ init session =
       , searchFilter = LifepathFilter.default
       , sidebarLifepaths = Loading
       , workbench = Workbench.default
-      , dragState = Beacon.NotDragging
+      , dragState = DragState.NotDragging
       }
     , fetchLifepaths LifepathFilter.default
     )
@@ -83,7 +83,7 @@ fetchLifepaths searchFilter =
 
 type Msg
     = GotLifepaths (ApiResult (List Lifepath))
-    | DragMsg (Beacon.Transition DragBeaconId DropBeaconId DragCache)
+    | DragMsg (DragState.Transition DragBeaconId DropBeaconId DragCache)
     | DeleteBenchBlock BenchIndex
     | EnteredSearchText String
     | SearchTimePassed String
@@ -103,7 +103,7 @@ update msg model =
             , Cmd.none
             )
 
-        DragMsg (Beacon.PickUp draggedItem) ->
+        DragMsg (DragState.PickUp draggedItem) ->
             case pickup model draggedItem of
                 Ok newModel ->
                     ( newModel, Cmd.none )
@@ -111,13 +111,13 @@ update msg model =
                 Err err ->
                     giveUp model "Error during pick up" err
 
-        DragMsg (Beacon.DragMove dragState) ->
+        DragMsg (DragState.DragMove dragState) ->
             ( { model | dragState = dragState }, Cmd.none )
 
-        DragMsg (Beacon.LetGo _) ->
+        DragMsg (DragState.LetGo _) ->
             ( letGo model, Cmd.none )
 
-        DragMsg (Beacon.Drop hoverState) ->
+        DragMsg (DragState.Drop hoverState) ->
             case drop model hoverState of
                 Ok newModel ->
                     ( newModel, Cmd.none )
@@ -167,7 +167,7 @@ update msg model =
             , fetchLifepaths searchFilter
             )
 
-        DragMsg Beacon.NoOp ->
+        DragMsg DragState.NoOp ->
             ( model, Cmd.none )
 
 
@@ -182,15 +182,15 @@ giveUp model msg err =
 
 letGo : Model -> Model
 letGo model =
-    { model | dragState = Beacon.NotDragging }
+    { model | dragState = DragState.NotDragging }
 
 
-pickup : Model -> Beacon.DraggedItem DragBeaconId -> Result InvalidModel Model
+pickup : Model -> DragState.DraggedItem DragBeaconId -> Result InvalidModel Model
 pickup model draggedItem =
     let
         beginDragging : DragCache -> Model
         beginDragging cache =
-            { model | dragState = Beacon.Dragging ( draggedItem, cache ) }
+            { model | dragState = DragState.Dragging ( draggedItem, cache ) }
     in
     pickupDragBeacon model draggedItem.beaconId
         |> Result.map beginDragging
@@ -227,11 +227,11 @@ pickupError err =
 
 drop :
     Model
-    -> Beacon.HoverState DragBeaconId DropBeaconId
+    -> DragState.HoverState DragBeaconId DropBeaconId
     -> Result InvalidModel Model
 drop model hoverState =
     case model.dragState of
-        Beacon.Hovering ( _, ( cachedBench, cachedBlock ) ) ->
+        DragState.Hovering ( _, ( cachedBench, cachedBlock ) ) ->
             let
                 location : BeaconId.DropBeaconLocation
                 location =
@@ -251,13 +251,13 @@ drop model hoverState =
                     Ok
                         { model
                             | workbench = workbench
-                            , dragState = Beacon.NotDragging
+                            , dragState = DragState.NotDragging
                         }
 
-        Beacon.Dragging _ ->
+        DragState.Dragging _ ->
             Ok <| letGo model
 
-        Beacon.NotDragging ->
+        DragState.NotDragging ->
             Err InvalidDragState
 
 
@@ -316,7 +316,7 @@ lookupDraggedBlock : Model -> Maybe DraggedLifeBlock
 lookupDraggedBlock model =
     let
         draggedLifeBlock :
-            Beacon.DraggedItem DragBeaconId
+            DragState.DraggedItem DragBeaconId
             -> LifeBlock
             -> DraggedLifeBlock
         draggedLifeBlock draggedItem lifeBlock =
@@ -326,13 +326,13 @@ lookupDraggedBlock model =
             }
     in
     case model.dragState of
-        Beacon.NotDragging ->
+        DragState.NotDragging ->
             Nothing
 
-        Beacon.Dragging ( draggedItem, ( _, cachedBlock ) ) ->
+        DragState.Dragging ( draggedItem, ( _, cachedBlock ) ) ->
             Just <| draggedLifeBlock draggedItem cachedBlock
 
-        Beacon.Hovering ( { draggedItem }, ( _, cachedBlock ) ) ->
+        DragState.Hovering ( { draggedItem }, ( _, cachedBlock ) ) ->
             Just <| draggedLifeBlock draggedItem cachedBlock
 
 
@@ -345,13 +345,13 @@ type DragStateView
 lookupDragState : Model -> DragStateView
 lookupDragState { dragState } =
     case dragState of
-        Beacon.NotDragging ->
+        DragState.NotDragging ->
             NotDraggingView
 
-        Beacon.Dragging ( _, ( _, cachedBlock ) ) ->
+        DragState.Dragging ( _, ( _, cachedBlock ) ) ->
             DraggingView cachedBlock
 
-        Beacon.Hovering ( { hoveredDropBeacon }, ( _, cachedBlock ) ) ->
+        DragState.Hovering ( { hoveredDropBeacon }, ( _, cachedBlock ) ) ->
             HoveringView
                 { hoveringBlock = cachedBlock
                 , dropLocation = BeaconId.dropLocation hoveredDropBeacon
@@ -476,7 +476,7 @@ viewSidebarLifepaths sidebarLifepaths =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.map DragMsg <|
-        Beacon.subscriptions
+        DragState.subscriptions
             BeaconId.dragIdFromInt
             BeaconId.dropIdFromInt
             model.dragState

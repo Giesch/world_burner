@@ -19,7 +19,7 @@ module Creation.BeaconId exposing
     , sidebarDragId
     )
 
-import Beacon
+import DragState
 import Element
 
 
@@ -153,12 +153,12 @@ tensPlace n =
 
 dragAttribute : DragBeaconId -> Element.Attribute msg
 dragAttribute (DragBeaconId id) =
-    Beacon.attribute id
+    DragState.attribute id
 
 
 dropAttribute : DropBeaconId -> Element.Attribute msg
 dropAttribute (DropBeaconId id) =
-    Beacon.attribute id
+    DragState.attribute id
 
 
 isDropBeaconId : Int -> Bool
