@@ -2,8 +2,13 @@ use crate::db::DbConn;
 use crate::routes::lifepaths::LifepathFilters;
 use crate::schema;
 use crate::schema::StatMod;
+use diesel::deserialize::FromSql;
 use diesel::pg::expression::dsl::any;
+use diesel::pg::types::sql_types::Jsonb;
+use diesel::pg::Pg;
 use diesel::prelude::*;
+use diesel::serialize::{Output, ToSql};
+use std::io::Write;
 
 pub trait LifepathRepo {
     fn lifepaths(&self, filters: &LifepathFilters) -> LifepathRepoResult<Vec<LifepathRow>>;
@@ -212,6 +217,36 @@ pub struct LifepathTraitRow {
 #[derive(Queryable, Debug)]
 pub struct LifepathReqRow {
     pub lifepath_id: i32,
-    pub predicate: serde_json::Value,
+    pub predicate: ReqPredicate,
     pub description: String,
+}
+
+/// The requirements of a lifepath, stored as a tree in jsonb.
+#[serde(tag = "type", content = "value")]
+#[derive(FromSqlRow, Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
+pub enum ReqPredicate {
+    /// requires a specific lifepath 'count' number of times
+    Lifepath { lifepath_id: i32, count: i32 },
+    /// requires 'count' previous lifepaths of any kind
+    PreviousLifepaths { count: i32 },
+    /// requires 'count' previous lifepaths from a specific setting
+    Setting { setting_id: i32, count: i32 },
+    /// met if any one of the sub-requirements is met
+    Any(Vec<ReqPredicate>),
+    /// met only if all of the sub-requirements are met
+    All(Vec<ReqPredicate>),
+}
+
+impl FromSql<Jsonb, Pg> for ReqPredicate {
+    fn from_sql(bytes: Option<&[u8]>) -> diesel::deserialize::Result<Self> {
+        let value = <serde_json::Value as FromSql<Jsonb, Pg>>::from_sql(bytes)?;
+        Ok(serde_json::from_value(value)?)
+    }
+}
+
+impl ToSql<Jsonb, Pg> for ReqPredicate {
+    fn to_sql<W: Write>(&self, out: &mut Output<W, Pg>) -> diesel::serialize::Result {
+        let value = serde_json::to_value(self)?;
+        <serde_json::Value as ToSql<Jsonb, Pg>>::to_sql(&value, out)
+    }
 }

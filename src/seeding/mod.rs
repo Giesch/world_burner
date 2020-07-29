@@ -13,7 +13,7 @@ use deserialize::*;
 mod insertable;
 use insertable::*;
 
-use crate::services::lifepaths::ReqPredicate;
+use crate::repos::lifepaths::ReqPredicate;
 
 type StdError = Box<dyn std::error::Error>;
 type StdResult<T> = Result<T, StdError>;
