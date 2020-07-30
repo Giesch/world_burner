@@ -117,8 +117,8 @@ update msg model =
         DragMsg (DragState.LetGo _) ->
             ( letGo model, Cmd.none )
 
-        DragMsg (DragState.Drop hoverState) ->
-            case drop model hoverState of
+        DragMsg DragState.Drop ->
+            case drop model of
                 Ok newModel ->
                     ( newModel, Cmd.none )
 
@@ -225,13 +225,10 @@ pickupError err =
             InvalidDragState
 
 
-drop :
-    Model
-    -> DragState.HoverState DragBeaconId DropBeaconId
-    -> Result InvalidModel Model
-drop model hoverState =
+drop : Model -> Result InvalidModel Model
+drop model =
     case model.dragState of
-        DragState.Hovering ( _, ( cachedBench, cachedBlock ) ) ->
+        DragState.Hovering ( hoverState, ( cachedBench, cachedBlock ) ) ->
             let
                 location : BeaconId.DropBeaconLocation
                 location =

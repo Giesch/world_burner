@@ -2,27 +2,10 @@ module Common exposing
     ( keepIf
     , minimumBy
     , userSelectNone
-    , withBothOk
     )
 
 import Element
 import Html.Attributes
-
-
-{-| AKA Result.andThen2 (with the function last)
-The left error is returned if both results fail.
--}
-withBothOk : Result e a -> Result e b -> (a -> b -> Result e value) -> Result e value
-withBothOk left right fn =
-    case ( left, right ) of
-        ( Ok a, Ok b ) ->
-            fn a b
-
-        ( Err e, _ ) ->
-            Err e
-
-        ( _, Err e ) ->
-            Err e
 
 
 {-| AKA Maybe.filter

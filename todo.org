@@ -28,10 +28,9 @@
 ** only happens sometimes :/
 ** seems to be when over the x? or the edge
 
-* TODO set up a deployment w/heroku or aws
+* TODO set up a deployment & CI w/heroku or aws
 ** test that the app runs pending migrations on startup
 ** have a way to reset the book data/the db in general
-
 
 * TODO think about how to handle stock common traits & born lifepaths
 ** need a table of common traits by stock?
@@ -145,10 +144,10 @@ the whole point was to not do dropzones
 *** link to a page with an email and error code?
 
 * Someday
-** TODO deploy this fucking app
-*** TODO have nice CI
 ** TODO replace jsonb requirement predicates with a real sql tree thing
 *** check constraints for tree node types and a one-to-many self join for children
 **** what does that query look like?
 *** use some special pg plugin?
 ** TODO add prod frontend error logging with rollbar or whatever
+** TODO make the app compile to a binary in release mode
+*** spa routes should depend on a flag; only use NamedFile in dev

@@ -52,9 +52,9 @@ impl LifepathRepo for DbConn {
 
         match &filters.search_term {
             Some(search_term) if search_term.len() >= MIN_SEARCH_TERM => {
-                let like_term: String = format!("{}%", search_term);
-                query = query.filter(lifepaths::name.ilike(like_term))
+                query = query.filter(lifepaths::name.ilike(format!("%{}%", search_term)));
             }
+
             _ => (),
         }
 

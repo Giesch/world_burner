@@ -39,7 +39,7 @@ type DragState dragId dropId cache
 type Transition dragId dropId cache
     = PickUp (DraggedItem dragId)
     | LetGo (DraggedItem dragId)
-    | Drop (HoverState dragId dropId)
+    | Drop
     | DragMove (DragState dragId dropId cache)
     | NoOp
 
@@ -121,8 +121,8 @@ transitions dragState beaconMsg =
         ( Hovering _, Move data ) ->
             dragMove data dragState
 
-        ( Hovering ( hoverState, _ ), Stop _ ) ->
-            Drop hoverState
+        ( Hovering _, Stop _ ) ->
+            Drop
 
         ( Hovering _, _ ) ->
             NoOp
@@ -282,6 +282,7 @@ dragMove data dragState =
             )
         of
             ( Nothing, _ ) ->
+                -- This should be impossible
                 dragState
 
             ( Just ( draggedItem, cache ), Nothing ) ->

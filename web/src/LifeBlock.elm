@@ -33,16 +33,15 @@ singleton path =
     LifeBlock <| NonEmpty.singleton path
 
 
-append : LifeBlock -> LifeBlock -> LifeBlock
-append (LifeBlock left) (LifeBlock right) =
-    LifeBlock <| NonEmpty.append left right
-
-
 {-| Validates whether the blocks can be combined in order.
 -}
 combine : LifeBlock -> LifeBlock -> Result String LifeBlock
 combine left ((LifeBlock rightData) as right) =
     let
+        append : LifeBlock -> LifeBlock -> LifeBlock
+        append (LifeBlock l) (LifeBlock r) =
+            LifeBlock <| NonEmpty.append l r
+
         rightFirst : Lifepath
         rightFirst =
             NonEmpty.head rightData
