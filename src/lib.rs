@@ -25,23 +25,24 @@ pub mod services;
 use db::DbConn;
 use dotenv::dotenv;
 use rocket::config::{Config, Environment, Value};
+use rocket::{Rocket, Route};
 use routes::*;
 use std::collections::HashMap;
 use std::env;
 
-pub fn app() -> rocket::Rocket {
+pub fn app() -> Rocket {
     mount(rocket::ignite())
 }
 
-pub fn test_app() -> rocket::Rocket {
+pub fn test_app() -> Rocket {
     mount(rocket::custom(test_config()))
 }
 
-fn mount(rocket: rocket::Rocket) -> rocket::Rocket {
+fn mount(rocket: Rocket) -> Rocket {
     rocket.attach(DbConn::fairing()).mount("/", routes())
 }
 
-fn routes() -> Vec<rocket::Route> {
+fn routes() -> Vec<Route> {
     routes![
         spa::index,
         spa::route,

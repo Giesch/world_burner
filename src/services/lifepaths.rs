@@ -67,8 +67,7 @@ fn group_requirements(rows: Vec<LifepathReqRow>) -> LifepathsResult<HashMap<i32,
 fn convert_req_rows(
     (id, rows): (i32, impl Iterator<Item = LifepathReqRow>),
 ) -> LifepathsResult<(i32, Requirement)> {
-    let reqs: LifepathsResult<Vec<Requirement>> = rows.map(TryInto::try_into).collect();
-    let mut reqs = reqs?;
+    let mut reqs: Vec<Requirement> = rows.map(Into::into).collect();
 
     if reqs.len() == 1 {
         Ok((id, reqs.remove(0)))
@@ -277,30 +276,12 @@ pub struct Requirement {
     description: String,
 }
 
-/// The requirements of a lifepath, stored as a tree in jsonb.
-#[serde(tag = "type", content = "value")]
-#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
-pub enum ReqPredicate {
-    /// requires a specific lifepath 'count' number of times
-    Lifepath { lifepath_id: i32, count: i32 },
-    /// requires 'count' previous lifepaths of any kind
-    PreviousLifepaths { count: i32 },
-    /// requires 'count' previous lifepaths from a specific setting
-    Setting { setting_id: i32, count: i32 },
-    /// met if any of the sub-requirements are met
-    Any(Vec<ReqPredicate>),
-    /// met only if all of the sub-requirements are met
-    All(Vec<ReqPredicate>),
-}
-
-impl TryFrom<LifepathReqRow> for Requirement {
-    type Error = LifepathsError;
-
-    fn try_from(row: LifepathReqRow) -> Result<Self, Self::Error> {
-        Ok(Requirement {
-            predicate: serde_json::from_value(row.predicate)?,
+impl From<LifepathReqRow> for Requirement {
+    fn from(row: LifepathReqRow) -> Self {
+        Requirement {
+            predicate: row.predicate,
             description: row.description,
-        })
+        }
     }
 }
 

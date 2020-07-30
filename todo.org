@@ -1,4 +1,4 @@
-* TODO fix flickering on hover
+* TODO add a Creation.Workbench module that wraps the array
 * TODO drag and drop validation
 ** TODO validation on hover
 - [X] deserialize requirement predicates
@@ -21,14 +21,16 @@
   - [ ] include skill roots in lifepath skills response
   - [ ] get google oauth flow working
   - [ ] integration tests for endpoint
-  - [ ] unit tests for model
+  - [ ] unit tests for model & related modules
   - [ ] unit tests for json decoders
 
+* TODO fix flickering on hover
+** only happens sometimes :/
+** seems to be when over the x? or the edge
 
-* TODO set up a deployment w/heroku or aws
+* TODO set up a deployment & CI w/heroku or aws
 ** test that the app runs pending migrations on startup
 ** have a way to reset the book data/the db in general
-
 
 * TODO think about how to handle stock common traits & born lifepaths
 ** need a table of common traits by stock?
@@ -135,4 +137,17 @@ the whole point was to not do dropzones
 ** TODO do all filtering and searching of lifepaths on the client side
 ** TODO use thiserror and anyhow for rust errors
 ** TODO use diesel associations for lifepaths?
-** TODO add nice logging with pretty env logger or tracing
+** TODO add nice backend logging with pretty env logger or tracing
+** TODO make lifepaths expandable/collapsable
+** TODO replace all Elm Debug.todo and Debug.log calls with an error view
+*** toast popup and reset to last known good state
+*** link to a page with an email and error code?
+
+* Someday
+** TODO replace jsonb requirement predicates with a real sql tree thing
+*** check constraints for tree node types and a one-to-many self join for children
+**** what does that query look like?
+*** use some special pg plugin?
+** TODO add prod frontend error logging with rollbar or whatever
+** TODO make the app compile to a binary in release mode
+*** spa routes should depend on a flag; only use NamedFile in dev

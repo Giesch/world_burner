@@ -1,5 +1,7 @@
 module Creation.BeaconId exposing
-    ( DragBeaconId
+    ( BenchIndex
+    , BenchLocation
+    , DragBeaconId
     , DragBeaconLocation(..)
     , DropBeaconId
     , DropBeaconLocation(..)
@@ -17,7 +19,7 @@ module Creation.BeaconId exposing
     , sidebarDragId
     )
 
-import Beacon
+import DragState
 import Element
 
 
@@ -50,6 +52,10 @@ type DropBeaconId
     = DropBeaconId Int
 
 
+type alias BenchIndex =
+    Int
+
+
 {-| The location of a drop beacon in the Creation page model.
 All indexes are 0 based and must be less than 10.
 
@@ -59,9 +65,9 @@ All indexes are 0 based and must be less than 10.
 
 -}
 type DropBeaconLocation
-    = Open Int
-    | Before Int
-    | After Int
+    = Open BenchIndex
+    | Before BenchIndex
+    | After BenchIndex
 
 
 {-| Creates a deterministic id for the given bench location on the Creation page
@@ -147,12 +153,12 @@ tensPlace n =
 
 dragAttribute : DragBeaconId -> Element.Attribute msg
 dragAttribute (DragBeaconId id) =
-    Beacon.attribute id
+    DragState.attribute id
 
 
 dropAttribute : DropBeaconId -> Element.Attribute msg
 dropAttribute (DropBeaconId id) =
-    Beacon.attribute id
+    DragState.attribute id
 
 
 isDropBeaconId : Int -> Bool
