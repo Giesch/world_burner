@@ -9,10 +9,12 @@ module Creation.Workbench exposing
     , drop
     , pickup
     , view
+    , viewDraggedBlock
     )
 
 import Array exposing (Array)
 import Colors
+import Common
 import Creation.BeaconId as BeaconId
     exposing
         ( BenchIndex
@@ -24,7 +26,11 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Html
+import Html.Attributes
 import LifeBlock exposing (LifeBlock, SplitResult(..))
+import Lifepath
+import List.NonEmpty as NonEmpty
 
 
 type Workbench
@@ -219,6 +225,34 @@ openSlot benchIndex { hover, deleteBenchBlock } =
                     :: slotAttrs
                 )
                 (el [ centerX, centerY ] <| text "+")
+
+
+{-| Displays the hovering block at the users cursor
+-}
+viewDraggedBlock : LifeBlock -> { top : Float, left : Float } -> Element msg
+viewDraggedBlock lifeBlock { top, left } =
+    let
+        position : String -> Float -> Html.Attribute msg
+        position name px =
+            Html.Attributes.style name <| String.fromFloat px ++ "px"
+    in
+    column
+        ([ htmlAttribute <| Html.Attributes.style "position" "fixed"
+         , htmlAttribute <| position "top" top
+         , htmlAttribute <| position "left" left
+         , htmlAttribute <| Html.Attributes.style "list-style" "none"
+         , htmlAttribute <| Html.Attributes.style "padding" "0"
+         , htmlAttribute <| Html.Attributes.style "margin" "0"
+         , width Lifepath.lifepathWidth
+         , spacing 20
+         , padding 12
+         ]
+            ++ Common.userSelectNone
+        )
+        (List.map
+            (Lifepath.view { withBeacon = Nothing })
+            (NonEmpty.toList <| LifeBlock.paths lifeBlock)
+        )
 
 
 type alias LifeBlockOptions msg =

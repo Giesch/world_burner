@@ -155,8 +155,8 @@ lifepathWidth =
     Element.px 300
 
 
-view : Lifepath -> { withBeacon : Maybe DragBeaconId } -> Element msg
-view lifepath { withBeacon } =
+view : { withBeacon : Maybe DragBeaconId } -> Lifepath -> Element msg
+view { withBeacon } lifepath =
     let
         defaultAttrs : List (Attribute msg)
         defaultAttrs =

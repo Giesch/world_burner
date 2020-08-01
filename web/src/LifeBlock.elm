@@ -145,7 +145,7 @@ view { baseAttrs, dropBeaconOverride, onDelete, benchIndex } (LifeBlock lifepath
                 , label = text "X"
                 }
                 :: List.indexedMap
-                    (\blockIndex path -> Lifepath.view path { withBeacon = withBeacon blockIndex })
+                    (\blockIndex path -> Lifepath.view { withBeacon = withBeacon blockIndex } path)
                     (NonEmpty.toList lifepaths)
     in
     column attrs <|

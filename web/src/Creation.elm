@@ -196,7 +196,7 @@ pickup model draggedItem =
         |> Result.map beginDragging
 
 
-pickupDragBeacon : Model -> DragBeaconId -> Result InvalidModel ( Workbench, LifeBlock )
+pickupDragBeacon : Model -> DragBeaconId -> Result InvalidModel DragCache
 pickupDragBeacon { workbench, sidebarLifepaths } dragId =
     case BeaconId.dragLocation dragId of
         BeaconId.Bench loc ->
@@ -207,9 +207,8 @@ pickupDragBeacon { workbench, sidebarLifepaths } dragId =
             case sidebarLifepaths of
                 Loaded paths ->
                     Array.get sidebarIndex paths
-                        |> Maybe.map LifeBlock.singleton
+                        |> Maybe.map (\path -> ( workbench, LifeBlock.singleton path ))
                         |> Result.fromMaybe BoundsError
-                        |> Result.map (\block -> ( workbench, block ))
 
                 _ ->
                     Err InvalidDragState
@@ -245,11 +244,7 @@ drop model =
                     Err InvalidDragState
 
                 Ok workbench ->
-                    Ok
-                        { model
-                            | workbench = workbench
-                            , dragState = DragState.NotDragging
-                        }
+                    Ok { model | workbench = workbench, dragState = DragState.NotDragging }
 
         DragState.Dragging _ ->
             Ok <| letGo model
@@ -390,37 +385,14 @@ view model =
 -}
 viewDraggedBlock : Maybe DraggedLifeBlock -> Element Msg
 viewDraggedBlock maybeBlock =
-    let
-        top : DraggedLifeBlock -> String
-        top { cursorOnScreen, cursorOnDraggable } =
-            String.fromFloat (cursorOnScreen.y - cursorOnDraggable.y) ++ "px"
-
-        left : DraggedLifeBlock -> String
-        left { cursorOnScreen, cursorOnDraggable } =
-            String.fromFloat (cursorOnScreen.x - cursorOnDraggable.x) ++ "px"
-    in
     case maybeBlock of
-        Just dragged ->
-            column
-                ([ htmlAttribute <| Html.Attributes.style "position" "fixed"
-                 , htmlAttribute <|
-                    Html.Attributes.style "top" (top dragged)
-                 , htmlAttribute <|
-                    Html.Attributes.style "left" (left dragged)
-                 , htmlAttribute <| Html.Attributes.style "list-style" "none"
-                 , htmlAttribute <| Html.Attributes.style "padding" "0"
-                 , htmlAttribute <| Html.Attributes.style "margin" "0"
-                 , width Lifepath.lifepathWidth
-                 ]
-                    ++ Common.userSelectNone
-                )
-            <|
-                -- TODO move this to LifeBlock module
-                List.map
-                    (\path -> Lifepath.view path { withBeacon = Nothing })
-                    (NonEmpty.toList <| LifeBlock.paths dragged.lifeBlock)
+        Just { lifeBlock, cursorOnScreen, cursorOnDraggable } ->
+            Workbench.viewDraggedBlock lifeBlock <|
+                { top = cursorOnScreen.y - cursorOnDraggable.y
+                , left = cursorOnScreen.x - cursorOnDraggable.x
+                }
 
-        _ ->
+        Nothing ->
             none
 
 
@@ -447,12 +419,8 @@ viewSidebarLifepaths : Status (Array Lifepath) -> Element Msg
 viewSidebarLifepaths sidebarLifepaths =
     let
         viewPath : Int -> Lifepath -> Element Msg
-        viewPath i path =
-            let
-                id =
-                    BeaconId.sidebarDragId i
-            in
-            Lifepath.view path { withBeacon = Just id }
+        viewPath index =
+            Lifepath.view { withBeacon = Just <| BeaconId.sidebarDragId index }
     in
     case sidebarLifepaths of
         Loading ->
@@ -462,8 +430,9 @@ viewSidebarLifepaths sidebarLifepaths =
             text "couldn't load lifepaths"
 
         Loaded paths ->
-            column [ spacing 20, padding 20, width fill, height fill, scrollbarY ]
-                (Array.toList <| Array.indexedMap viewPath paths)
+            column [ spacing 20, padding 20, width fill, height fill, scrollbarY ] <|
+                List.indexedMap viewPath <|
+                    Array.toList paths
 
 
 
