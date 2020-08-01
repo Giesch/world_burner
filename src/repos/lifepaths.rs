@@ -168,14 +168,6 @@ impl From<diesel::result::Error> for LifepathRepoError {
 }
 
 #[derive(Queryable, Debug)]
-pub struct LeadRow {
-    pub lifepath_id: i32,
-    pub setting_id: i32,
-    pub setting_name: String,
-    pub setting_page: i32,
-}
-
-#[derive(Queryable, Debug)]
 pub struct LifepathRow {
     pub id: i32,
     pub lifepath_setting_id: i32,
@@ -189,6 +181,14 @@ pub struct LifepathRow {
     pub stat_mod_val: Option<i32>,
     pub res: Option<i32>,
     pub born: bool,
+}
+
+#[derive(Queryable, Debug)]
+pub struct LeadRow {
+    pub lifepath_id: i32,
+    pub setting_id: i32,
+    pub setting_name: String,
+    pub setting_page: i32,
 }
 
 #[derive(Queryable, Debug)]

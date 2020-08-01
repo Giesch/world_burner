@@ -1,6 +1,9 @@
 module Lifepath.Requirement exposing
-    ( ReqPredicate(..)
+    ( LifepathPredicate
+    , Predicate(..)
+    , PreviousLifepathsPredicate
     , Requirement
+    , SettingPredicate
     , decoder
     )
 
@@ -9,17 +12,17 @@ import Json.Decode.Pipeline exposing (required)
 
 
 type alias Requirement =
-    { predicate : ReqPredicate
+    { predicate : Predicate
     , description : String
     }
 
 
-type ReqPredicate
+type Predicate
     = SpecificLifepath LifepathPredicate
     | PreviousLifepaths PreviousLifepathsPredicate
     | Setting SettingPredicate
-    | Any (List ReqPredicate)
-    | All (List ReqPredicate)
+    | Any (List Predicate)
+    | All (List Predicate)
 
 
 type alias LifepathPredicate =
@@ -29,7 +32,8 @@ type alias LifepathPredicate =
 
 
 type alias PreviousLifepathsPredicate =
-    { count : Int }
+    { count : Int
+    }
 
 
 type alias SettingPredicate =
@@ -49,13 +53,13 @@ decoder =
         |> required "description" Decode.string
 
 
-predicateDecoder : Decoder ReqPredicate
+predicateDecoder : Decoder Predicate
 predicateDecoder =
     Decode.field "type" Decode.string
         |> Decode.andThen predicateDecoderFromType
 
 
-predicateDecoderFromType : String -> Decoder ReqPredicate
+predicateDecoderFromType : String -> Decoder Predicate
 predicateDecoderFromType string =
     let
         value : Decoder a -> Decoder a
@@ -82,7 +86,7 @@ predicateDecoderFromType string =
             Decode.fail ("Invalid predicate type: " ++ string)
 
 
-lifepathPredicateDecoder : Decoder ReqPredicate
+lifepathPredicateDecoder : Decoder Predicate
 lifepathPredicateDecoder =
     Decode.map SpecificLifepath <|
         (Decode.succeed LifepathPredicate
@@ -91,7 +95,7 @@ lifepathPredicateDecoder =
         )
 
 
-previousDecoder : Decoder ReqPredicate
+previousDecoder : Decoder Predicate
 previousDecoder =
     Decode.map PreviousLifepaths <|
         (Decode.succeed PreviousLifepathsPredicate
@@ -99,7 +103,7 @@ previousDecoder =
         )
 
 
-settingPredicateDecoder : Decoder ReqPredicate
+settingPredicateDecoder : Decoder Predicate
 settingPredicateDecoder =
     Decode.map Setting <|
         (Decode.succeed SettingPredicate
@@ -108,11 +112,11 @@ settingPredicateDecoder =
         )
 
 
-anyDecoder : Decoder ReqPredicate
+anyDecoder : Decoder Predicate
 anyDecoder =
     Decode.map Any <| Decode.list predicateDecoder
 
 
-allDecoder : Decoder ReqPredicate
+allDecoder : Decoder Predicate
 allDecoder =
     Decode.map All <| Decode.list predicateDecoder

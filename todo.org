@@ -142,6 +142,7 @@ the whole point was to not do dropzones
 ** TODO replace all Elm Debug.todo and Debug.log calls with an error view
 *** toast popup and reset to last known good state
 *** link to a page with an email and error code?
+** TODO replace the DragState module with a proper state machine with phantom types
 
 * Someday
 ** TODO replace jsonb requirement predicates with a real sql tree thing
