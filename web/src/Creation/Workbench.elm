@@ -1,6 +1,6 @@
 module Creation.Workbench exposing
     ( DropError(..)
-    , Hover
+    , Hover(..)
     , PickupError(..)
     , Workbench
     , WorkbenchOptions
@@ -21,6 +21,8 @@ import Creation.BeaconId as BeaconId
         , BenchLocation
         , DropBeaconId
         , DropBeaconLocation
+        , HoverBeaconId
+        , HoverBeaconLocation
         )
 import Element exposing (..)
 import Element.Background as Background
@@ -156,14 +158,20 @@ putBenchBlock index maybeBlock bench =
     Workbench <| Array.set index maybeBlock bench
 
 
-type alias Hover =
+type Hover
+    = Full FullHover
+    | Empty HoverBeaconLocation
+    | None
+
+
+type alias FullHover =
     { hoveringBlock : LifeBlock
     , dropLocation : DropBeaconLocation
     }
 
 
 type alias WorkbenchOptions msg =
-    { hover : Maybe Hover
+    { hover : Hover
     , deleteBenchBlock : BenchIndex -> msg
     }
 
@@ -171,12 +179,22 @@ type alias WorkbenchOptions msg =
 view : Workbench -> WorkbenchOptions msg -> Element msg
 view (Workbench slots) opts =
     let
+        warningHovered : Int -> Bool
+        warningHovered benchIndex =
+            case opts.hover of
+                Empty (BeaconId.LifeBlockWarning i) ->
+                    i == benchIndex
+
+                _ ->
+                    False
+
         viewBlock : Int -> LifeBlock -> Element msg
         viewBlock benchIndex =
             viewLifeBlock
                 { benchIndex = benchIndex
                 , deleteBenchBlock = opts.deleteBenchBlock
                 , dropBeaconOverride = Nothing
+                , warningHovered = warningHovered benchIndex
                 }
 
         viewSlot : Int -> Maybe LifeBlock -> Element msg
@@ -199,22 +217,27 @@ view (Workbench slots) opts =
 openSlot : Int -> WorkbenchOptions msg -> Element msg
 openSlot benchIndex { hover, deleteBenchBlock } =
     let
-        beingHovered : Bool
-        beingHovered =
-            Maybe.map (\state -> state.dropLocation == BeaconId.Open benchIndex) hover
-                |> Maybe.withDefault False
-
         hoveringBlock : Maybe LifeBlock
         hoveringBlock =
-            Maybe.map .hoveringBlock hover
+            case hover of
+                Full full ->
+                    if full.dropLocation == BeaconId.Open benchIndex then
+                        Just full.hoveringBlock
+
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
     in
-    case ( beingHovered, hoveringBlock ) of
-        ( True, Just block ) ->
+    case hoveringBlock of
+        Just block ->
             viewLifeBlock
                 { benchIndex = benchIndex
                 , deleteBenchBlock = deleteBenchBlock
                 , dropBeaconOverride =
                     Just <| BeaconId.openSlotDropId benchIndex
+                , warningHovered = False
                 }
                 block
 
@@ -259,16 +282,18 @@ type alias LifeBlockOptions msg =
     { benchIndex : Int
     , deleteBenchBlock : BenchIndex -> msg
     , dropBeaconOverride : Maybe DropBeaconId
+    , warningHovered : Bool
     }
 
 
 viewLifeBlock : LifeBlockOptions msg -> LifeBlock -> Element msg
-viewLifeBlock { benchIndex, deleteBenchBlock, dropBeaconOverride } block =
+viewLifeBlock { benchIndex, deleteBenchBlock, dropBeaconOverride, warningHovered } block =
     LifeBlock.view
         { baseAttrs = slotAttrs
         , dropBeaconOverride = dropBeaconOverride
         , onDelete = Just <| deleteBenchBlock benchIndex
         , benchIndex = benchIndex
+        , warningHovered = warningHovered
         }
         block
 

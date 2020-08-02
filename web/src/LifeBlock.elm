@@ -92,35 +92,36 @@ type alias ViewOptions msg =
     , dropBeaconOverride : Maybe DropBeaconId -- used during hover
     , onDelete : Maybe msg
     , benchIndex : Int
+    , warningHovered : Bool
     }
 
 
 view : ViewOptions msg -> LifeBlock -> Element msg
-view { baseAttrs, dropBeaconOverride, onDelete, benchIndex } (LifeBlock lifepaths) =
+view opts (LifeBlock lifepaths) =
     let
         dropZone : DropBeaconId -> Element msg
         dropZone id =
-            case dropBeaconOverride of
+            case opts.dropBeaconOverride of
                 Just _ ->
-                    el (Border.width 1 :: baseAttrs)
+                    el (Border.width 1 :: opts.baseAttrs)
                         (el [ centerX, centerY ] <| text "+")
 
                 Nothing ->
-                    el (BeaconId.dropAttribute id :: Border.width 1 :: baseAttrs)
+                    el (BeaconId.dropAttribute id :: Border.width 1 :: opts.baseAttrs)
                         (el [ centerX, centerY ] <| text "+")
 
         attrs : List (Attribute msg)
         attrs =
-            List.filterMap identity [ warnAttr, dropAttr ] ++ baseAttrs
+            List.filterMap identity [ dropAttr ] ++ opts.baseAttrs
 
         dropAttr : Maybe (Attribute msg)
         dropAttr =
-            dropBeaconOverride
+            opts.dropBeaconOverride
                 |> Maybe.map BeaconId.dropAttribute
 
         warnAttr : Maybe (Attribute msg)
         warnAttr =
-            case dropBeaconOverride of
+            case opts.dropBeaconOverride of
                 Just _ ->
                     Nothing
 
@@ -129,29 +130,58 @@ view { baseAttrs, dropBeaconOverride, onDelete, benchIndex } (LifeBlock lifepath
                         |> viewWarnings
                         |> Maybe.map Element.onRight
 
+        hoverAttr : Attribute msg
+        hoverAttr =
+            opts.benchIndex
+                |> BeaconId.warningHoverId
+                |> BeaconId.hoverAttribute
+
+        exclamation =
+            case ( warnAttr, opts.warningHovered ) of
+                ( Just attr, True ) ->
+                    el [ attr, hoverAttr ] <| text "!"
+
+                ( Just _, False ) ->
+                    el [ hoverAttr ] <| text "!"
+
+                ( Nothing, _ ) ->
+                    none
+
+        topRow : Element msg
+        topRow =
+            row [ width fill ] <|
+                [ exclamation
+                , Input.button
+                    [ alignRight ]
+                    { onPress = opts.onDelete
+                    , label = text "X"
+                    }
+                ]
+
         withBeacon : Int -> Maybe DragBeaconId
         withBeacon blockIndex =
-            case dropBeaconOverride of
+            case opts.dropBeaconOverride of
                 Just _ ->
                     Nothing
 
                 Nothing ->
-                    Just <| BeaconId.benchDragId { benchIndex = benchIndex, blockIndex = blockIndex }
+                    Just <|
+                        BeaconId.benchDragId
+                            { benchIndex = opts.benchIndex
+                            , blockIndex = blockIndex
+                            }
 
         middle : List (Element msg)
         middle =
-            Input.button [ alignRight ]
-                { onPress = onDelete
-                , label = text "X"
-                }
+            topRow
                 :: List.indexedMap
                     (\blockIndex path -> Lifepath.view { withBeacon = withBeacon blockIndex } path)
                     (NonEmpty.toList lifepaths)
     in
     column attrs <|
-        dropZone (BeaconId.beforeSlotDropId benchIndex)
+        dropZone (BeaconId.beforeSlotDropId opts.benchIndex)
             :: middle
-            ++ [ dropZone <| BeaconId.afterSlotDropId benchIndex ]
+            ++ [ dropZone <| BeaconId.afterSlotDropId opts.benchIndex ]
 
 
 viewWarnings : List Validation.Warning -> Maybe (Element msg)

@@ -23,12 +23,15 @@ const MIN_SEARCH_TERM: usize = 2;
 
 impl LifepathRepo for DbConn {
     fn lifepaths(&self, filters: &LifepathFilters) -> LifepathRepoResult<Vec<LifepathRow>> {
+        use schema::lifepath_settings as settings;
         use schema::lifepaths;
 
         let mut query = lifepaths::table
+            .inner_join(settings::table)
             .select((
                 lifepaths::id,
                 lifepaths::lifepath_setting_id,
+                settings::name,
                 lifepaths::page,
                 lifepaths::name,
                 lifepaths::years,
@@ -171,6 +174,7 @@ impl From<diesel::result::Error> for LifepathRepoError {
 pub struct LifepathRow {
     pub id: i32,
     pub lifepath_setting_id: i32,
+    pub setting_name: String,
     pub page: i32,
     pub name: String,
     pub years: Option<i32>,

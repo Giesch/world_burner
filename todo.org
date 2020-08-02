@@ -1,12 +1,15 @@
-* TODO add a Creation.Workbench module that wraps the array
+* DONE add a Creation.Workbench module that wraps the array
 * TODO drag and drop validation
-** TODO validation on hover
+** DONE add empty hover state
+** TODO validation on hover/combine
 - [X] deserialize requirement predicates
-- [ ] missing setting lead
-- [ ] before born lifepath
+- [X] missing setting lead
+- [X] before born lifepath
+- [ ] add error tooltip
+- [ ] check for unsatisfiable requirements (if born)
 ** TODO validation in place
-- [ ] missing lifepath requirement
-- [ ] missing born lifepath
+- [X] missing lifepath requirement
+- [X] missing born lifepath
 * TODO get a minimal version of the app running
   - [-] sequentially picking lifepaths
     - [X] get dnd working; able to drop first lifepath of a new block
@@ -24,30 +27,24 @@
   - [ ] unit tests for model & related modules
   - [ ] unit tests for json decoders
 
+* TODO visual redesign
+** not a final one, just a not-look-like-ass one
+** start using a storybook?
+
 * TODO fix flickering on hover
-** only happens sometimes :/
+** only happens sometimes :/ (is it still happening?)
 ** seems to be when over the x? or the edge
 
 * TODO set up a deployment & CI w/heroku or aws
 ** test that the app runs pending migrations on startup
 ** have a way to reset the book data/the db in general
 
+* TODO enter traits list
 * TODO think about how to handle stock common traits & born lifepaths
 ** need a table of common traits by stock?
 ** how to handle human cultural traits?
 ** and fey blood
 *** implement skill restrictions as requiring the specific common trait
-
-* TODO enter traits list
-** need to handle stock common traits in a nice way
-
-* TODO think about limits to put on the lifepath req table
-** like depth/complexity
-** should that just be a request validation rather than a constraint?
-
-* TODO how do we ensure integrity of lifepath requirements?
-** need a join table that duplicates which lps are referenced
-in each other's json
 
 * db changes
 ** TODO refactor check constraints into separate tables where possible
@@ -60,6 +57,9 @@ in each other's json
 **** add a step to the process where they're forced to choose weapon skills to replace it
 **** hardcode appropriate weapons into the specific skill restrictions
 ***** ie now it requires sword or app. weap.
+**** could special case handle it when moving to pointbuy
+***** remove app. weapons from their skill list and add all weapon skills
+how does that work with user stocks? let them define their own app. weapons list?
 ** think about how to do lifepath requirements
 *** store predicates as data
 *** types of predicates:
@@ -133,8 +133,6 @@ in each other's json
 the whole point was to not do dropzones
 ** TODO handle the errors from draggable.js in decodeDragEvents
 ** TODO add on-hover text explaining the ui
-** TODO use a static site generator and load the book lifepaths at build time
-** TODO do all filtering and searching of lifepaths on the client side
 ** TODO use thiserror and anyhow for rust errors
 ** TODO use diesel associations for lifepaths?
 ** TODO add nice backend logging with pretty env logger or tracing
@@ -145,10 +143,14 @@ the whole point was to not do dropzones
 ** TODO replace the DragState module with a proper state machine with phantom types
 
 * Someday
+** TODO use a static site generator and load the book lifepaths at build time
+** TODO do all filtering and searching of lifepaths on the client side
 ** TODO replace jsonb requirement predicates with a real sql tree thing
 *** check constraints for tree node types and a one-to-many self join for children
 **** what does that query look like?
+*** enforce integrity (ie can't require a deleted lifepath, can't delete a required lifepath)
 *** use some special pg plugin?
+*** what depth/complexity limits should there be? enforced on requests or as db constraints?
 ** TODO add prod frontend error logging with rollbar or whatever
 ** TODO make the app compile to a binary in release mode
 *** spa routes should depend on a flag; only use NamedFile in dev

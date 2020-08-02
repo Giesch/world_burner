@@ -26,6 +26,7 @@ import Trait exposing (Trait)
 type alias Lifepath =
     { id : Int
     , settingId : Int
+    , settingName : String
     , name : String
     , page : Int
     , years : Int
@@ -81,6 +82,7 @@ decoder =
     Decode.succeed Lifepath
         |> required "id" Decode.int
         |> required "setting_id" Decode.int
+        |> required "setting_name" Decode.string
         |> required "name" Decode.string
         |> required "page" Decode.int
         |> required "years" Decode.int

@@ -5,6 +5,8 @@ module Creation.BeaconId exposing
     , DragBeaconLocation(..)
     , DropBeaconId
     , DropBeaconLocation(..)
+    , HoverBeaconId
+    , HoverBeaconLocation(..)
     , afterSlotDropId
     , beforeSlotDropId
     , benchDragId
@@ -14,13 +16,25 @@ module Creation.BeaconId exposing
     , dropAttribute
     , dropIdFromInt
     , dropLocation
+    , hoverAttribute
+    , hoverIdFromInt
+    , hoverLocation
     , isDropBeaconId
     , openSlotDropId
     , sidebarDragId
+    , warningHoverId
     )
 
 import DragState
 import Element
+
+
+type HoverBeaconId
+    = HoverBeaconId Int
+
+
+type HoverBeaconLocation
+    = LifeBlockWarning BenchIndex
 
 
 {-| An opaque and deterministic location-based id for a draggable item
@@ -41,19 +55,15 @@ type DragBeaconLocation
 
 
 type alias BenchLocation =
-    { benchIndex : Int
+    { benchIndex : BenchIndex
     , blockIndex : Int
     }
 
 
-{-| An opaque and deterministic location-based id for a drop area
+{-| An opaque and deterministic location-based id for a drop location
 -}
 type DropBeaconId
     = DropBeaconId Int
-
-
-type alias BenchIndex =
-    Int
 
 
 {-| The location of a drop beacon in the Creation page model.
@@ -70,11 +80,20 @@ type DropBeaconLocation
     | After BenchIndex
 
 
+{-| An opaque and deterministic location-based id for a drop location
+-}
+type alias BenchIndex =
+    Int
+
+
+
+-- TODO these should check the index ranges
+
+
 {-| Creates a deterministic id for the given bench location on the Creation page
 -}
 benchDragId : BenchLocation -> DragBeaconId
 benchDragId { benchIndex, blockIndex } =
-    -- TODO this should check that indexes are less than 10 and return a result
     -- this uses the id range 0 through 99
     DragBeaconId (benchIndex * 10 + blockIndex)
 
@@ -92,7 +111,6 @@ The bench index must be between 0 and 9 inclusive
 -}
 openSlotDropId : Int -> DropBeaconId
 openSlotDropId benchIndex =
-    -- TODO this should check that indexes are less than 10 and return a result
     -- this uses the id range -1 through -10
     DropBeaconId ((benchIndex + 1) * -1)
 
@@ -102,7 +120,6 @@ The bench index must be between 0 and 9 inclusive
 -}
 beforeSlotDropId : Int -> DropBeaconId
 beforeSlotDropId benchIndex =
-    -- TODO this should check that indexes are less than 10 and return a result
     -- this uses the id range -11 through -20
     DropBeaconId ((benchIndex + 11) * -1)
 
@@ -112,9 +129,14 @@ The bench index must be between 0 and 9 inclusive
 -}
 afterSlotDropId : Int -> DropBeaconId
 afterSlotDropId benchIndex =
-    -- TODO this should check that indexes are less than 10 and return a result
     -- this uses the id range -21 through -30
     DropBeaconId ((benchIndex + 21) * -1)
+
+
+warningHoverId : Int -> HoverBeaconId
+warningHoverId benchIndex =
+    -- this uses the id range -31 through -40
+    HoverBeaconId ((benchIndex + 31) * -1)
 
 
 dragLocation : DragBeaconId -> DragBeaconLocation
@@ -142,6 +164,11 @@ dropLocation (DropBeaconId id) =
         After ((id * -1) - 21)
 
 
+hoverLocation : HoverBeaconId -> HoverBeaconLocation
+hoverLocation (HoverBeaconId id) =
+    LifeBlockWarning ((id * -1) - 31)
+
+
 tensPlace : Int -> Int
 tensPlace n =
     if n >= 0 then
@@ -158,6 +185,11 @@ dragAttribute (DragBeaconId id) =
 
 dropAttribute : DropBeaconId -> Element.Attribute msg
 dropAttribute (DropBeaconId id) =
+    DragState.attribute id
+
+
+hoverAttribute : HoverBeaconId -> Element.Attribute msg
+hoverAttribute (HoverBeaconId id) =
     DragState.attribute id
 
 
@@ -179,6 +211,15 @@ dropIdFromInt : Int -> Maybe DropBeaconId
 dropIdFromInt id =
     if id < 0 && id >= -30 then
         Just <| DropBeaconId id
+
+    else
+        Nothing
+
+
+hoverIdFromInt : Int -> Maybe HoverBeaconId
+hoverIdFromInt id =
+    if id < -30 && id > -40 then
+        Just <| HoverBeaconId id
 
     else
         Nothing

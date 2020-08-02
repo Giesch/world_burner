@@ -19,15 +19,11 @@ type Error
     = Error String
 
 
-{-| A problem with a character that signifies it's incomplete.
+{-| A problem with a character that makes it incomplete.
 ie a missing born lifepath or an unsatisfied requirement
 -}
 type Warning
     = Warning String
-
-
-type alias Rule err =
-    NonEmpty Lifepath -> Maybe err
 
 
 {-| Takes a predicate and the PREVIOUS lifepaths of the character.
@@ -88,7 +84,7 @@ checkRequirements lifepaths =
     run ( Array.empty, NonEmpty.toList lifepaths, [] )
 
 
-gottaBeBorn : Rule Warning
+gottaBeBorn : NonEmpty Lifepath -> Maybe Warning
 gottaBeBorn ( first, _ ) =
     if first.born then
         Nothing
@@ -97,23 +93,42 @@ gottaBeBorn ( first, _ ) =
         Just <| Warning "A character's first lifepath must be a 'born' lifepath"
 
 
-onlyBornFirst : Rule Error
-onlyBornFirst ( _, rest ) =
-    if List.all (\path -> not path.born) rest then
+bornFirst : NonEmpty Lifepath -> NonEmpty Lifepath -> Maybe Error
+bornFirst _ ( notBorn, _ ) =
+    if notBorn.born then
+        Just <| Error "Only a character's first lifepath may be a 'born' lifepath"
+
+    else
+        Nothing
+
+
+checkLead : NonEmpty Lifepath -> NonEmpty Lifepath -> Maybe Error
+checkLead first ( to, _ ) =
+    let
+        from : Lifepath
+        from =
+            NonEmpty.last first
+
+        leads : List Int
+        leads =
+            List.map .settingId from.leads
+    in
+    if List.member to.settingId leads then
         Nothing
 
     else
-        Just <| Error "Only a character's first lifepath may be a 'born' lifepath"
+        Just <| Error <| from.name ++ " has no lead to " ++ to.settingName
 
 
-errors : NonEmpty Lifepath -> List Error
-errors lifepaths =
-    case onlyBornFirst lifepaths of
-        Just error ->
-            [ error ]
-
-        Nothing ->
-            []
+{-| Returns errors when combining two valid blocks
+TODO: should this function or the whole module be in LifeBlock?
+-}
+errors : NonEmpty Lifepath -> NonEmpty Lifepath -> List Error
+errors first second =
+    List.filterMap (\rule -> rule first second)
+        [ bornFirst
+        , checkLead
+        ]
 
 
 warnings : NonEmpty Lifepath -> List Warning
