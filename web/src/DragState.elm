@@ -2,7 +2,8 @@ port module DragState exposing
     ( DragData
     , DragState(..)
     , DraggedItem
-    , HoverState
+    , IdDecoders
+    , PoisedState
     , Transition(..)
     , attribute
     , subscriptions
@@ -17,52 +18,24 @@ import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
 
 
+{-| The possible drag and hover states of the ui.
+
+  - None - not dragging or hovering over anything
+  - Hovered - not dragging, and hovering over something of interest
+    eg a tooltip
+  - Dragged - dragging an item, and not over a meaningful drop
+  - Poised - dragging an item, and over a meaningful drop
+    this includes error or warning states
+
+The ids represent the location of the relevant beacons.
+The cache is the carried item and relevant state for dropping it.
+
+-}
 type DragState dragId dropId hoverId cache
     = None
-    | Dragging ( DraggedItem dragId, cache )
-    | Hovering ( HoverState dragId dropId, cache )
-    | EmptyHover hoverId
-
-
-{-| Transitions are the external message type
-
-  - PickUp - the beginning of a drag
-  - LetGo - the end of a drag (when non-hovering)
-  - Drop - the end of a drag (when hovering)
-  - DragMove - any movement when in either Dragging or Hovering states
-    this includes
-      - moving from Dragging to Hovering
-      - moving from Hovering to Dragging
-      - moving the cursor within Dragging or Hovering states
-  - Hover - TODO write me
-  - NoOp - this represents invalid transitions, is bad, and shoudn't exist
-
--}
-type Transition dragId dropId hoverId cache
-    = PickUp (DraggedItem dragId)
-    | LetGo
-    | Drop
-    | DragMove (DragState dragId dropId hoverId cache)
-    | BeginHover hoverId
-    | EndHover
-    | NoOp
-
-
-type alias HoverState dragId dropId =
-    { draggedItem : DraggedItem dragId
-    , hoveredDropBeacon : dropId
-    }
-
-
-{-| Internal messages received from the port
--}
-type Msg dragId dropId hoverId
-    = Start (DraggedItem dragId)
-      -- TODO rename DragMove
-    | Move (DragData dropId)
-    | Stop (DragData dropId)
-    | Hover (DragData hoverId)
-    | Error Decode.Error
+    | Hovered hoverId
+    | Dragged ( DraggedItem dragId, cache )
+    | Poised ( PoisedState dragId dropId, cache )
 
 
 type alias DraggedItem dragId =
@@ -70,6 +43,49 @@ type alias DraggedItem dragId =
     , cursorOnScreen : Point
     , cursorOnDraggable : Point
     }
+
+
+type alias PoisedState dragId dropId =
+    { draggedItem : DraggedItem dragId
+    , hoveredDropBeacon : dropId
+    }
+
+
+{-| Transitions are the external message type
+
+  - BeginHover - begins a non-dragging hover
+  - EndHover - ends a non-dragging hover
+  - PickUp - the beginning of a drag
+  - LetGo - the end of a drag (when non-hovering)
+  - Drop - the end of a drag (when hovering)
+  - Carry - any movement when in either Dragged or Poised states
+    this includes
+      - moving from Dragged to Poised
+      - moving from Poised to Dragged
+      - moving the cursor within Dragged or Poised states
+  - NoOp - this represents invalid transitions
+    this would ideally be unnecessary, but we can't show the elm compiler that
+    invalid transitions won't be sent by draggable.js
+
+-}
+type Transition dragId dropId hoverId cache
+    = PickUp (DraggedItem dragId)
+    | LetGo
+    | Drop
+    | Carry (DragState dragId dropId hoverId cache)
+    | BeginHover hoverId
+    | EndHover
+    | NoOp
+
+
+{-| Internal messages received from the port
+-}
+type Msg dragId dropId hoverId
+    = Start (DraggedItem dragId)
+    | Move (DragData dropId)
+    | Stop (DragData dropId)
+    | Hover (DragData hoverId)
+    | Error Decode.Error
 
 
 type alias DragData dropId =
@@ -92,14 +108,12 @@ port dragEvents : (Decode.Value -> msg) -> Sub msg
 
 
 subscriptions :
-    (Int -> Maybe dragId)
-    -> (Int -> Maybe dropId)
-    -> (Int -> Maybe hoverId)
+    IdDecoders dragId dropId hoverId
     -> DragState dragId dropId hoverId cache
     -> Sub (Transition dragId dropId hoverId cache)
-subscriptions toDragId toDropId toHoverId dragState =
+subscriptions idDecoders dragState =
     Sub.map (transitions dragState) <|
-        Sub.batch [ dragEvents (decodeDragEvents toDragId toDropId toHoverId) ]
+        Sub.batch [ dragEvents (decodeDragEvents idDecoders) ]
 
 
 {-| Translates move messages into Transitions
@@ -118,7 +132,7 @@ transitions dragState beaconMsg =
                 Nothing ->
                     NoOp
 
-        ( EmptyHover hovered, Hover data ) ->
+        ( Hovered hovered, Hover data ) ->
             case boundingBeaconId data of
                 Just id ->
                     if id == hovered then
@@ -130,10 +144,10 @@ transitions dragState beaconMsg =
                 Nothing ->
                     EndHover
 
-        ( EmptyHover _, Start draggedItem ) ->
+        ( Hovered _, Start draggedItem ) ->
             PickUp draggedItem
 
-        ( EmptyHover _, _ ) ->
+        ( Hovered _, _ ) ->
             -- these are error states
             EndHover
 
@@ -143,33 +157,31 @@ transitions dragState beaconMsg =
         ( None, _ ) ->
             NoOp
 
-        ( Dragging pair, Move data ) ->
+        ( Dragged pair, Move data ) ->
             dragMove data pair
 
-        ( Dragging _, Stop _ ) ->
+        ( Dragged _, Stop _ ) ->
             LetGo
 
-        ( Dragging _, _ ) ->
+        ( Dragged _, _ ) ->
             NoOp
 
-        ( Hovering ( { draggedItem }, cache ), Move data ) ->
+        ( Poised ( { draggedItem }, cache ), Move data ) ->
             dragMove data ( draggedItem, cache )
 
-        ( Hovering _, Stop _ ) ->
+        ( Poised _, Stop _ ) ->
             Drop
 
-        ( Hovering _, _ ) ->
+        ( Poised _, _ ) ->
             NoOp
 
 
 decodeDragEvents :
-    (Int -> Maybe dragId)
-    -> (Int -> Maybe dropId)
-    -> (Int -> Maybe hoverId)
+    IdDecoders dragId dropId hoverId
     -> Decode.Value
     -> Msg dragId dropId hoverId
-decodeDragEvents toDragId toDropId toHoverId value =
-    case Decode.decodeValue (msgDecoder toDragId toDropId toHoverId) value of
+decodeDragEvents idDecoders value =
+    case Decode.decodeValue (msgDecoder idDecoders) value of
         Ok msg ->
             msg
 
@@ -181,19 +193,15 @@ decodeDragEvents toDragId toDropId toHoverId value =
             Error err
 
 
-msgDecoder :
-    (Int -> Maybe dragId)
-    -> (Int -> Maybe dropId)
-    -> (Int -> Maybe hoverId)
-    -> Decode.Decoder (Msg dragId dropId hoverId)
-msgDecoder toDragId toDropId toHoverId =
+msgDecoder : IdDecoders dragId dropId hoverId -> Decode.Decoder (Msg dragId dropId hoverId)
+msgDecoder idDecoders =
     Decode.succeed BeaconJson
         |> required "type" eventDecoder
         |> required "cursor" Geom.pointDecoder
         |> required "beacons" beaconsDecoder
         |> optional "startBeaconId" (Decode.map Just Decode.string) Nothing
         |> optional "cursorOnDraggable" (Decode.map Just Geom.pointDecoder) Nothing
-        |> Decode.andThen (dragEvent toDragId toDropId toHoverId)
+        |> Decode.andThen (dragEvent idDecoders)
 
 
 type alias BeaconJson =
@@ -245,17 +253,18 @@ beaconsDecoder =
         )
 
 
-
--- TODO take the int decoders as named args
+type alias IdDecoders dragId dropId hoverId =
+    { toDragId : Int -> Maybe dragId
+    , toDropId : Int -> Maybe dropId
+    , toHoverId : Int -> Maybe hoverId
+    }
 
 
 dragEvent :
-    (Int -> Maybe dragId)
-    -> (Int -> Maybe dropId)
-    -> (Int -> Maybe hoverId)
+    IdDecoders dragId dropId hoverId
     -> BeaconJson
     -> Decode.Decoder (Msg dragId dropId hoverId)
-dragEvent toDragId toDropId toHoverId json =
+dragEvent { toDragId, toDropId, toHoverId } json =
     let
         dropData : DragData dropId
         dropData =
@@ -325,13 +334,13 @@ dragMove data pair =
         move draggedItem =
             { draggedItem | cursorOnScreen = data.cursor }
     in
-    DragMove <|
+    Carry <|
         case ( pair, boundingBeaconId data ) of
             ( ( draggedItem, cache ), Nothing ) ->
-                Dragging <| ( move draggedItem, cache )
+                Dragged <| ( move draggedItem, cache )
 
             ( ( draggedItem, cache ), Just dropBeaconId ) ->
-                Hovering <| ( HoverState (move draggedItem) dropBeaconId, cache )
+                Poised <| ( PoisedState (move draggedItem) dropBeaconId, cache )
 
 
 boundingBeaconId : DragData id -> Maybe id

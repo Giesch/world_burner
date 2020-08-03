@@ -1,4 +1,4 @@
-module Lifepath.Validation exposing
+module LifeBlock.Validation exposing
     ( Error(..)
     , Warning(..)
     , errors
@@ -113,7 +113,7 @@ checkLead first ( to, _ ) =
         leads =
             List.map .settingId from.leads
     in
-    if List.member to.settingId leads then
+    if to.settingId == from.settingId || List.member to.settingId leads then
         Nothing
 
     else
@@ -121,7 +121,6 @@ checkLead first ( to, _ ) =
 
 
 {-| Returns errors when combining two valid blocks
-TODO: should this function or the whole module be in LifeBlock?
 -}
 errors : NonEmpty Lifepath -> NonEmpty Lifepath -> List Error
 errors first second =
