@@ -341,7 +341,7 @@ view model =
                 dropAttempt =
                     Workbench.drop cachedBench cachedBlock <| BeaconId.dropLocation hoveredDropBeacon
 
-                hover : Workbench.DropHighlight -> Workbench.Hover
+                hover : Maybe Bool -> Workbench.Hover
                 hover dropHighlight =
                     Workbench.Full
                         { hoveringBlock = cachedBlock
@@ -352,12 +352,12 @@ view model =
             case dropAttempt of
                 Ok _ ->
                     viewPage
-                        (viewBench <| hover Workbench.Success)
+                        (viewBench <| hover <| Just True)
                         (viewDraggedBlock draggedItem cachedBlock Nothing)
 
                 Err (Workbench.CombinationError errs) ->
                     viewPage
-                        (viewBench <| hover Workbench.Failure)
+                        (viewBench <| hover <| Just False)
                         (viewDraggedBlock draggedItem cachedBlock <| Just errs)
 
                 Err err ->
@@ -366,7 +366,7 @@ view model =
                             Debug.log "error during hypothetical drop" err
                     in
                     viewPage
-                        (viewBench <| hover Workbench.NoHighlight)
+                        (viewBench <| hover Nothing)
                         (viewDraggedBlock draggedItem cachedBlock Nothing)
 
 

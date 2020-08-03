@@ -1,6 +1,5 @@
 module Creation.Workbench exposing
     ( DropError(..)
-    , DropHighlight(..)
     , Hover(..)
     , PickupError(..)
     , Workbench
@@ -167,30 +166,32 @@ type Hover
 type alias FullHover =
     { hoveringBlock : LifeBlock
     , dropLocation : DropBeaconLocation
-    , dropHighlight : DropHighlight
+    , dropHighlight : Maybe Bool
     }
 
 
-type DropHighlight
-    = NoHighlight
-    | Success
-    | Failure
+convertHighlight : Int -> FullHover -> LifeBlock.Hover
+convertHighlight benchIndex { dropLocation, dropHighlight } =
+    let
+        showHighlight i hov =
+            if i == benchIndex then
+                hov
 
-
-convertHighlight : FullHover -> LifeBlock.Hover
-convertHighlight { dropLocation, dropHighlight } =
+            else
+                LifeBlock.None
+    in
     case ( dropLocation, dropHighlight ) of
-        ( BeaconId.Before _, Success ) ->
-            LifeBlock.Before LifeBlock.Success
+        ( BeaconId.Before i, Just True ) ->
+            showHighlight i <| LifeBlock.Before True
 
-        ( BeaconId.Before _, Failure ) ->
-            LifeBlock.Before LifeBlock.Failure
+        ( BeaconId.Before i, Just False ) ->
+            showHighlight i <| LifeBlock.Before False
 
-        ( BeaconId.After _, Success ) ->
-            LifeBlock.After LifeBlock.Success
+        ( BeaconId.After i, Just True ) ->
+            showHighlight i <| LifeBlock.After True
 
-        ( BeaconId.After _, Failure ) ->
-            LifeBlock.After LifeBlock.Failure
+        ( BeaconId.After i, Just False ) ->
+            showHighlight i <| LifeBlock.After False
 
         _ ->
             LifeBlock.None
@@ -216,7 +217,7 @@ view (Workbench slots) opts =
                         LifeBlock.None
 
                 Full full ->
-                    convertHighlight full
+                    convertHighlight benchIndex full
 
                 None ->
                     LifeBlock.None

@@ -1,6 +1,5 @@
 module LifeBlock exposing
     ( Hover(..)
-    , HoverKind(..)
     , LifeBlock
     , SplitResult(..)
     , combine
@@ -10,6 +9,7 @@ module LifeBlock exposing
     , view
     )
 
+import Colors
 import Common
 import Creation.BeaconId as BeaconId exposing (DragBeaconId, DropBeaconId)
 import Element exposing (..)
@@ -80,14 +80,10 @@ type alias ViewOptions msg =
 
 type Hover
     = Warning
-    | Before HoverKind
-    | After HoverKind
+      -- Bool = success or failure
+    | Before Bool
+    | After Bool
     | None
-
-
-type HoverKind
-    = Success
-    | Failure
 
 
 view : ViewOptions msg -> LifeBlock -> Element msg
@@ -142,21 +138,42 @@ view opts (LifeBlock lifepaths) =
                     (\blockIndex path -> Lifepath.view { withBeacon = withBeacon blockIndex } path)
                     (NonEmpty.toList lifepaths)
 
-        dropZone : DropBeaconId -> Element msg
-        dropZone id =
+        ( before, after ) =
+            case opts.hover of
+                Before True ->
+                    ( viewBefore <| Just Colors.successGlow, viewAfter Nothing )
+
+                Before False ->
+                    ( viewBefore <| Just Colors.failureGlow, viewAfter Nothing )
+
+                After True ->
+                    ( viewBefore Nothing, viewAfter <| Just Colors.successGlow )
+
+                After False ->
+                    ( viewBefore Nothing, viewAfter <| Just Colors.failureGlow )
+
+                _ ->
+                    ( viewBefore Nothing, viewAfter Nothing )
+
+        viewBefore highlight =
+            dropZone (BeaconId.beforeSlotDropId opts.benchIndex) highlight
+
+        viewAfter highlight =
+            dropZone (BeaconId.afterSlotDropId opts.benchIndex) highlight
+
+        dropZone : DropBeaconId -> Maybe (Attribute msg) -> Element msg
+        dropZone id highlight =
             let
                 dropAttrs =
-                    Border.width 1 :: opts.baseAttrs
+                    case highlight of
+                        Just high ->
+                            high :: opts.baseAttrs
+
+                        Nothing ->
+                            opts.baseAttrs
             in
             el (BeaconId.dropAttribute id :: dropAttrs)
                 (el [ centerX, centerY ] <| text "+")
-
-        -- TODO drop highlight
-        before =
-            dropZone (BeaconId.beforeSlotDropId opts.benchIndex)
-
-        after =
-            dropZone (BeaconId.afterSlotDropId opts.benchIndex)
     in
     column opts.baseAttrs <|
         (before :: middle ++ [ after ])
