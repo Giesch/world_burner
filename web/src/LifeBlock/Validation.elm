@@ -56,8 +56,8 @@ atLeast count pred lifepaths =
         |> (\length -> length >= count)
 
 
-checkRequirements : NonEmpty Lifepath -> List Warning
-checkRequirements lifepaths =
+unmetReqs : NonEmpty Lifepath -> List Warning
+unmetReqs lifepaths =
     let
         check : Lifepath -> Array Lifepath -> Requirement -> Maybe Warning
         check lifepath pastLifepaths requirement =
@@ -120,6 +120,21 @@ checkLead first ( to, _ ) =
         Just <| Error <| from.name ++ " has no lead to " ++ to.settingName
 
 
+brokenReqs : NonEmpty Lifepath -> NonEmpty Lifepath -> List Error
+brokenReqs (( firstPath, _ ) as first) second =
+    if firstPath.born then
+        let
+            toErr (Warning msg) =
+                Error msg
+        in
+        NonEmpty.append first second
+            |> unmetReqs
+            |> List.map toErr
+
+    else
+        []
+
+
 {-| Returns errors when combining two valid blocks
 -}
 errors : NonEmpty Lifepath -> NonEmpty Lifepath -> List Error
@@ -128,13 +143,14 @@ errors first second =
         [ bornFirst
         , checkLead
         ]
+        ++ brokenReqs first second
 
 
 warnings : NonEmpty Lifepath -> List Warning
 warnings lifepaths =
     case gottaBeBorn lifepaths of
         Just bornWarning ->
-            bornWarning :: checkRequirements lifepaths
+            bornWarning :: unmetReqs lifepaths
 
         Nothing ->
-            checkRequirements lifepaths
+            unmetReqs lifepaths

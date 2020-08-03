@@ -1,19 +1,19 @@
 * DONE add a Creation.Workbench module that wraps the array
-* TODO drag and drop validation
+* DONE drag and drop validation
 ** DONE add empty hover state
-** TODO validation on hover/combine
+** DONE validation on hover/combine
 - [X] deserialize requirement predicates
 - [X] missing setting lead
 - [X] before born lifepath
-- [ ] add error tooltip
-- [ ] check for unsatisfiable requirements (if born)
-** TODO validation in place
+- [X] add error tooltip
+- [X] check for unsatisfiable requirements (if born)
+** DONE validation in place
 - [X] missing lifepath requirement
 - [X] missing born lifepath
 * TODO get a minimal version of the app running
   - [-] sequentially picking lifepaths
     - [X] get dnd working; able to drop first lifepath of a new block
-    - [ ] add validation to dnd
+    - [X] add validation to dnd
     - [ ] easy search for allowed next lifepaths
   - [ ] think about a 'suggestions' endpoint
         send a character fragment in the request

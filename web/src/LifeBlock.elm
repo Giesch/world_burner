@@ -13,7 +13,6 @@ import Colors
 import Common
 import Creation.BeaconId as BeaconId exposing (DragBeaconId, DropBeaconId)
 import Element exposing (..)
-import Element.Border as Border
 import Element.Input as Input
 import LifeBlock.Validation as Validation
 import Lifepath exposing (Lifepath)
