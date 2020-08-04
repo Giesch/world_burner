@@ -10,6 +10,7 @@
 ** DONE validation in place
 - [X] missing lifepath requirement
 - [X] missing born lifepath
+
 * TODO get a minimal version of the app running
   - [-] sequentially picking lifepaths
     - [X] get dnd working; able to drop first lifepath of a new block
@@ -20,20 +21,17 @@
         filter or sort by:
           for next lp - 'i meet the requirements'
           for previous lp - 'satisfies my unmet requirements'
-        need to disallow born lifepaths on invalid character fragments
-  - [ ] include skill roots in lifepath skills response
-  - [ ] get google oauth flow working
+        this could be difficult to parse - better for those to be available options in the ui
+        ie clicking just sets a bunch of settings under 'advanced search' or whatever
   - [ ] integration tests for endpoint
   - [ ] unit tests for model & related modules
   - [ ] unit tests for json decoders
+  - [ ] unit tests for validation
+        maybe just dump the dwarf json to a file?
 
 * TODO visual redesign
 ** not a final one, just a not-look-like-ass one
 ** start using a storybook?
-
-* TODO fix flickering on hover
-** only happens sometimes :/ (is it still happening?)
-** seems to be when over the x? or the edge
 
 * TODO set up a deployment & CI w/heroku or aws
 ** test that the app runs pending migrations on startup
@@ -45,6 +43,7 @@
 ** how to handle human cultural traits?
 ** and fey blood
 *** implement skill restrictions as requiring the specific common trait
+*** traits have to be able to grant other traits, including a choice from a list
 
 * db changes
 ** TODO refactor check constraints into separate tables where possible
@@ -141,6 +140,8 @@ the whole point was to not do dropzones
 *** toast popup and reset to last known good state
 *** link to a page with an email and error code?
 ** TODO replace the DragState module with a proper state machine with phantom types
+** TODO add social login with google oauth or something
+*** maybe email-only login like execute program?
 
 * Someday
 ** TODO use a static site generator and load the book lifepaths at build time
