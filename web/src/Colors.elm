@@ -10,7 +10,7 @@ module Colors exposing
     , white
     )
 
-import Element exposing (Color, fromRgb255, rgb255, rgba255)
+import Element exposing (Attribute, Color, fromRgb255, rgb255, rgba255)
 import Element.Border as Border
 
 
@@ -66,9 +66,11 @@ faint =
     rgba255 0 0 0 0.1
 
 
+successGlow : Attribute msg
 successGlow =
     Border.glow blue 0.75
 
 
+failureGlow : Attribute msg
 failureGlow =
     Border.glow red 0.75

@@ -173,6 +173,7 @@ type alias FullHover =
 convertHighlight : Int -> FullHover -> LifeBlock.Hover
 convertHighlight benchIndex { dropLocation, dropHighlight } =
     let
+        showHighlight : Int -> LifeBlock.Hover -> LifeBlock.Hover
         showHighlight i hov =
             if i == benchIndex then
                 hov
@@ -250,6 +251,7 @@ view (Workbench slots) opts =
 openSlot : Int -> WorkbenchOptions msg -> Element msg
 openSlot benchIndex { hover } =
     let
+        beingHovered : Bool
         beingHovered =
             case hover of
                 Full full ->

@@ -1,5 +1,5 @@
 module Common exposing
-    ( SplitResult(..)
+    ( SplitResult
     , keepIf
     , minimumBy
     , splitAt
@@ -37,20 +37,15 @@ splitAt index ( first, rest ) =
             first :: rest
     in
     case ( List.take index list, List.drop index list ) of
-        ( leftFirst :: leftRest, rightFirst :: rightRest ) ->
-            Split ( ( leftFirst, leftRest ), ( rightFirst, rightRest ) )
-
-        ( [], rightFirst :: rightRest ) ->
-            Whole ( rightFirst, rightRest )
+        ( left, rightFirst :: rightRest ) ->
+            Just ( left, ( rightFirst, rightRest ) )
 
         _ ->
-            None
+            Nothing
 
 
-type SplitResult a
-    = Whole (NonEmpty a)
-    | Split ( NonEmpty a, NonEmpty a )
-    | None
+type alias SplitResult a =
+    Maybe ( List a, NonEmpty a )
 
 
 {-| AKA Maybe.filter

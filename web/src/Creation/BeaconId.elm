@@ -80,8 +80,6 @@ type DropBeaconLocation
     | After BenchIndex
 
 
-{-| An opaque and deterministic location-based id for a drop location
--}
 type alias BenchIndex =
     Int
 

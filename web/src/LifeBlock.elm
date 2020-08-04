@@ -47,25 +47,25 @@ combine (LifeBlock first) (LifeBlock second) =
             Err ( err, moreErrs )
 
 
-type SplitResult a
-    = Whole a
-    | Split ( a, a )
+type SplitResult
+    = Whole LifeBlock
+    | Split ( LifeBlock, LifeBlock )
     | BoundsError
 
 
 {-| Splits a LifeBlock at the given index.
 ie 0 would be taking the whole thing, while 'length' would be out of bounds.
 -}
-splitAt : Int -> LifeBlock -> SplitResult LifeBlock
+splitAt : Int -> LifeBlock -> SplitResult
 splitAt index (LifeBlock lifepaths) =
     case Common.splitAt index lifepaths of
-        Common.Split ( left, right ) ->
-            Split ( LifeBlock left, LifeBlock right )
-
-        Common.Whole whole ->
+        Just ( [], whole ) ->
             Whole <| LifeBlock whole
 
-        Common.None ->
+        Just ( leftFirst :: leftRest, right ) ->
+            Split ( LifeBlock ( leftFirst, leftRest ), LifeBlock right )
+
+        Nothing ->
             BoundsError
 
 
@@ -86,57 +86,8 @@ type Hover
 
 
 view : ViewOptions msg -> LifeBlock -> Element msg
-view opts (LifeBlock lifepaths) =
+view opts lifeBlock =
     let
-        warnAttr : Maybe (Attribute msg)
-        warnAttr =
-            Validation.warnings lifepaths
-                |> viewWarnings
-                |> Maybe.map Element.onRight
-
-        hoverAttr : Attribute msg
-        hoverAttr =
-            opts.benchIndex
-                |> BeaconId.warningHoverId
-                |> BeaconId.hoverAttribute
-
-        exclamation =
-            case ( warnAttr, opts.hover == Warning ) of
-                ( Just attr, True ) ->
-                    el [ attr, hoverAttr ] <| text "!"
-
-                ( Just _, False ) ->
-                    el [ hoverAttr ] <| text "!"
-
-                ( Nothing, _ ) ->
-                    none
-
-        topRow : Element msg
-        topRow =
-            row [ width fill ] <|
-                [ exclamation
-                , Input.button
-                    [ alignRight ]
-                    { onPress = opts.onDelete
-                    , label = text "X"
-                    }
-                ]
-
-        withBeacon : Int -> Maybe DragBeaconId
-        withBeacon blockIndex =
-            Just <|
-                BeaconId.benchDragId
-                    { benchIndex = opts.benchIndex
-                    , blockIndex = blockIndex
-                    }
-
-        middle : List (Element msg)
-        middle =
-            topRow
-                :: List.indexedMap
-                    (\blockIndex path -> Lifepath.view { withBeacon = withBeacon blockIndex } path)
-                    (NonEmpty.toList lifepaths)
-
         ( before, after ) =
             case opts.hover of
                 Before True ->
@@ -175,7 +126,59 @@ view opts (LifeBlock lifepaths) =
                 (el [ centerX, centerY ] <| text "+")
     in
     column opts.baseAttrs <|
-        (before :: middle ++ [ after ])
+        (before :: middle opts lifeBlock ++ [ after ])
+
+
+middle : ViewOptions msg -> LifeBlock -> List (Element msg)
+middle opts (LifeBlock lifepaths) =
+    let
+        warnAttr : Maybe (Attribute msg)
+        warnAttr =
+            Validation.warnings lifepaths
+                |> viewWarnings
+                |> Maybe.map Element.onRight
+
+        hoverAttr : Attribute msg
+        hoverAttr =
+            opts.benchIndex
+                |> BeaconId.warningHoverId
+                |> BeaconId.hoverAttribute
+
+        exclamation : Element msg
+        exclamation =
+            case ( warnAttr, opts.hover == Warning ) of
+                ( Just attr, True ) ->
+                    el [ attr, hoverAttr ] <| text "!"
+
+                ( Just _, False ) ->
+                    el [ hoverAttr ] <| text "!"
+
+                ( Nothing, _ ) ->
+                    none
+
+        topRow : Element msg
+        topRow =
+            row [ width fill ] <|
+                [ exclamation
+                , Input.button
+                    [ alignRight ]
+                    { onPress = opts.onDelete
+                    , label = text "X"
+                    }
+                ]
+
+        withBeacon : Int -> Maybe DragBeaconId
+        withBeacon blockIndex =
+            Just <|
+                BeaconId.benchDragId
+                    { benchIndex = opts.benchIndex
+                    , blockIndex = blockIndex
+                    }
+    in
+    topRow
+        :: List.indexedMap
+            (\blockIndex path -> Lifepath.view { withBeacon = withBeacon blockIndex } path)
+            (NonEmpty.toList lifepaths)
 
 
 viewWarnings : List Validation.Warning -> Maybe (Element msg)

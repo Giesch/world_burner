@@ -11,7 +11,7 @@
 - [X] missing lifepath requirement
 - [X] missing born lifepath
 
-* TODO get a minimal version of the app running
+* TODO get a minimal version of the app running [0/6]
   - [-] sequentially picking lifepaths
     - [X] get dnd working; able to drop first lifepath of a new block
     - [X] add validation to dnd
@@ -23,6 +23,7 @@
           for previous lp - 'satisfies my unmet requirements'
         this could be difficult to parse - better for those to be available options in the ui
         ie clicking just sets a bunch of settings under 'advanced search' or whatever
+        should display the setting name of a lifepath
   - [ ] integration tests for endpoint
   - [ ] unit tests for model & related modules
   - [ ] unit tests for json decoders
@@ -32,6 +33,10 @@
 * TODO visual redesign
 ** not a final one, just a not-look-like-ass one
 ** start using a storybook?
+
+* TODO see if it's possible to replace the BeaconId stuff with something more structured
+** like ["id-type", index] instead of assigned ranges
+** add real decoders & encoders, using string constants
 
 * TODO set up a deployment & CI w/heroku or aws
 ** test that the app runs pending migrations on startup
