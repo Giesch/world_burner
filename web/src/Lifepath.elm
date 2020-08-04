@@ -26,6 +26,7 @@ import Trait exposing (Trait)
 type alias Lifepath =
     { id : Int
     , settingId : Int
+    , settingName : String
     , name : String
     , page : Int
     , years : Int
@@ -81,6 +82,7 @@ decoder =
     Decode.succeed Lifepath
         |> required "id" Decode.int
         |> required "setting_id" Decode.int
+        |> required "setting_name" Decode.string
         |> required "name" Decode.string
         |> required "page" Decode.int
         |> required "years" Decode.int
@@ -155,8 +157,8 @@ lifepathWidth =
     Element.px 300
 
 
-view : Lifepath -> { withBeacon : Maybe DragBeaconId } -> Element msg
-view lifepath { withBeacon } =
+view : { withBeacon : Maybe DragBeaconId } -> Lifepath -> Element msg
+view { withBeacon } lifepath =
     let
         defaultAttrs : List (Attribute msg)
         defaultAttrs =

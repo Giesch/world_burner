@@ -1,18 +1,20 @@
 module LifeBlock exposing
-    ( LifeBlock
+    ( Hover(..)
+    , LifeBlock
     , SplitResult(..)
     , combine
     , paths
     , singleton
     , splitAt
     , view
-    , warning
     )
 
-import Creation.BeaconId as BeaconId exposing (DropBeaconId)
+import Colors
+import Common
+import Creation.BeaconId as BeaconId exposing (DragBeaconId, DropBeaconId)
 import Element exposing (..)
-import Element.Border as Border
 import Element.Input as Input
+import LifeBlock.Validation as Validation
 import Lifepath exposing (Lifepath)
 import List.NonEmpty as NonEmpty exposing (NonEmpty)
 
@@ -33,121 +35,161 @@ singleton path =
     LifeBlock <| NonEmpty.singleton path
 
 
-{-| Validates whether the blocks can be combined in order.
+{-| Combines two lifeblocks in order, if possible.
 -}
-combine : LifeBlock -> LifeBlock -> Result String LifeBlock
-combine left ((LifeBlock rightData) as right) =
-    let
-        append : LifeBlock -> LifeBlock -> LifeBlock
-        append (LifeBlock l) (LifeBlock r) =
-            LifeBlock <| NonEmpty.append l r
+combine : LifeBlock -> LifeBlock -> Result (NonEmpty Validation.Error) LifeBlock
+combine (LifeBlock first) (LifeBlock second) =
+    case Validation.errors first second of
+        [] ->
+            Ok <| LifeBlock <| NonEmpty.append first second
 
-        rightFirst : Lifepath
-        rightFirst =
-            NonEmpty.head rightData
-    in
-    if rightFirst.born then
-        Err "A 'born' lifepath must be a character's first lifepath"
-
-    else
-        Ok <| append left right
+        err :: moreErrs ->
+            Err ( err, moreErrs )
 
 
-{-| Validation warning for an incomplete character
--}
-warning : LifeBlock -> Maybe String
-warning (LifeBlock ( first, _ )) =
-    if first.born then
-        Nothing
-
-    else
-        Just "A character's first lifepath must be a 'born' lifepath"
-
-
-type SplitResult a
-    = Whole a
-    | Split ( a, a )
-    | NotFound
+type SplitResult
+    = Whole LifeBlock
+    | Split ( LifeBlock, LifeBlock )
+    | BoundsError
 
 
 {-| Splits a LifeBlock at the given index.
 ie 0 would be taking the whole thing, while 'length' would be out of bounds.
 -}
-splitAt : LifeBlock -> Int -> SplitResult LifeBlock
-splitAt (LifeBlock ( first, rest )) index =
-    let
-        list : List Lifepath
-        list =
-            first :: rest
-    in
-    case ( List.take index list, List.drop index list ) of
-        ( leftFirst :: leftRest, rightFirst :: rightRest ) ->
-            Split <|
-                ( LifeBlock ( leftFirst, leftRest )
-                , LifeBlock ( rightFirst, rightRest )
-                )
+splitAt : Int -> LifeBlock -> SplitResult
+splitAt index (LifeBlock lifepaths) =
+    case Common.splitAt index lifepaths of
+        Just ( [], whole ) ->
+            Whole <| LifeBlock whole
 
-        ( [], rightFirst :: rightRest ) ->
-            Whole <| LifeBlock ( rightFirst, rightRest )
+        Just ( leftFirst :: leftRest, right ) ->
+            Split ( LifeBlock ( leftFirst, leftRest ), LifeBlock right )
 
-        ( _ :: _, [] ) ->
-            NotFound
-
-        ( [], [] ) ->
-            -- this is impossible
-            NotFound
+        Nothing ->
+            BoundsError
 
 
 type alias ViewOptions msg =
     { baseAttrs : List (Attribute msg)
-    , dropBeaconOverride : Maybe DropBeaconId -- used during hover
     , onDelete : Maybe msg
     , benchIndex : Int
+    , hover : Hover
     }
 
 
+type Hover
+    = Warning
+      -- Bool = success or failure
+    | Before Bool
+    | After Bool
+    | None
+
+
 view : ViewOptions msg -> LifeBlock -> Element msg
-view { baseAttrs, dropBeaconOverride, onDelete, benchIndex } (LifeBlock data) =
+view opts lifeBlock =
     let
-        dropZone id =
-            el (BeaconId.dropAttribute id :: Border.width 1 :: baseAttrs)
+        ( before, after ) =
+            case opts.hover of
+                Before True ->
+                    ( viewBefore <| Just Colors.successGlow, viewAfter Nothing )
+
+                Before False ->
+                    ( viewBefore <| Just Colors.failureGlow, viewAfter Nothing )
+
+                After True ->
+                    ( viewBefore Nothing, viewAfter <| Just Colors.successGlow )
+
+                After False ->
+                    ( viewBefore Nothing, viewAfter <| Just Colors.failureGlow )
+
+                _ ->
+                    ( viewBefore Nothing, viewAfter Nothing )
+
+        viewBefore highlight =
+            dropZone (BeaconId.beforeSlotDropId opts.benchIndex) highlight
+
+        viewAfter highlight =
+            dropZone (BeaconId.afterSlotDropId opts.benchIndex) highlight
+
+        dropZone : DropBeaconId -> Maybe (Attribute msg) -> Element msg
+        dropZone id highlight =
+            let
+                dropAttrs =
+                    case highlight of
+                        Just high ->
+                            high :: opts.baseAttrs
+
+                        Nothing ->
+                            opts.baseAttrs
+            in
+            el (BeaconId.dropAttribute id :: dropAttrs)
                 (el [ centerX, centerY ] <| text "+")
-
-        fakeDropZone =
-            el (Border.width 1 :: baseAttrs)
-                (el [ centerX, centerY ] <| text "+")
-
-        attrs =
-            case dropBeaconOverride of
-                Just id ->
-                    BeaconId.dropAttribute id :: baseAttrs
-
-                Nothing ->
-                    baseAttrs
-
-        withBeacon blockIndex =
-            case dropBeaconOverride of
-                Just _ ->
-                    Nothing
-
-                Nothing ->
-                    Just <| BeaconId.benchDragId { benchIndex = benchIndex, blockIndex = blockIndex }
-
-        middle =
-            Input.button [ alignRight ]
-                { onPress = onDelete
-                , label = text "X"
-                }
-                :: List.indexedMap
-                    (\blockIndex path -> Lifepath.view path { withBeacon = withBeacon blockIndex })
-                    (NonEmpty.toList <| data)
     in
-    column attrs <|
-        case dropBeaconOverride of
-            Just _ ->
-                fakeDropZone :: middle ++ [ fakeDropZone ]
+    column opts.baseAttrs <|
+        (before :: middle opts lifeBlock ++ [ after ])
 
-            Nothing ->
-                dropZone (BeaconId.beforeSlotDropId benchIndex)
-                    :: middle
-                    ++ [ dropZone <| BeaconId.afterSlotDropId benchIndex ]
+
+middle : ViewOptions msg -> LifeBlock -> List (Element msg)
+middle opts (LifeBlock lifepaths) =
+    let
+        warnAttr : Maybe (Attribute msg)
+        warnAttr =
+            Validation.warnings lifepaths
+                |> viewWarnings
+                |> Maybe.map Element.onRight
+
+        hoverAttr : Attribute msg
+        hoverAttr =
+            opts.benchIndex
+                |> BeaconId.warningHoverId
+                |> BeaconId.hoverAttribute
+
+        exclamation : Element msg
+        exclamation =
+            case ( warnAttr, opts.hover == Warning ) of
+                ( Just attr, True ) ->
+                    el [ attr, hoverAttr ] <| text "!"
+
+                ( Just _, False ) ->
+                    el [ hoverAttr ] <| text "!"
+
+                ( Nothing, _ ) ->
+                    none
+
+        topRow : Element msg
+        topRow =
+            row [ width fill ] <|
+                [ exclamation
+                , Input.button
+                    [ alignRight ]
+                    { onPress = opts.onDelete
+                    , label = text "X"
+                    }
+                ]
+
+        withBeacon : Int -> Maybe DragBeaconId
+        withBeacon blockIndex =
+            Just <|
+                BeaconId.benchDragId
+                    { benchIndex = opts.benchIndex
+                    , blockIndex = blockIndex
+                    }
+    in
+    topRow
+        :: List.indexedMap
+            (\blockIndex path -> Lifepath.view { withBeacon = withBeacon blockIndex } path)
+            (NonEmpty.toList lifepaths)
+
+
+viewWarnings : List Validation.Warning -> Maybe (Element msg)
+viewWarnings warns =
+    let
+        viewWarn (Validation.Warning msg) =
+            text msg
+    in
+    case warns of
+        [] ->
+            Nothing
+
+        nonEmpty ->
+            Just <| column [] <| List.map viewWarn nonEmpty

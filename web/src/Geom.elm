@@ -41,7 +41,7 @@ distance a b =
         dy =
             a.y - b.y
     in
-    sqrt ((dx ^ 2) + (dy ^ 2))
+    sqrt <| (dx ^ 2) + (dy ^ 2)
 
 
 

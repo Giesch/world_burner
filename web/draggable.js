@@ -2,7 +2,19 @@ window.setupDraggable = function setupDraggable(sendEvent) {
   const BEACON_ATTRIBUTE = "data-beacon";
   const MINIMUM_DRAG_DISTANCE_PX = 10;
 
-  document.addEventListener("pointerdown", awaitDragStart);
+  // browser events
+  const POINTER_DOWN = "pointerdown";
+  const POINTER_MOVE = "pointermove";
+  const POINTER_UP = "pointerup";
+
+  // elm events
+  const MOVE = "move";
+  const STOP = "stop";
+  const START = "start";
+  const HOVER = "hover";
+
+  document.addEventListener(POINTER_DOWN, awaitDragStart);
+  document.addEventListener(POINTER_MOVE, hover);
 
   function awaitDragStart(startEvent) {
     let startBeaconId = null;
@@ -13,56 +25,66 @@ window.setupDraggable = function setupDraggable(sendEvent) {
       const { left, top } = startBeaconElem.getBoundingClientRect();
       cursorOnDraggable = {
         x: startEvent.clientX - left,
-        y: startEvent.clientY - top
+        y: startEvent.clientY - top,
       };
     }
 
-    document.addEventListener("pointermove", maybeDragMove);
-    document.addEventListener("pointerup", stopAwaitingDrag);
+    changeMoveListener(hover, maybeDragMove);
+    document.addEventListener(POINTER_UP, stopAwaitingDrag);
 
     function stopAwaitingDrag() {
-      document.removeEventListener("pointermove", maybeDragMove);
-      document.removeEventListener("pointerup", stopAwaitingDrag);
+      changeMoveListener(maybeDragMove, hover);
+      document.removeEventListener(POINTER_UP, stopAwaitingDrag);
     }
 
     function maybeDragMove(moveEvent) {
       const dragDistance = distance(coords(startEvent), coords(moveEvent));
       if (dragDistance >= MINIMUM_DRAG_DISTANCE_PX) {
         sendStartEvent(startEvent, startBeaconId, cursorOnDraggable);
-        dragEvent("move", moveEvent);
-        stopAwaitingDrag();
-        document.addEventListener("pointermove", dragMove);
-        document.addEventListener("pointerup", dragEnd);
+        sendDragEvent(MOVE, moveEvent);
+
+        changeMoveListener(maybeDragMove, dragMove);
+        document.removeEventListener(POINTER_UP, stopAwaitingDrag);
+        document.addEventListener(POINTER_UP, dragEnd);
       }
     }
   }
 
   function dragEnd(event) {
-    dragEvent("stop", event);
-    document.removeEventListener("pointermove", dragMove);
-    document.removeEventListener("pointerup", dragEnd);
+    sendDragEvent(STOP, event);
+    changeMoveListener(dragMove, hover);
+    document.removeEventListener(POINTER_UP, dragEnd);
   }
 
   function dragMove(event) {
-    dragEvent("move", event);
+    sendDragEvent(MOVE, event);
+  }
+
+  function hover(moveEvent) {
+    sendDragEvent(HOVER, moveEvent);
   }
 
   function sendStartEvent(event, startBeaconId, cursorOnDraggable) {
     sendEvent({
-      type: "start",
+      type: START,
       cursor: coords(event),
       beacons: beaconPositions(),
       startBeaconId,
-      cursorOnDraggable
+      cursorOnDraggable,
     });
   }
 
-  function dragEvent(type, event) {
+  function sendDragEvent(type, event) {
     sendEvent({
       type: type,
       cursor: coords(event),
-      beacons: beaconPositions()
+      beacons: beaconPositions(),
     });
+  }
+
+  function changeMoveListener(from, to) {
+    document.removeEventListener(POINTER_MOVE, from);
+    document.addEventListener(POINTER_MOVE, to);
   }
 
   function beaconPositions() {
@@ -78,7 +100,7 @@ window.setupDraggable = function setupDraggable(sendEvent) {
       x: boundingRect.x,
       y: boundingRect.y,
       width: boundingRect.width,
-      height: boundingRect.height
+      height: boundingRect.height,
     };
   }
 

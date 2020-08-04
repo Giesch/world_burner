@@ -1,6 +1,6 @@
 module Creation.Workbench exposing
     ( DropError(..)
-    , Hover
+    , Hover(..)
     , PickupError(..)
     , Workbench
     , WorkbenchOptions
@@ -9,22 +9,29 @@ module Creation.Workbench exposing
     , drop
     , pickup
     , view
+    , viewDraggedBlock
     )
 
 import Array exposing (Array)
 import Colors
+import Common
 import Creation.BeaconId as BeaconId
     exposing
         ( BenchIndex
         , BenchLocation
-        , DropBeaconId
         , DropBeaconLocation
+        , HoverBeaconLocation
         )
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Html
+import Html.Attributes
 import LifeBlock exposing (LifeBlock, SplitResult(..))
+import LifeBlock.Validation as Validation
+import Lifepath
+import List.NonEmpty as NonEmpty exposing (NonEmpty)
 
 
 type Workbench
@@ -56,14 +63,14 @@ pickup (Workbench bench) { benchIndex, blockIndex } =
             Err NoLifeBlock
 
         GotBlock block ->
-            case LifeBlock.splitAt block blockIndex of
+            case LifeBlock.splitAt blockIndex block of
                 Whole pickedup ->
                     Ok ( putBenchBlock benchIndex Nothing bench, pickedup )
 
                 Split ( left, right ) ->
                     Ok ( putBenchBlock benchIndex (Just left) bench, right )
 
-                NotFound ->
+                BoundsError ->
                     Err PickupBoundsError
 
 
@@ -83,7 +90,7 @@ dropBenchIndex location =
 type DropError
     = DropBoundsError
     | InvalidDropLocation
-    | CombinationError String
+    | CombinationError (NonEmpty Validation.Error)
 
 
 drop : Workbench -> LifeBlock -> DropBeaconLocation -> Result DropError Workbench
@@ -97,7 +104,7 @@ drop (Workbench bench) droppedBlock location =
             Ok <| putBenchBlock benchIndex (Just finalBlock) bench
 
         combineAndDrop :
-            (LifeBlock -> Result String LifeBlock)
+            (LifeBlock -> Result (NonEmpty Validation.Error) LifeBlock)
             -> Result DropError Workbench
         combineAndDrop combineWithBenchBlock =
             case getBenchBlock benchIndex bench of
@@ -150,14 +157,49 @@ putBenchBlock index maybeBlock bench =
     Workbench <| Array.set index maybeBlock bench
 
 
-type alias Hover =
+type Hover
+    = Full FullHover
+    | Empty HoverBeaconLocation
+    | None
+
+
+type alias FullHover =
     { hoveringBlock : LifeBlock
     , dropLocation : DropBeaconLocation
+    , dropHighlight : Maybe Bool
     }
 
 
+convertHighlight : Int -> FullHover -> LifeBlock.Hover
+convertHighlight benchIndex { dropLocation, dropHighlight } =
+    let
+        showHighlight : Int -> LifeBlock.Hover -> LifeBlock.Hover
+        showHighlight i hov =
+            if i == benchIndex then
+                hov
+
+            else
+                LifeBlock.None
+    in
+    case ( dropLocation, dropHighlight ) of
+        ( BeaconId.Before i, Just True ) ->
+            showHighlight i <| LifeBlock.Before True
+
+        ( BeaconId.Before i, Just False ) ->
+            showHighlight i <| LifeBlock.Before False
+
+        ( BeaconId.After i, Just True ) ->
+            showHighlight i <| LifeBlock.After True
+
+        ( BeaconId.After i, Just False ) ->
+            showHighlight i <| LifeBlock.After False
+
+        _ ->
+            LifeBlock.None
+
+
 type alias WorkbenchOptions msg =
-    { hover : Maybe Hover
+    { hover : Hover
     , deleteBenchBlock : BenchIndex -> msg
     }
 
@@ -165,12 +207,28 @@ type alias WorkbenchOptions msg =
 view : Workbench -> WorkbenchOptions msg -> Element msg
 view (Workbench slots) opts =
     let
+        blockHover : Int -> LifeBlock.Hover
+        blockHover benchIndex =
+            case opts.hover of
+                Empty (BeaconId.LifeBlockWarning i) ->
+                    if i == benchIndex then
+                        LifeBlock.Warning
+
+                    else
+                        LifeBlock.None
+
+                Full full ->
+                    convertHighlight benchIndex full
+
+                None ->
+                    LifeBlock.None
+
         viewBlock : Int -> LifeBlock -> Element msg
         viewBlock benchIndex =
             viewLifeBlock
                 { benchIndex = benchIndex
                 , deleteBenchBlock = opts.deleteBenchBlock
-                , dropBeaconOverride = Nothing
+                , hover = blockHover benchIndex
                 }
 
         viewSlot : Int -> Maybe LifeBlock -> Element msg
@@ -191,52 +249,100 @@ view (Workbench slots) opts =
 
 
 openSlot : Int -> WorkbenchOptions msg -> Element msg
-openSlot benchIndex { hover, deleteBenchBlock } =
+openSlot benchIndex { hover } =
     let
         beingHovered : Bool
         beingHovered =
-            Maybe.map (\state -> state.dropLocation == BeaconId.Open benchIndex) hover
-                |> Maybe.withDefault False
+            case hover of
+                Full full ->
+                    full.dropLocation == BeaconId.Open benchIndex
 
-        hoveringBlock : Maybe LifeBlock
-        hoveringBlock =
-            Maybe.map .hoveringBlock hover
+                _ ->
+                    False
     in
-    case ( beingHovered, hoveringBlock ) of
-        ( True, Just block ) ->
-            viewLifeBlock
-                { benchIndex = benchIndex
-                , deleteBenchBlock = deleteBenchBlock
-                , dropBeaconOverride =
-                    Just <| BeaconId.openSlotDropId benchIndex
-                }
-                block
+    if beingHovered then
+        el
+            (BeaconId.dropAttribute (BeaconId.openSlotDropId benchIndex)
+                :: Colors.successGlow
+                :: slotAttrs
+            )
+            (el [ centerX, centerY ] <| text "+")
 
-        _ ->
-            el
-                (BeaconId.dropAttribute (BeaconId.openSlotDropId benchIndex)
-                    :: Border.width 1
-                    :: slotAttrs
-                )
-                (el [ centerX, centerY ] <| text "+")
+    else
+        el
+            (BeaconId.dropAttribute (BeaconId.openSlotDropId benchIndex)
+                :: Border.width 1
+                :: slotAttrs
+            )
+            (el [ centerX, centerY ] <| text "+")
+
+
+type alias DraggedBlockOptions =
+    { top : Float
+    , left : Float
+    , errors : Maybe (NonEmpty Validation.Error)
+    }
+
+
+{-| Displays the hovering block at the users cursor
+-}
+viewDraggedBlock : LifeBlock -> DraggedBlockOptions -> Element msg
+viewDraggedBlock lifeBlock { top, left, errors } =
+    let
+        position : String -> Float -> Html.Attribute msg
+        position name px =
+            Html.Attributes.style name <| String.fromFloat px ++ "px"
+
+        errsAttr : Attribute msg
+        errsAttr =
+            Maybe.map viewErrors errors
+                |> Maybe.withDefault none
+                |> Element.onLeft
+    in
+    column
+        ([ htmlAttribute <| Html.Attributes.style "position" "fixed"
+         , htmlAttribute <| position "top" top
+         , htmlAttribute <| position "left" left
+         , htmlAttribute <| Html.Attributes.style "list-style" "none"
+         , htmlAttribute <| Html.Attributes.style "padding" "0"
+         , htmlAttribute <| Html.Attributes.style "margin" "0"
+         , width Lifepath.lifepathWidth
+         , errsAttr
+         , spacing 20
+         , padding 12
+         ]
+            ++ Common.userSelectNone
+        )
+        (List.map
+            (Lifepath.view { withBeacon = Nothing })
+            (NonEmpty.toList <| LifeBlock.paths lifeBlock)
+        )
+
+
+viewErrors : NonEmpty Validation.Error -> Element msg
+viewErrors errs =
+    let
+        viewErr (Validation.Error msg) =
+            text msg
+    in
+    column [] <| List.map viewErr <| NonEmpty.toList errs
 
 
 type alias LifeBlockOptions msg =
     { benchIndex : Int
     , deleteBenchBlock : BenchIndex -> msg
-    , dropBeaconOverride : Maybe DropBeaconId
+    , hover : LifeBlock.Hover
     }
 
 
 viewLifeBlock : LifeBlockOptions msg -> LifeBlock -> Element msg
-viewLifeBlock { benchIndex, deleteBenchBlock, dropBeaconOverride } block =
+viewLifeBlock opts =
     LifeBlock.view
         { baseAttrs = slotAttrs
-        , dropBeaconOverride = dropBeaconOverride
-        , onDelete = Just <| deleteBenchBlock benchIndex
-        , benchIndex = benchIndex
+        , onDelete = Just <| opts.deleteBenchBlock opts.benchIndex
+        , benchIndex = opts.benchIndex
+        , hover = opts.hover
         }
-        block
 
 
 {-| Attributes common to open and filled slots on the bench

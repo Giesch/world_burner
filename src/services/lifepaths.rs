@@ -112,6 +112,7 @@ fn add_associations(
     Ok(Lifepath {
         id: row.id,
         setting_id: row.lifepath_setting_id,
+        setting_name: row.setting_name,
         name: row.name,
         page: row.page,
         years,
@@ -152,6 +153,7 @@ fn stat_mod(row: &LifepathRow) -> LifepathsResult<Option<StatMod>> {
 pub struct Lifepath {
     pub id: i32,
     pub setting_id: i32,
+    pub setting_name: String,
     pub name: String,
     pub page: i32,
     pub years: i32,

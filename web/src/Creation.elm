@@ -11,24 +11,23 @@ import Api exposing (ApiResult)
 import Api.LifepathFilter as LifepathFilter exposing (LifepathFilter)
 import Array exposing (Array)
 import Colors
-import Common
 import Creation.BeaconId as BeaconId
     exposing
         ( BenchIndex
         , DragBeaconId
         , DropBeaconId
+        , HoverBeaconId
         , dragLocation
         )
 import Creation.Workbench as Workbench exposing (Workbench)
-import DragState exposing (DragState)
+import DragState
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
-import Geom exposing (Point)
-import Html.Attributes
 import LifeBlock exposing (LifeBlock)
+import LifeBlock.Validation as Validation
 import Lifepath exposing (Lifepath, StatModType(..))
-import List.NonEmpty as NonEmpty
+import List.NonEmpty as NonEmpty exposing (NonEmpty)
 import Process
 import Session exposing (..)
 import Task
@@ -43,8 +42,14 @@ type alias Model =
     , searchFilter : LifepathFilter
     , sidebarLifepaths : Status (Array Lifepath)
     , workbench : Workbench
-    , dragState : DragState DragBeaconId DropBeaconId DragCache
+    , dragState : DragState
     }
+
+
+{-| DragState as used by this page.
+-}
+type alias DragState =
+    DragState.DragState DragBeaconId DropBeaconId HoverBeaconId DragCache
 
 
 {-| The dragged block, and the workbench
@@ -60,13 +65,18 @@ type Status a
     | Failed
 
 
+type InvalidModel
+    = InvalidDragState
+    | BoundsError
+
+
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
       , searchFilter = LifepathFilter.default
       , sidebarLifepaths = Loading
       , workbench = Workbench.default
-      , dragState = DragState.NotDragging
+      , dragState = DragState.None
       }
     , fetchLifepaths LifepathFilter.default
     )
@@ -83,11 +93,21 @@ fetchLifepaths searchFilter =
 
 type Msg
     = GotLifepaths (ApiResult (List Lifepath))
-    | DragMsg (DragState.Transition DragBeaconId DropBeaconId DragCache)
+    | DragMsg Transition
     | DeleteBenchBlock BenchIndex
     | EnteredSearchText String
     | SearchTimePassed String
     | ClickedBornCheckbox Bool
+
+
+{-| DragState.Transition as used by this page.
+-}
+type alias Transition =
+    DragState.Transition DragBeaconId DropBeaconId HoverBeaconId DragCache
+
+
+type alias DraggedItem =
+    DragState.DraggedItem DragBeaconId
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -111,10 +131,10 @@ update msg model =
                 Err err ->
                     giveUp model "Error during pick up" err
 
-        DragMsg (DragState.DragMove dragState) ->
+        DragMsg (DragState.Carry dragState) ->
             ( { model | dragState = dragState }, Cmd.none )
 
-        DragMsg (DragState.LetGo _) ->
+        DragMsg DragState.LetGo ->
             ( letGo model, Cmd.none )
 
         DragMsg DragState.Drop ->
@@ -124,6 +144,14 @@ update msg model =
 
                 Err err ->
                     giveUp model "Error during drop" err
+
+        DragMsg (DragState.BeginHover hoverId) ->
+            ( { model | dragState = DragState.Hovered hoverId }
+            , Cmd.none
+            )
+
+        DragMsg DragState.EndHover ->
+            ( letGo model, Cmd.none )
 
         DeleteBenchBlock benchIndex ->
             ( { model | workbench = Workbench.deleteBlock model.workbench benchIndex }
@@ -182,7 +210,7 @@ giveUp model msg err =
 
 letGo : Model -> Model
 letGo model =
-    { model | dragState = DragState.NotDragging }
+    { model | dragState = DragState.None }
 
 
 pickup : Model -> DragState.DraggedItem DragBeaconId -> Result InvalidModel Model
@@ -190,26 +218,25 @@ pickup model draggedItem =
     let
         beginDragging : DragCache -> Model
         beginDragging cache =
-            { model | dragState = DragState.Dragging ( draggedItem, cache ) }
+            { model | dragState = DragState.Dragged ( draggedItem, cache ) }
     in
     pickupDragBeacon model draggedItem.beaconId
         |> Result.map beginDragging
 
 
-pickupDragBeacon : Model -> DragBeaconId -> Result InvalidModel ( Workbench, LifeBlock )
+pickupDragBeacon : Model -> DragBeaconId -> Result InvalidModel DragCache
 pickupDragBeacon { workbench, sidebarLifepaths } dragId =
     case BeaconId.dragLocation dragId of
-        BeaconId.Bench loc ->
-            Workbench.pickup workbench loc
+        BeaconId.Bench location ->
+            Workbench.pickup workbench location
                 |> Result.mapError pickupError
 
         BeaconId.Sidebar sidebarIndex ->
             case sidebarLifepaths of
                 Loaded paths ->
                     Array.get sidebarIndex paths
-                        |> Maybe.map LifeBlock.singleton
+                        |> Maybe.map (\path -> ( workbench, LifeBlock.singleton path ))
                         |> Result.fromMaybe BoundsError
-                        |> Result.map (\block -> ( workbench, block ))
 
                 _ ->
                     Err InvalidDragState
@@ -228,7 +255,7 @@ pickupError err =
 drop : Model -> Result InvalidModel Model
 drop model =
     case model.dragState of
-        DragState.Hovering ( hoverState, ( cachedBench, cachedBlock ) ) ->
+        DragState.Poised ( hoverState, ( cachedBench, cachedBlock ) ) ->
             let
                 location : BeaconId.DropBeaconLocation
                 location =
@@ -245,16 +272,15 @@ drop model =
                     Err InvalidDragState
 
                 Ok workbench ->
-                    Ok
-                        { model
-                            | workbench = workbench
-                            , dragState = DragState.NotDragging
-                        }
+                    Ok { model | workbench = workbench, dragState = DragState.None }
 
-        DragState.Dragging _ ->
+        DragState.Dragged _ ->
             Ok <| letGo model
 
-        DragState.NotDragging ->
+        DragState.Hovered _ ->
+            Err InvalidDragState
+
+        DragState.None ->
             Err InvalidDragState
 
 
@@ -281,150 +307,79 @@ beginSearchDebounce input =
 -- VIEW
 
 
-type alias ModelView =
-    { session : Session
-    , searchFilter : LifepathFilter
-    , dragState : DragStateView
-    , workbench : Workbench
-    , sidebarLifepaths : Status (Array Lifepath)
-    , draggedLifeBlock : Maybe DraggedLifeBlock
-    }
-
-
-type alias DraggedLifeBlock =
-    { lifeBlock : LifeBlock
-    , cursorOnScreen : Point
-    , cursorOnDraggable : Point
-    }
-
-
-modelView : Model -> ModelView
-modelView model =
-    { session = model.session
-    , searchFilter = model.searchFilter
-    , dragState = lookupDragState model
-    , workbench = model.workbench
-    , sidebarLifepaths = model.sidebarLifepaths
-    , draggedLifeBlock = lookupDraggedBlock model
-    }
-
-
-lookupDraggedBlock : Model -> Maybe DraggedLifeBlock
-lookupDraggedBlock model =
-    let
-        draggedLifeBlock :
-            DragState.DraggedItem DragBeaconId
-            -> LifeBlock
-            -> DraggedLifeBlock
-        draggedLifeBlock draggedItem lifeBlock =
-            { lifeBlock = lifeBlock
-            , cursorOnScreen = draggedItem.cursorOnScreen
-            , cursorOnDraggable = draggedItem.cursorOnDraggable
-            }
-    in
-    case model.dragState of
-        DragState.NotDragging ->
-            Nothing
-
-        DragState.Dragging ( draggedItem, ( _, cachedBlock ) ) ->
-            Just <| draggedLifeBlock draggedItem cachedBlock
-
-        DragState.Hovering ( { draggedItem }, ( _, cachedBlock ) ) ->
-            Just <| draggedLifeBlock draggedItem cachedBlock
-
-
-type DragStateView
-    = NotDraggingView
-    | DraggingView LifeBlock
-    | HoveringView Workbench.Hover
-
-
-lookupDragState : Model -> DragStateView
-lookupDragState { dragState } =
-    case dragState of
-        DragState.NotDragging ->
-            NotDraggingView
-
-        DragState.Dragging ( _, ( _, cachedBlock ) ) ->
-            DraggingView cachedBlock
-
-        DragState.Hovering ( { hoveredDropBeacon }, ( _, cachedBlock ) ) ->
-            HoveringView
-                { hoveringBlock = cachedBlock
-                , dropLocation = BeaconId.dropLocation hoveredDropBeacon
-                }
-
-
-type InvalidModel
-    = InvalidDragState
-    | BoundsError
-
-
 view : Model -> Element Msg
 view model =
     let
-        benchHover : DragStateView -> Maybe Workbench.Hover
-        benchHover dragState =
-            case dragState of
-                HoveringView hover ->
-                    Just hover
+        viewPage workbench draggedBlock =
+            row [ width fill, height fill, scrollbarY, spacing 40 ]
+                [ viewSidebar model
+                , workbench
+                , draggedBlock
+                ]
 
-                _ ->
-                    Nothing
-
-        viewedModel =
-            modelView model
+        viewBench hover =
+            Workbench.view model.workbench
+                { hover = hover
+                , deleteBenchBlock = DeleteBenchBlock
+                }
     in
-    row [ width fill, height fill, scrollbarY, spacing 40 ]
-        [ viewSidebar viewedModel
-        , Workbench.view
-            viewedModel.workbench
-            { hover = benchHover viewedModel.dragState
-            , deleteBenchBlock = DeleteBenchBlock
-            }
-        , viewDraggedBlock viewedModel.draggedLifeBlock
-        ]
+    case model.dragState of
+        DragState.None ->
+            viewPage (viewBench Workbench.None) none
+
+        DragState.Hovered id ->
+            viewPage (viewBench <| Workbench.Empty <| BeaconId.hoverLocation id) none
+
+        DragState.Dragged ( draggedItem, ( _, cachedBlock ) ) ->
+            viewPage
+                (viewBench Workbench.None)
+                (viewDraggedBlock draggedItem cachedBlock Nothing)
+
+        DragState.Poised ( { draggedItem, hoveredDropBeacon }, ( cachedBench, cachedBlock ) ) ->
+            let
+                dropAttempt : Result Workbench.DropError Workbench
+                dropAttempt =
+                    Workbench.drop cachedBench cachedBlock <| BeaconId.dropLocation hoveredDropBeacon
+
+                hover : Maybe Bool -> Workbench.Hover
+                hover dropHighlight =
+                    Workbench.Full
+                        { hoveringBlock = cachedBlock
+                        , dropLocation = BeaconId.dropLocation hoveredDropBeacon
+                        , dropHighlight = dropHighlight
+                        }
+            in
+            case dropAttempt of
+                Ok _ ->
+                    viewPage
+                        (viewBench <| hover <| Just True)
+                        (viewDraggedBlock draggedItem cachedBlock Nothing)
+
+                Err (Workbench.CombinationError errs) ->
+                    viewPage
+                        (viewBench <| hover <| Just False)
+                        (viewDraggedBlock draggedItem cachedBlock <| Just errs)
+
+                Err err ->
+                    let
+                        _ =
+                            Debug.log "error during hypothetical drop" err
+                    in
+                    viewPage
+                        (viewBench <| hover Nothing)
+                        (viewDraggedBlock draggedItem cachedBlock Nothing)
 
 
-{-| Displays the hovering block at the users cursor
--}
-viewDraggedBlock : Maybe DraggedLifeBlock -> Element Msg
-viewDraggedBlock maybeBlock =
-    let
-        top : DraggedLifeBlock -> String
-        top { cursorOnScreen, cursorOnDraggable } =
-            String.fromFloat (cursorOnScreen.y - cursorOnDraggable.y) ++ "px"
-
-        left : DraggedLifeBlock -> String
-        left { cursorOnScreen, cursorOnDraggable } =
-            String.fromFloat (cursorOnScreen.x - cursorOnDraggable.x) ++ "px"
-    in
-    case maybeBlock of
-        Just dragged ->
-            column
-                ([ htmlAttribute <| Html.Attributes.style "position" "fixed"
-                 , htmlAttribute <|
-                    Html.Attributes.style "top" (top dragged)
-                 , htmlAttribute <|
-                    Html.Attributes.style "left" (left dragged)
-                 , htmlAttribute <| Html.Attributes.style "list-style" "none"
-                 , htmlAttribute <| Html.Attributes.style "padding" "0"
-                 , htmlAttribute <| Html.Attributes.style "margin" "0"
-                 , width Lifepath.lifepathWidth
-                 ]
-                    ++ Common.userSelectNone
-                )
-            <|
-                -- TODO move this to LifeBlock module
-                List.map
-                    (\path -> Lifepath.view path { withBeacon = Nothing })
-                    (NonEmpty.toList <| LifeBlock.paths dragged.lifeBlock)
-
-        _ ->
-            none
+viewDraggedBlock : DraggedItem -> LifeBlock -> Maybe (NonEmpty Validation.Error) -> Element Msg
+viewDraggedBlock { cursorOnScreen, cursorOnDraggable } draggedBlock errors =
+    Workbench.viewDraggedBlock draggedBlock
+        { top = cursorOnScreen.y - cursorOnDraggable.y
+        , left = cursorOnScreen.x - cursorOnDraggable.x
+        , errors = errors
+        }
 
 
-viewSidebar : ModelView -> Element Msg
+viewSidebar : Model -> Element Msg
 viewSidebar model =
     column
         [ width <| px 350
@@ -447,12 +402,8 @@ viewSidebarLifepaths : Status (Array Lifepath) -> Element Msg
 viewSidebarLifepaths sidebarLifepaths =
     let
         viewPath : Int -> Lifepath -> Element Msg
-        viewPath i path =
-            let
-                id =
-                    BeaconId.sidebarDragId i
-            in
-            Lifepath.view path { withBeacon = Just id }
+        viewPath index =
+            Lifepath.view { withBeacon = Just <| BeaconId.sidebarDragId index }
     in
     case sidebarLifepaths of
         Loading ->
@@ -462,8 +413,9 @@ viewSidebarLifepaths sidebarLifepaths =
             text "couldn't load lifepaths"
 
         Loaded paths ->
-            column [ spacing 20, padding 20, width fill, height fill, scrollbarY ]
-                (Array.toList <| Array.indexedMap viewPath paths)
+            column [ spacing 20, padding 20, width fill, height fill, scrollbarY ] <|
+                List.indexedMap viewPath <|
+                    Array.toList paths
 
 
 
@@ -472,8 +424,10 @@ viewSidebarLifepaths sidebarLifepaths =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map DragMsg <|
-        DragState.subscriptions
-            BeaconId.dragIdFromInt
-            BeaconId.dropIdFromInt
-            model.dragState
+    model.dragState
+        |> DragState.subscriptions
+            { toDragId = BeaconId.dragIdFromInt
+            , toDropId = BeaconId.dropIdFromInt
+            , toHoverId = BeaconId.hoverIdFromInt
+            }
+        |> Sub.map DragMsg
