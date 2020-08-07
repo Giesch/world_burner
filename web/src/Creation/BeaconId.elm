@@ -84,10 +84,6 @@ type alias BenchIndex =
     Int
 
 
-
--- TODO these should check the index ranges
-
-
 {-| Creates a deterministic id for the given bench location on the Creation page
 -}
 benchDragId : BenchLocation -> DragBeaconId

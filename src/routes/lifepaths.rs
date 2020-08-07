@@ -3,11 +3,17 @@ use crate::db::DbConn;
 use crate::services::lifepaths::*;
 use rocket_contrib::json::Json;
 
-#[post("/api/lifepaths/search", format = "json", data = "<filters>")]
-pub fn list(db: DbConn, filters: Json<LifepathFilters>) -> RouteResult<Json<LifepathsResponse>> {
-    let lifepaths = Lifepaths::list(db, &filters.into_inner())?;
+#[get("/api/lifepaths/dwarves", format = "json")]
+pub fn dwarves(db: DbConn) -> RouteResult<Json<LifepathsResponse>> {
+    let lifepaths = Lifepaths::list(db, &ALL_LIFEPATHS)?;
     Ok(Json(LifepathsResponse { lifepaths }))
 }
+
+pub const ALL_LIFEPATHS: LifepathFilters = LifepathFilters {
+    born: None,
+    setting_ids: None,
+    search_term: None,
+};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct LifepathFilters {

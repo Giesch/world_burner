@@ -18,7 +18,6 @@ pub trait LifepathRepo {
     fn lifepath_reqs(&self, lifepath_ids: &[i32]) -> LifepathRepoResult<Vec<LifepathReqRow>>;
 }
 
-const LIFEPATH_LIMIT: i64 = 20;
 const MIN_SEARCH_TERM: usize = 2;
 
 impl LifepathRepo for DbConn {
@@ -61,7 +60,7 @@ impl LifepathRepo for DbConn {
             _ => (),
         }
 
-        let rows = query.limit(LIFEPATH_LIMIT).load(&**self)?;
+        let rows = query.load(&**self)?;
         Ok(rows)
     }
 

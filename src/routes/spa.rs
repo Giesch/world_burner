@@ -12,7 +12,7 @@ pub fn index() -> Option<NamedFile> {
 }
 
 #[get("/<_route..>")]
-pub fn route(_route: uri::Segments) -> Option<NamedFile> {
+pub fn spa_route(_route: uri::Segments) -> Option<NamedFile> {
     NamedFile::open(Path::new(INDEX_HTML_PATH)).ok()
 }
 

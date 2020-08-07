@@ -7,8 +7,7 @@ module Creation exposing
     , view
     )
 
-import Api exposing (ApiResult)
-import Api.LifepathFilter as LifepathFilter exposing (LifepathFilter)
+import Api
 import Array exposing (Array)
 import Colors
 import Creation.BeaconId as BeaconId
@@ -19,11 +18,14 @@ import Creation.BeaconId as BeaconId
         , HoverBeaconId
         , dragLocation
         )
+import Creation.LifepathFilter as LifepathFilter exposing (LifepathFilter)
+import Creation.Status as Status exposing (Status)
 import Creation.Workbench as Workbench exposing (Workbench)
 import DragState
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
+import Http
 import LifeBlock exposing (LifeBlock)
 import LifeBlock.Validation as Validation
 import Lifepath exposing (Lifepath, StatModType(..))
@@ -40,9 +42,15 @@ import Task
 type alias Model =
     { session : Session
     , searchFilter : LifepathFilter
-    , sidebarLifepaths : Status (Array Lifepath)
+    , sidebarLifepaths : Status LoadedLifepaths
     , workbench : Workbench
     , dragState : DragState
+    }
+
+
+type alias LoadedLifepaths =
+    { all : Array Lifepath
+    , sidebar : Array Lifepath
     }
 
 
@@ -59,12 +67,6 @@ type alias DragCache =
     ( Workbench, LifeBlock )
 
 
-type Status a
-    = Loading
-    | Loaded a
-    | Failed
-
-
 type InvalidModel
     = InvalidDragState
     | BoundsError
@@ -74,17 +76,17 @@ init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
       , searchFilter = LifepathFilter.default
-      , sidebarLifepaths = Loading
+      , sidebarLifepaths = Status.Loading
       , workbench = Workbench.default
       , dragState = DragState.None
       }
-    , fetchLifepaths LifepathFilter.default
+    , fetchDwarves
     )
 
 
-fetchLifepaths : LifepathFilter -> Cmd Msg
-fetchLifepaths searchFilter =
-    Api.listLifepaths GotLifepaths searchFilter
+fetchDwarves : Cmd Msg
+fetchDwarves =
+    Api.dwarves GotDwarves
 
 
 
@@ -92,7 +94,7 @@ fetchLifepaths searchFilter =
 
 
 type Msg
-    = GotLifepaths (ApiResult (List Lifepath))
+    = GotDwarves (Result Http.Error (List Lifepath))
     | DragMsg Transition
     | DeleteBenchBlock BenchIndex
     | EnteredSearchText String
@@ -113,13 +115,20 @@ type alias DraggedItem =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotLifepaths (Ok lifepaths) ->
-            ( { model | sidebarLifepaths = Loaded <| Array.fromList lifepaths }
+        GotDwarves (Ok lifepaths) ->
+            let
+                all =
+                    Array.fromList lifepaths
+
+                sidebarLifepaths =
+                    Status.Loaded { all = all, sidebar = all }
+            in
+            ( filterLifepaths { model | sidebarLifepaths = sidebarLifepaths }
             , Cmd.none
             )
 
-        GotLifepaths (Err _) ->
-            ( { model | sidebarLifepaths = Failed }
+        GotDwarves (Err _) ->
+            ( { model | sidebarLifepaths = Status.Failed }
             , Cmd.none
             )
 
@@ -175,8 +184,8 @@ update msg model =
             )
 
         SearchTimePassed searchTerm ->
-            ( model
-            , maybeSearch searchTerm model.searchFilter
+            ( maybeFilterLifepaths model searchTerm
+            , Cmd.none
             )
 
         ClickedBornCheckbox checked ->
@@ -191,8 +200,8 @@ update msg model =
                 searchFilter =
                     LifepathFilter.withBorn born model.searchFilter
             in
-            ( { model | searchFilter = searchFilter }
-            , fetchLifepaths searchFilter
+            ( filterLifepaths { model | searchFilter = searchFilter }
+            , Cmd.none
             )
 
         DragMsg DragState.NoOp ->
@@ -233,8 +242,8 @@ pickupDragBeacon { workbench, sidebarLifepaths } dragId =
 
         BeaconId.Sidebar sidebarIndex ->
             case sidebarLifepaths of
-                Loaded paths ->
-                    Array.get sidebarIndex paths
+                Status.Loaded { sidebar } ->
+                    Array.get sidebarIndex sidebar
                         |> Maybe.map (\path -> ( workbench, LifeBlock.singleton path ))
                         |> Result.fromMaybe BoundsError
 
@@ -284,17 +293,29 @@ drop model =
             Err InvalidDragState
 
 
-maybeSearch : String -> LifepathFilter -> Cmd Msg
-maybeSearch oldInput searchFilter =
-    let
-        shouldSearch val =
-            String.length val >= 2 && val == oldInput
-    in
-    if Maybe.map shouldSearch searchFilter.searchTerm == Just True then
-        fetchLifepaths searchFilter
+maybeFilterLifepaths : Model -> String -> Model
+maybeFilterLifepaths model oldInput =
+    if Maybe.map (\term -> term /= "") model.searchFilter.searchTerm == Just True then
+        filterLifepaths model
 
     else
-        Cmd.none
+        let
+            searchFilter =
+                LifepathFilter.withSearchTerm Nothing model.searchFilter
+        in
+        filterLifepaths { model | searchFilter = searchFilter }
+
+
+filterLifepaths : Model -> Model
+filterLifepaths model =
+    let
+        filter : LoadedLifepaths -> LoadedLifepaths
+        filter { all, sidebar } =
+            { all = all
+            , sidebar = LifepathFilter.apply model.searchFilter all
+            }
+    in
+    { model | sidebarLifepaths = Status.map filter model.sidebarLifepaths }
 
 
 beginSearchDebounce : String -> Cmd Msg
@@ -398,7 +419,7 @@ viewSidebar model =
         ]
 
 
-viewSidebarLifepaths : Status (Array Lifepath) -> Element Msg
+viewSidebarLifepaths : Status LoadedLifepaths -> Element Msg
 viewSidebarLifepaths sidebarLifepaths =
     let
         viewPath : Int -> Lifepath -> Element Msg
@@ -406,16 +427,16 @@ viewSidebarLifepaths sidebarLifepaths =
             Lifepath.view { withBeacon = Just <| BeaconId.sidebarDragId index }
     in
     case sidebarLifepaths of
-        Loading ->
+        Status.Loading ->
             text "loading..."
 
-        Failed ->
+        Status.Failed ->
             text "couldn't load lifepaths"
 
-        Loaded paths ->
+        Status.Loaded { sidebar } ->
             column [ spacing 20, padding 20, width fill, height fill, scrollbarY ] <|
                 List.indexedMap viewPath <|
-                    Array.toList paths
+                    Array.toList sidebar
 
 
 

@@ -45,10 +45,10 @@ fn mount(rocket: Rocket) -> Rocket {
 fn routes() -> Vec<Route> {
     routes![
         spa::index,
-        spa::route,
+        spa::spa_route,
         spa::elm_js,
         spa::draggable_js,
-        lifepaths::list
+        lifepaths::dwarves
     ]
 }
 

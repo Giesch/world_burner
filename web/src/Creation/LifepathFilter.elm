@@ -1,17 +1,21 @@
-module Api.LifepathFilter exposing
+module Creation.LifepathFilter exposing
     ( LifepathFilter
     , LifepathFilterOptions
+    , apply
     , default
+    , none
     , view
     , withBorn
     , withSearchTerm
     , withSettingIds
     )
 
+import Array exposing (Array)
 import Colors
 import Element exposing (..)
 import Element.Font as Font
 import Element.Input as Input
+import Lifepath exposing (Lifepath)
 
 
 type alias LifepathFilter =
@@ -23,7 +27,12 @@ type alias LifepathFilter =
 
 default : LifepathFilter
 default =
-    { born = Just True
+    none |> withBorn (Just True)
+
+
+none : LifepathFilter
+none =
+    { born = Nothing
     , settingIds = Nothing
     , searchTerm = Nothing
     }
@@ -42,6 +51,30 @@ withSearchTerm searchTerm filter =
 withSettingIds : Maybe (List Int) -> LifepathFilter -> LifepathFilter
 withSettingIds settingIds filter =
     { filter | settingIds = settingIds }
+
+
+apply : LifepathFilter -> Array Lifepath -> Array Lifepath
+apply filter lifepaths =
+    Array.filter (include filter) lifepaths
+
+
+include : LifepathFilter -> Lifepath -> Bool
+include filter lifepath =
+    let
+        check fn val =
+            Maybe.map fn val
+                |> Maybe.withDefault True
+
+        checkBorn =
+            check (\fb -> fb == lifepath.born) filter.born
+
+        checkName =
+            check (\term -> String.contains (String.toLower term) lifepath.name) filter.searchTerm
+
+        checkSettings =
+            check (\ids -> List.member lifepath.settingId ids) filter.settingIds
+    in
+    checkBorn && checkName && checkSettings
 
 
 type alias LifepathFilterOptions msg =
