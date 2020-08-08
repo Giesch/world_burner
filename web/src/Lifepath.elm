@@ -40,6 +40,27 @@ type alias Lifepath =
     , traits : List Trait
     , born : Bool
     , requirement : Maybe Requirement
+    , searchContent : List String
+    }
+
+
+type alias LifepathJson =
+    { id : Int
+    , settingId : Int
+    , settingName : String
+    , name : String
+    , page : Int
+    , years : Int
+    , statMod : Maybe StatMod
+    , res : Int
+    , leads : List Lead
+    , genSkillPts : Int
+    , skillPts : Int
+    , traitPts : Int
+    , skills : List Skill
+    , traits : List Trait
+    , born : Bool
+    , requirement : Maybe Requirement
     }
 
 
@@ -79,7 +100,7 @@ type alias Lead =
 
 decoder : Decoder Lifepath
 decoder =
-    Decode.succeed Lifepath
+    Decode.succeed LifepathJson
         |> required "id" Decode.int
         |> required "setting_id" Decode.int
         |> required "setting_name" Decode.string
@@ -96,6 +117,43 @@ decoder =
         |> required "traits" (Decode.list Trait.decoder)
         |> required "born" Decode.bool
         |> optional "requirement" (Decode.map Just Requirement.decoder) Nothing
+        |> Decode.map addSearchContent
+
+
+addSearchContent : LifepathJson -> Lifepath
+addSearchContent json =
+    { id = json.id
+    , settingId = json.settingId
+    , settingName = json.settingName
+    , name = json.name
+    , page = json.page
+    , years = json.years
+    , statMod = json.statMod
+    , res = json.res
+    , leads = json.leads
+    , genSkillPts = json.genSkillPts
+    , skillPts = json.skillPts
+    , traitPts = json.traitPts
+    , skills = json.skills
+    , traits = json.traits
+    , born = json.born
+    , requirement = json.requirement
+    , searchContent = searchContent json
+    }
+
+
+searchContent : LifepathJson -> List String
+searchContent json =
+    let
+        skills : List String
+        skills =
+            List.map .displayName json.skills
+
+        traits : List String
+        traits =
+            List.map Trait.name json.traits
+    in
+    json.name :: json.settingName :: skills ++ traits
 
 
 statModDecoder : Decoder StatMod
@@ -182,10 +240,10 @@ view { withBeacon } lifepath =
                     defaultAttrs
     in
     column attrs
-        [ text <| toTitleCase lifepath.name
+        [ text <| toTitleCase lifepath.name ++ " (" ++ toTitleCase lifepath.settingName ++ ")"
         , row [ width fill, spaceEvenly ]
-            [ text (String.fromInt lifepath.years ++ " years")
-            , text (String.fromInt lifepath.res ++ " res")
+            [ text (String.fromInt lifepath.years ++ "yrs")
+            , text (String.fromInt lifepath.res ++ "res")
             , viewLifepathStat lifepath.statMod
             ]
         , viewSkills lifepath.skillPts lifepath.skills
@@ -228,7 +286,7 @@ viewLeads leads =
     let
         leadNames =
             String.join ", " <|
-                List.map (\l -> toTitleCase <| .settingName l) leads
+                List.map (\lead -> toTitleCase <| .settingName lead) leads
     in
     if List.length leads == 0 then
         none
@@ -252,16 +310,16 @@ viewStatMod statMod =
         suffix =
             case statMod.taip of
                 Physical ->
-                    " P"
+                    "P"
 
                 Mental ->
-                    " M"
+                    "M"
 
                 Either ->
-                    " M/P"
+                    "M/P"
 
                 Both ->
-                    " M,P"
+                    "M,P"
     in
     prefix ++ String.fromInt statMod.value ++ suffix
 

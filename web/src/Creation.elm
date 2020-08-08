@@ -29,7 +29,7 @@ import Http
 import LifeBlock exposing (LifeBlock)
 import LifeBlock.Validation as Validation
 import Lifepath exposing (Lifepath, StatModType(..))
-import List.NonEmpty as NonEmpty exposing (NonEmpty)
+import List.NonEmpty exposing (NonEmpty)
 import Process
 import Session exposing (..)
 import Task
@@ -75,7 +75,7 @@ type InvalidModel
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
-      , searchFilter = LifepathFilter.default
+      , searchFilter = LifepathFilter.none
       , sidebarLifepaths = Status.Loading
       , workbench = Workbench.default
       , dragState = DragState.None
@@ -99,7 +99,6 @@ type Msg
     | DeleteBenchBlock BenchIndex
     | EnteredSearchText String
     | SearchTimePassed String
-    | ClickedBornCheckbox Bool
 
 
 {-| DragState.Transition as used by this page.
@@ -123,7 +122,7 @@ update msg model =
                 sidebarLifepaths =
                     Status.Loaded { all = all, sidebar = all }
             in
-            ( filterLifepaths { model | sidebarLifepaths = sidebarLifepaths }
+            ( { model | sidebarLifepaths = sidebarLifepaths }
             , Cmd.none
             )
 
@@ -170,37 +169,14 @@ update msg model =
         EnteredSearchText input ->
             let
                 searchFilter =
-                    LifepathFilter.withSearchTerm searchTerm model.searchFilter
-
-                searchTerm =
-                    if String.length input > 0 then
-                        Just input
-
-                    else
-                        Nothing
+                    LifepathFilter.withSearchTerm input model.searchFilter
             in
             ( { model | searchFilter = searchFilter }
             , beginSearchDebounce input
             )
 
         SearchTimePassed searchTerm ->
-            ( maybeFilterLifepaths model searchTerm
-            , Cmd.none
-            )
-
-        ClickedBornCheckbox checked ->
-            let
-                born =
-                    if checked then
-                        Just True
-
-                    else
-                        Nothing
-
-                searchFilter =
-                    LifepathFilter.withBorn born model.searchFilter
-            in
-            ( filterLifepaths { model | searchFilter = searchFilter }
+            ( searchTimePassed model searchTerm
             , Cmd.none
             )
 
@@ -293,34 +269,30 @@ drop model =
             Err InvalidDragState
 
 
-maybeFilterLifepaths : Model -> String -> Model
-maybeFilterLifepaths model oldInput =
-    if Maybe.map (\term -> term /= "") model.searchFilter.searchTerm == Just True then
+searchTimePassed : Model -> String -> Model
+searchTimePassed model oldInput =
+    if model.searchFilter.searchTerm == oldInput then
         filterLifepaths model
 
     else
-        let
-            searchFilter =
-                LifepathFilter.withSearchTerm Nothing model.searchFilter
-        in
-        filterLifepaths { model | searchFilter = searchFilter }
+        model
 
 
 filterLifepaths : Model -> Model
 filterLifepaths model =
     let
-        filter : LoadedLifepaths -> LoadedLifepaths
-        filter { all, sidebar } =
+        applyFilter : LoadedLifepaths -> LoadedLifepaths
+        applyFilter { all } =
             { all = all
             , sidebar = LifepathFilter.apply model.searchFilter all
             }
     in
-    { model | sidebarLifepaths = Status.map filter model.sidebarLifepaths }
+    { model | sidebarLifepaths = Status.map applyFilter model.sidebarLifepaths }
 
 
 beginSearchDebounce : String -> Cmd Msg
 beginSearchDebounce input =
-    Process.sleep 500
+    Process.sleep 250
         |> Task.perform (\_ -> SearchTimePassed input)
 
 
@@ -412,7 +384,6 @@ viewSidebar model =
         ]
         [ LifepathFilter.view
             { enteredSearchText = EnteredSearchText
-            , clickedBornCheckbox = ClickedBornCheckbox
             }
             model.searchFilter
         , viewSidebarLifepaths model.sidebarLifepaths

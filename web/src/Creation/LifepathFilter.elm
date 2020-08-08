@@ -2,12 +2,9 @@ module Creation.LifepathFilter exposing
     ( LifepathFilter
     , LifepathFilterOptions
     , apply
-    , default
     , none
     , view
-    , withBorn
     , withSearchTerm
-    , withSettingIds
     )
 
 import Array exposing (Array)
@@ -15,42 +12,36 @@ import Colors
 import Element exposing (..)
 import Element.Font as Font
 import Element.Input as Input
+import LifeBlock exposing (LifeBlock)
 import Lifepath exposing (Lifepath)
+import List.NonEmpty as NonEmpty
 
 
 type alias LifepathFilter =
-    { born : Maybe Bool
-    , settingIds : Maybe (List Int)
-    , searchTerm : Maybe String
+    { searchTerm : String
+    , fits : FitFilter
     }
 
 
-default : LifepathFilter
-default =
-    none |> withBorn (Just True)
+type alias FitFilter =
+    Maybe ( Position, LifeBlock )
+
+
+type Position
+    = Before
+    | After
 
 
 none : LifepathFilter
 none =
-    { born = Nothing
-    , settingIds = Nothing
-    , searchTerm = Nothing
+    { searchTerm = ""
+    , fits = Nothing
     }
 
 
-withBorn : Maybe Bool -> LifepathFilter -> LifepathFilter
-withBorn born filter =
-    { filter | born = born }
-
-
-withSearchTerm : Maybe String -> LifepathFilter -> LifepathFilter
+withSearchTerm : String -> LifepathFilter -> LifepathFilter
 withSearchTerm searchTerm filter =
     { filter | searchTerm = searchTerm }
-
-
-withSettingIds : Maybe (List Int) -> LifepathFilter -> LifepathFilter
-withSettingIds settingIds filter =
-    { filter | settingIds = settingIds }
 
 
 apply : LifepathFilter -> Array Lifepath -> Array Lifepath
@@ -60,45 +51,48 @@ apply filter lifepaths =
 
 include : LifepathFilter -> Lifepath -> Bool
 include filter lifepath =
-    let
-        check fn val =
-            Maybe.map fn val
-                |> Maybe.withDefault True
+    case String.toLower filter.searchTerm of
+        "" ->
+            True
 
-        checkBorn =
-            check (\fb -> fb == lifepath.born) filter.born
-
-        checkName =
-            check (\term -> String.contains (String.toLower term) lifepath.name) filter.searchTerm
-
-        checkSettings =
-            check (\ids -> List.member lifepath.settingId ids) filter.settingIds
-    in
-    checkBorn && checkName && checkSettings
+        term ->
+            List.any
+                (\field -> String.contains term field)
+                lifepath.searchContent
 
 
 type alias LifepathFilterOptions msg =
-    { clickedBornCheckbox : Bool -> msg
-    , enteredSearchText : String -> msg
+    { enteredSearchText : String -> msg
     }
 
 
 view : LifepathFilterOptions msg -> LifepathFilter -> Element msg
-view opts { searchTerm, born } =
+view opts { searchTerm, fits } =
     column [ alignRight, padding 40, width fill ]
-        [ bornCheckbox opts.clickedBornCheckbox <| Maybe.withDefault False born
-        , searchInput opts.enteredSearchText <| Maybe.withDefault "" searchTerm
+        [ el [ alignRight ] <| fitFilters fits
+        , searchInput opts.enteredSearchText <| searchTerm
         ]
 
 
-bornCheckbox : (Bool -> msg) -> Bool -> Element msg
-bornCheckbox clickedBornCheckbox checked =
-    Input.checkbox [ alignRight ]
-        { onChange = clickedBornCheckbox
-        , icon = Input.defaultCheckbox
-        , checked = checked
-        , label = Input.labelLeft [ alignRight ] <| text "Born"
-        }
+fitFilters : FitFilter -> Element msg
+fitFilters fits =
+    let
+        listPaths block =
+            block
+                |> LifeBlock.paths
+                |> NonEmpty.toList
+                |> List.map .name
+                |> String.join " "
+    in
+    case fits of
+        Nothing ->
+            Element.none
+
+        Just ( Before, block ) ->
+            text <| "filter: fits before " ++ listPaths block
+
+        Just ( After, block ) ->
+            text <| "filter: fits after " ++ listPaths block
 
 
 searchInput : (String -> msg) -> String -> Element msg

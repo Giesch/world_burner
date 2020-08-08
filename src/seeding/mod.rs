@@ -1,19 +1,16 @@
 //! Functions for loading book data.
 
+use crate::repos::lifepaths::ReqPredicate;
+use crate::schema::*;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use std::collections::HashMap;
 use std::convert::TryInto;
 
-use crate::schema::*;
-
 mod deserialize;
 use deserialize::*;
-
 mod insertable;
 use insertable::*;
-
-use crate::repos::lifepaths::ReqPredicate;
 
 type StdError = Box<dyn std::error::Error>;
 type StdResult<T> = Result<T, StdError>;
@@ -35,6 +32,8 @@ pub fn seed_book_data(db: &PgConnection) -> StdResult<()> {
 
         let stocks = seed_stocks(db, gold_id)?;
         seed_settings(db, &stocks, &skill_ids, &trait_ids, gold_id)?;
+
+        clean_lifepath_names(db)?;
 
         Ok(())
     })
@@ -509,4 +508,32 @@ fn new_lifepath(
         res,
         res_calc,
     })
+}
+
+/// Removes parenthesized setting names from lifepath names
+/// The setting names are neccessary to disambiguate lifepaths during seeding,
+/// but unnecessary noise afterwards.
+fn clean_lifepath_names(db: &PgConnection) -> StdResult<()> {
+    let to_clean: Vec<LifepathName> = lifepaths::table
+        .select((lifepaths::id, lifepaths::name))
+        .filter(lifepaths::name.ilike("%(%"))
+        .load(db)?;
+
+    for LifepathName { id, name } in to_clean {
+        let mut words: Vec<_> = name.split(' ').collect();
+        words.pop();
+        let cleaned = words.join(" ");
+
+        diesel::update(lifepaths::table.filter(lifepaths::id.eq(id)))
+            .set(lifepaths::name.eq(cleaned))
+            .execute(db)?;
+    }
+
+    Ok(())
+}
+
+#[derive(Queryable, Debug)]
+struct LifepathName {
+    id: i32,
+    name: String,
 }
