@@ -1,6 +1,8 @@
 module LifeBlock exposing
-    ( Hover(..)
+    ( Fit
+    , Hover(..)
     , LifeBlock
+    , Position(..)
     , SplitResult(..)
     , combine
     , paths
@@ -11,7 +13,7 @@ module LifeBlock exposing
 
 import Colors
 import Common
-import Creation.BeaconId as BeaconId exposing (DragBeaconId, DropBeaconId)
+import Creation.BeaconId as BeaconId exposing (DragBeaconId, DropBeaconId, HoverBeaconId)
 import Element exposing (..)
 import Element.Input as Input
 import LifeBlock.Validation as Validation
@@ -74,59 +76,141 @@ type alias ViewOptions msg =
     , onDelete : Maybe msg
     , benchIndex : Int
     , hover : Hover
+    , filterPressed : Fit -> msg
     }
 
 
 type Hover
     = Warning
+    | FilterButton Position
       -- Bool = success or failure
-    | Before Bool
-    | After Bool
+    | Carry (Maybe ( Position, Bool ))
     | None
+
+
+type Position
+    = Before
+    | After
+
+
+type alias Fit =
+    ( Position, LifeBlock )
 
 
 view : ViewOptions msg -> LifeBlock -> Element msg
 view opts lifeBlock =
     let
+        dropZone state =
+            viewDropZone
+                { baseAttrs = opts.baseAttrs
+                , filterPressed = opts.filterPressed
+                , state = state
+                }
+
+        beforeSlotDropId =
+            BeaconId.beforeSlotDropId opts.benchIndex
+
+        afterSlotDropId =
+            BeaconId.afterSlotDropId opts.benchIndex
+
+        beforeSlotHoverId =
+            BeaconId.beforeSlotHoverId opts.benchIndex
+
+        afterSlotHoverId =
+            BeaconId.afterSlotHoverId opts.benchIndex
+
         ( before, after ) =
             case opts.hover of
-                Before True ->
-                    ( viewBefore <| Just Colors.successGlow, viewAfter Nothing )
+                Carry (Just ( Before, True )) ->
+                    ( dropZone <| CarriedOver ( beforeSlotDropId, Colors.successGlow )
+                    , dropZone <| AwaitingCarry afterSlotDropId
+                    )
 
-                Before False ->
-                    ( viewBefore <| Just Colors.failureGlow, viewAfter Nothing )
+                Carry (Just ( Before, False )) ->
+                    ( dropZone <| CarriedOver ( beforeSlotDropId, Colors.failureGlow )
+                    , dropZone <| AwaitingCarry afterSlotDropId
+                    )
 
-                After True ->
-                    ( viewBefore Nothing, viewAfter <| Just Colors.successGlow )
+                Carry (Just ( After, True )) ->
+                    ( dropZone <| AwaitingCarry beforeSlotDropId
+                    , dropZone <| CarriedOver ( afterSlotDropId, Colors.successGlow )
+                    )
 
-                After False ->
-                    ( viewBefore Nothing, viewAfter <| Just Colors.failureGlow )
+                Carry (Just ( After, False )) ->
+                    ( dropZone <| AwaitingCarry beforeSlotDropId
+                    , dropZone <| CarriedOver ( afterSlotDropId, Colors.failureGlow )
+                    )
+
+                Carry Nothing ->
+                    ( dropZone <| AwaitingCarry beforeSlotDropId
+                    , dropZone <| AwaitingCarry afterSlotDropId
+                    )
+
+                FilterButton Before ->
+                    ( dropZone <| HoveredOver ( beforeSlotHoverId, ( Before, lifeBlock ) )
+                    , dropZone <| AwaitingHover afterSlotHoverId
+                    )
+
+                FilterButton After ->
+                    ( dropZone <| AwaitingHover beforeSlotHoverId
+                    , dropZone <| HoveredOver ( afterSlotHoverId, ( After, lifeBlock ) )
+                    )
 
                 _ ->
-                    ( viewBefore Nothing, viewAfter Nothing )
-
-        viewBefore highlight =
-            dropZone (BeaconId.beforeSlotDropId opts.benchIndex) highlight
-
-        viewAfter highlight =
-            dropZone (BeaconId.afterSlotDropId opts.benchIndex) highlight
-
-        dropZone : DropBeaconId -> Maybe (Attribute msg) -> Element msg
-        dropZone id highlight =
-            let
-                dropAttrs =
-                    case highlight of
-                        Just high ->
-                            high :: opts.baseAttrs
-
-                        Nothing ->
-                            opts.baseAttrs
-            in
-            el (BeaconId.dropAttribute id :: dropAttrs)
-                (el [ centerX, centerY ] <| text "+")
+                    -- warning and none
+                    ( dropZone <| AwaitingHover <| beforeSlotHoverId
+                    , dropZone <| AwaitingHover <| afterSlotHoverId
+                    )
     in
     column opts.baseAttrs <|
         (before :: middle opts lifeBlock ++ [ after ])
+
+
+{-| The states of a dropzone above or below a lifeblock
+
+  - AwaitingHover - a plus sign waiting to show filter button
+  - AwaitingCarry - a plus sign waiting to show success / failure highlight
+  - HoveredOver - filter button
+  - CarriedOver - success / failure hightlight
+
+-}
+type DropZoneState msg
+    = AwaitingHover HoverBeaconId
+    | AwaitingCarry DropBeaconId
+    | HoveredOver ( HoverBeaconId, Fit )
+    | CarriedOver ( DropBeaconId, Attribute msg )
+
+
+type alias DropZoneOpts msg =
+    { baseAttrs : List (Attribute msg)
+    , state : DropZoneState msg
+    , filterPressed : Fit -> msg
+    }
+
+
+viewDropZone : DropZoneOpts msg -> Element msg
+viewDropZone { baseAttrs, state, filterPressed } =
+    case state of
+        AwaitingCarry dropBeaconId ->
+            el (BeaconId.dropAttribute dropBeaconId :: baseAttrs)
+                (el [ centerX, centerY ] <| text "+")
+
+        CarriedOver ( dropBeaconId, highlight ) ->
+            el (BeaconId.dropAttribute dropBeaconId :: highlight :: baseAttrs)
+                (el [ centerX, centerY ] <| text "+")
+
+        AwaitingHover hoverBeaconId ->
+            el (BeaconId.hoverAttribute hoverBeaconId :: baseAttrs)
+                (el [ centerX, centerY ] <| text "+")
+
+        HoveredOver ( hoverBeaconId, fit ) ->
+            el (BeaconId.hoverAttribute hoverBeaconId :: baseAttrs)
+                (el [ centerX, centerY ] <|
+                    Input.button []
+                        { onPress = Just <| filterPressed fit
+                        , label = text "filter"
+                        }
+                )
 
 
 middle : ViewOptions msg -> LifeBlock -> List (Element msg)

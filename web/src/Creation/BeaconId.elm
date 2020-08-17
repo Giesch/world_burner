@@ -8,7 +8,9 @@ module Creation.BeaconId exposing
     , HoverBeaconId
     , HoverBeaconLocation(..)
     , afterSlotDropId
+    , afterSlotHoverId
     , beforeSlotDropId
+    , beforeSlotHoverId
     , benchDragId
     , dragAttribute
     , dragIdFromInt
@@ -35,6 +37,8 @@ type HoverBeaconId
 
 type HoverBeaconLocation
     = LifeBlockWarning BenchIndex
+    | HoverBefore BenchIndex
+    | HoverAfter BenchIndex
 
 
 {-| An opaque and deterministic location-based id for a draggable item
@@ -133,6 +137,18 @@ warningHoverId benchIndex =
     HoverBeaconId ((benchIndex + 31) * -1)
 
 
+beforeSlotHoverId : Int -> HoverBeaconId
+beforeSlotHoverId benchIndex =
+    -- this uses the id range -41 through -50
+    HoverBeaconId ((benchIndex + 41) * -1)
+
+
+afterSlotHoverId : Int -> HoverBeaconId
+afterSlotHoverId benchIndex =
+    -- this uses the id range -51 through -60
+    HoverBeaconId ((benchIndex + 51) * -1)
+
+
 dragLocation : DragBeaconId -> DragBeaconLocation
 dragLocation (DragBeaconId id) =
     if id < 100 then
@@ -160,7 +176,17 @@ dropLocation (DropBeaconId id) =
 
 hoverLocation : HoverBeaconId -> HoverBeaconLocation
 hoverLocation (HoverBeaconId id) =
-    LifeBlockWarning ((id * -1) - 31)
+    if id < -30 && id >= -40 then
+        LifeBlockWarning ((id * -1) - 31)
+
+    else if id < -40 && id >= -50 then
+        HoverBefore ((id * -1) - 41)
+
+    else if id < -50 && id >= -60 then
+        HoverAfter ((id * -1) - 51)
+
+    else
+        Debug.todo "fix this module, this is a bad way to do things"
 
 
 tensPlace : Int -> Int
@@ -212,7 +238,7 @@ dropIdFromInt id =
 
 hoverIdFromInt : Int -> Maybe HoverBeaconId
 hoverIdFromInt id =
-    if id < -30 && id > -40 then
+    if id < -30 && id > -60 then
         Just <| HoverBeaconId id
 
     else

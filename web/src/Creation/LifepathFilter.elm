@@ -4,6 +4,7 @@ module Creation.LifepathFilter exposing
     , apply
     , none
     , view
+    , withFit
     , withSearchTerm
     )
 
@@ -19,29 +20,25 @@ import List.NonEmpty as NonEmpty
 
 type alias LifepathFilter =
     { searchTerm : String
-    , fits : FitFilter
+    , fit : Maybe LifeBlock.Fit
     }
-
-
-type alias FitFilter =
-    Maybe ( Position, LifeBlock )
-
-
-type Position
-    = Before
-    | After
 
 
 none : LifepathFilter
 none =
     { searchTerm = ""
-    , fits = Nothing
+    , fit = Nothing
     }
 
 
 withSearchTerm : String -> LifepathFilter -> LifepathFilter
 withSearchTerm searchTerm filter =
     { filter | searchTerm = searchTerm }
+
+
+withFit : Maybe LifeBlock.Fit -> LifepathFilter -> LifepathFilter
+withFit fit filter =
+    { filter | fit = fit }
 
 
 apply : LifepathFilter -> Array Lifepath -> Array Lifepath
@@ -67,17 +64,18 @@ type alias LifepathFilterOptions msg =
 
 
 view : LifepathFilterOptions msg -> LifepathFilter -> Element msg
-view opts { searchTerm, fits } =
+view opts { searchTerm, fit } =
     column [ alignRight, padding 40, width fill ]
-        [ el [ alignRight ] <| fitFilters fits
+        [ el [ alignRight ] <| fitFilters fit
         , searchInput opts.enteredSearchText <| searchTerm
         ]
 
 
-fitFilters : FitFilter -> Element msg
+fitFilters : Maybe LifeBlock.Fit -> Element msg
 fitFilters fits =
     let
-        listPaths block =
+        pathNames : LifeBlock -> String
+        pathNames block =
             block
                 |> LifeBlock.paths
                 |> NonEmpty.toList
@@ -88,11 +86,12 @@ fitFilters fits =
         Nothing ->
             Element.none
 
-        Just ( Before, block ) ->
-            text <| "filter: fits before " ++ listPaths block
+        -- TODO buttons for clearing the fit
+        Just ( LifeBlock.Before, block ) ->
+            text <| "filter: fits before " ++ pathNames block
 
-        Just ( After, block ) ->
-            text <| "filter: fits after " ++ listPaths block
+        Just ( LifeBlock.After, block ) ->
+            text <| "filter: fits after " ++ pathNames block
 
 
 searchInput : (String -> msg) -> String -> Element msg

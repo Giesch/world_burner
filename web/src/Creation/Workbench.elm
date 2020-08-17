@@ -22,6 +22,7 @@ import Creation.BeaconId as BeaconId
         , DropBeaconLocation
         , HoverBeaconLocation
         )
+import Creation.LifepathFilter as LifepathFilter
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -157,8 +158,13 @@ putBenchBlock index maybeBlock bench =
     Workbench <| Array.set index maybeBlock bench
 
 
+
+-- TODO rename these
+
+
 type Hover
     = Full FullHover
+    | Carry LifeBlock
     | Empty HoverBeaconLocation
     | None
 
@@ -170,37 +176,10 @@ type alias FullHover =
     }
 
 
-convertHighlight : Int -> FullHover -> LifeBlock.Hover
-convertHighlight benchIndex { dropLocation, dropHighlight } =
-    let
-        showHighlight : Int -> LifeBlock.Hover -> LifeBlock.Hover
-        showHighlight i hov =
-            if i == benchIndex then
-                hov
-
-            else
-                LifeBlock.None
-    in
-    case ( dropLocation, dropHighlight ) of
-        ( BeaconId.Before i, Just True ) ->
-            showHighlight i <| LifeBlock.Before True
-
-        ( BeaconId.Before i, Just False ) ->
-            showHighlight i <| LifeBlock.Before False
-
-        ( BeaconId.After i, Just True ) ->
-            showHighlight i <| LifeBlock.After True
-
-        ( BeaconId.After i, Just False ) ->
-            showHighlight i <| LifeBlock.After False
-
-        _ ->
-            LifeBlock.None
-
-
 type alias WorkbenchOptions msg =
     { hover : Hover
     , deleteBenchBlock : BenchIndex -> msg
+    , filterPressed : LifeBlock.Fit -> msg
     }
 
 
@@ -217,6 +196,23 @@ view (Workbench slots) opts =
                     else
                         LifeBlock.None
 
+                Empty (BeaconId.HoverBefore i) ->
+                    if i == benchIndex then
+                        LifeBlock.FilterButton LifeBlock.Before
+
+                    else
+                        LifeBlock.None
+
+                Empty (BeaconId.HoverAfter i) ->
+                    if i == benchIndex then
+                        LifeBlock.FilterButton LifeBlock.After
+
+                    else
+                        LifeBlock.None
+
+                Carry lifeBlock ->
+                    LifeBlock.Carry Nothing
+
                 Full full ->
                     convertHighlight benchIndex full
 
@@ -229,6 +225,7 @@ view (Workbench slots) opts =
                 { benchIndex = benchIndex
                 , deleteBenchBlock = opts.deleteBenchBlock
                 , hover = blockHover benchIndex
+                , filterPressed = opts.filterPressed
                 }
 
         viewSlot : Int -> Maybe LifeBlock -> Element msg
@@ -246,6 +243,35 @@ view (Workbench slots) opts =
         , width fill
         ]
         (Array.toList <| Array.indexedMap viewSlot slots)
+
+
+convertHighlight : Int -> FullHover -> LifeBlock.Hover
+convertHighlight benchIndex { dropLocation, dropHighlight } =
+    let
+        showHighlight : Int -> Bool -> LifeBlock.Position -> LifeBlock.Hover
+        showHighlight i success position =
+            if i == benchIndex then
+                LifeBlock.Carry (Just ( position, success ))
+
+            else
+                LifeBlock.Carry Nothing
+    in
+    case ( dropLocation, dropHighlight ) of
+        -- TODO refactor this
+        ( BeaconId.Before i, Just True ) ->
+            showHighlight i True LifeBlock.Before
+
+        ( BeaconId.Before i, Just False ) ->
+            showHighlight i False LifeBlock.Before
+
+        ( BeaconId.After i, Just True ) ->
+            showHighlight i True LifeBlock.After
+
+        ( BeaconId.After i, Just False ) ->
+            showHighlight i False LifeBlock.After
+
+        _ ->
+            LifeBlock.Carry Nothing
 
 
 openSlot : Int -> WorkbenchOptions msg -> Element msg
@@ -331,6 +357,7 @@ viewErrors errs =
 type alias LifeBlockOptions msg =
     { benchIndex : Int
     , deleteBenchBlock : BenchIndex -> msg
+    , filterPressed : LifeBlock.Fit -> msg
     , hover : LifeBlock.Hover
     }
 
@@ -342,6 +369,7 @@ viewLifeBlock opts =
         , onDelete = Just <| opts.deleteBenchBlock opts.benchIndex
         , benchIndex = opts.benchIndex
         , hover = opts.hover
+        , filterPressed = opts.filterPressed
         }
 
 

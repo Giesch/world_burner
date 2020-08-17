@@ -99,6 +99,8 @@ type Msg
     | DeleteBenchBlock BenchIndex
     | EnteredSearchText String
     | SearchTimePassed String
+    | SetFit LifeBlock.Fit
+    | ClearFit
 
 
 {-| DragState.Transition as used by this page.
@@ -163,6 +165,24 @@ update msg model =
 
         DeleteBenchBlock benchIndex ->
             ( { model | workbench = Workbench.deleteBlock model.workbench benchIndex }
+            , Cmd.none
+            )
+
+        SetFit fit ->
+            let
+                searchFilter =
+                    LifepathFilter.withFit (Just fit) model.searchFilter
+            in
+            ( filterLifepaths { model | searchFilter = searchFilter }
+            , Cmd.none
+            )
+
+        ClearFit ->
+            let
+                searchFilter =
+                    LifepathFilter.withFit Nothing model.searchFilter
+            in
+            ( filterLifepaths { model | searchFilter = searchFilter }
             , Cmd.none
             )
 
@@ -303,30 +323,38 @@ beginSearchDebounce input =
 view : Model -> Element Msg
 view model =
     let
-        viewPage workbench draggedBlock =
+        viewPage : { workbench : Element Msg, draggedBlock : Element Msg } -> Element Msg
+        viewPage { workbench, draggedBlock } =
             row [ width fill, height fill, scrollbarY, spacing 40 ]
                 [ viewSidebar model
                 , workbench
                 , draggedBlock
                 ]
 
+        viewBench : Workbench.Hover -> Element Msg
         viewBench hover =
             Workbench.view model.workbench
                 { hover = hover
                 , deleteBenchBlock = DeleteBenchBlock
+                , filterPressed = SetFit
                 }
     in
     case model.dragState of
         DragState.None ->
-            viewPage (viewBench Workbench.None) none
+            viewPage { workbench = viewBench Workbench.None, draggedBlock = none }
 
         DragState.Hovered id ->
-            viewPage (viewBench <| Workbench.Empty <| BeaconId.hoverLocation id) none
+            viewPage
+                { workbench = viewBench <| Workbench.Empty <| BeaconId.hoverLocation id
+                , draggedBlock = none
+                }
 
         DragState.Dragged ( draggedItem, ( _, cachedBlock ) ) ->
             viewPage
-                (viewBench Workbench.None)
-                (viewDraggedBlock draggedItem cachedBlock Nothing)
+                -- TODO this needs a new state
+                { workbench = viewBench <| Workbench.Carry cachedBlock
+                , draggedBlock = viewDraggedBlock draggedItem cachedBlock Nothing
+                }
 
         DragState.Poised ( { draggedItem, hoveredDropBeacon }, ( cachedBench, cachedBlock ) ) ->
             let
@@ -345,13 +373,15 @@ view model =
             case dropAttempt of
                 Ok _ ->
                     viewPage
-                        (viewBench <| hover <| Just True)
-                        (viewDraggedBlock draggedItem cachedBlock Nothing)
+                        { workbench = viewBench <| hover <| Just True
+                        , draggedBlock = viewDraggedBlock draggedItem cachedBlock Nothing
+                        }
 
                 Err (Workbench.CombinationError errs) ->
                     viewPage
-                        (viewBench <| hover <| Just False)
-                        (viewDraggedBlock draggedItem cachedBlock <| Just errs)
+                        { workbench = viewBench <| hover <| Just False
+                        , draggedBlock = viewDraggedBlock draggedItem cachedBlock <| Just errs
+                        }
 
                 Err err ->
                     let
@@ -359,8 +389,9 @@ view model =
                             Debug.log "error during hypothetical drop" err
                     in
                     viewPage
-                        (viewBench <| hover Nothing)
-                        (viewDraggedBlock draggedItem cachedBlock Nothing)
+                        { workbench = viewBench <| hover Nothing
+                        , draggedBlock = viewDraggedBlock draggedItem cachedBlock Nothing
+                        }
 
 
 viewDraggedBlock : DraggedItem -> LifeBlock -> Maybe (NonEmpty Validation.Error) -> Element Msg
