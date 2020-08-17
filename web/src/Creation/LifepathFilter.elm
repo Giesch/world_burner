@@ -71,10 +71,12 @@ includedByFit filter lifepath =
             True
 
         Just ( LifeBlock.Before, lifeBlock ) ->
-            Common.isOk <| LifeBlock.combine (LifeBlock.singleton lifepath) lifeBlock
+            LifeBlock.combine (LifeBlock.singleton lifepath) lifeBlock
+                |> Common.isOk
 
         Just ( LifeBlock.After, lifeBlock ) ->
-            Common.isOk <| LifeBlock.combine lifeBlock (LifeBlock.singleton lifepath)
+            LifeBlock.combine lifeBlock (LifeBlock.singleton lifepath)
+                |> Common.isOk
 
 
 type alias LifepathFilterOptions msg =
@@ -86,7 +88,7 @@ type alias LifepathFilterOptions msg =
 view : LifepathFilterOptions msg -> LifepathFilter -> Element msg
 view { enteredSearchText, clearFit } { searchTerm, fit } =
     column [ alignRight, padding 40, width fill ]
-        [ el [ alignRight, width fill ] <| fitFilters { fit = fit, clearFit = clearFit }
+        [ fitFilters { fit = fit, clearFit = clearFit }
         , searchInput enteredSearchText <| searchTerm
         ]
 
@@ -99,15 +101,6 @@ type alias FitOptions msg =
 
 fitFilters : FitOptions msg -> Element msg
 fitFilters { fit, clearFit } =
-    let
-        pathNames : LifeBlock -> String
-        pathNames block =
-            block
-                |> LifeBlock.paths
-                |> NonEmpty.toList
-                |> List.map .name
-                |> String.join " "
-    in
     case fit of
         Nothing ->
             Element.none
@@ -122,10 +115,10 @@ viewFit clearFit ( position, block ) =
         label =
             case position of
                 LifeBlock.Before ->
-                    "filter: fits before"
+                    "filter: fits before:"
 
                 LifeBlock.After ->
-                    "filter: fits after"
+                    "filter: fits after:"
 
         pathNames : List String
         pathNames =
@@ -134,14 +127,13 @@ viewFit clearFit ( position, block ) =
                 |> NonEmpty.toList
                 |> List.map .name
     in
-    row [ width fill, spacing 2 ]
+    row [ width fill ]
         [ Input.button [ width <| fillPortion 1 ]
             { onPress = Just clearFit
             , label = text "X"
             }
-        , column [ width <| fillPortion 2 ] <|
-            text label
-                :: List.map text pathNames
+        , column [ width <| fillPortion 2 ]
+            (text label :: List.map text pathNames)
         ]
 
 

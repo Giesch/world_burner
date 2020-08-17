@@ -213,13 +213,12 @@ viewDropZone { baseAttrs, state, filterPressed } =
                 (el [ centerX, centerY ] <| text "+")
 
         HoveredOver ( hoverBeaconId, fit ) ->
-            el (BeaconId.hoverAttribute hoverBeaconId :: baseAttrs)
-                (el [ centerX, centerY ] <|
+            el (BeaconId.hoverAttribute hoverBeaconId :: baseAttrs) <|
+                el [ centerX, centerY ] <|
                     Input.button []
                         { onPress = Just <| filterPressed fit
                         , label = text "filter"
                         }
-                )
 
 
 middle : ViewOptions msg -> LifeBlock -> List (Element msg)

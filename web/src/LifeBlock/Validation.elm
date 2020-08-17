@@ -123,16 +123,17 @@ checkLead first ( to, _ ) =
 brokenReqs : NonEmpty Lifepath -> NonEmpty Lifepath -> List Error
 brokenReqs (( firstPath, _ ) as first) second =
     if firstPath.born then
-        let
-            toErr (Warning msg) =
-                Error msg
-        in
         NonEmpty.append first second
             |> unmetReqs
-            |> List.map toErr
+            |> List.map warningToError
 
     else
         []
+
+
+warningToError : Warning -> Error
+warningToError (Warning msg) =
+    Error msg
 
 
 {-| Returns errors when combining two valid blocks
