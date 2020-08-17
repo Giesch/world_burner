@@ -415,6 +415,7 @@ viewSidebar model =
         ]
         [ LifepathFilter.view
             { enteredSearchText = EnteredSearchText
+            , clearFit = ClearFit
             }
             model.searchFilter
         , viewSidebarLifepaths model.sidebarLifepaths

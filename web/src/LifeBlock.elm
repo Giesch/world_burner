@@ -147,7 +147,11 @@ view opts lifeBlock =
                     )
 
                 FilterButton Before ->
-                    ( dropZone <| HoveredOver ( beforeSlotHoverId, ( Before, lifeBlock ) )
+                    ( if startsBorn lifeBlock then
+                        dropZone <| AwaitingHover beforeSlotHoverId
+
+                      else
+                        dropZone <| HoveredOver ( beforeSlotHoverId, ( Before, lifeBlock ) )
                     , dropZone <| AwaitingHover afterSlotHoverId
                     )
 
@@ -164,6 +168,11 @@ view opts lifeBlock =
     in
     column opts.baseAttrs <|
         (before :: middle opts lifeBlock ++ [ after ])
+
+
+startsBorn : LifeBlock -> Bool
+startsBorn (LifeBlock ( first, _ )) =
+    first.born
 
 
 {-| The states of a dropzone above or below a lifeblock

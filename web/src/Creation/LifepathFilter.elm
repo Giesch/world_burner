@@ -10,6 +10,7 @@ module Creation.LifepathFilter exposing
 
 import Array exposing (Array)
 import Colors
+import Common
 import Element exposing (..)
 import Element.Font as Font
 import Element.Input as Input
@@ -48,6 +49,11 @@ apply filter lifepaths =
 
 include : LifepathFilter -> Lifepath -> Bool
 include filter lifepath =
+    includedByTerm filter lifepath && includedByFit filter lifepath
+
+
+includedByTerm : LifepathFilter -> Lifepath -> Bool
+includedByTerm filter lifepath =
     case String.toLower filter.searchTerm of
         "" ->
             True
@@ -58,21 +64,41 @@ include filter lifepath =
                 lifepath.searchContent
 
 
+includedByFit : LifepathFilter -> Lifepath -> Bool
+includedByFit filter lifepath =
+    case filter.fit of
+        Nothing ->
+            True
+
+        Just ( LifeBlock.Before, lifeBlock ) ->
+            Common.isOk <| LifeBlock.combine (LifeBlock.singleton lifepath) lifeBlock
+
+        Just ( LifeBlock.After, lifeBlock ) ->
+            Common.isOk <| LifeBlock.combine lifeBlock (LifeBlock.singleton lifepath)
+
+
 type alias LifepathFilterOptions msg =
     { enteredSearchText : String -> msg
+    , clearFit : msg
     }
 
 
 view : LifepathFilterOptions msg -> LifepathFilter -> Element msg
-view opts { searchTerm, fit } =
+view { enteredSearchText, clearFit } { searchTerm, fit } =
     column [ alignRight, padding 40, width fill ]
-        [ el [ alignRight ] <| fitFilters fit
-        , searchInput opts.enteredSearchText <| searchTerm
+        [ el [ alignRight, width fill ] <| fitFilters { fit = fit, clearFit = clearFit }
+        , searchInput enteredSearchText <| searchTerm
         ]
 
 
-fitFilters : Maybe LifeBlock.Fit -> Element msg
-fitFilters fits =
+type alias FitOptions msg =
+    { fit : Maybe LifeBlock.Fit
+    , clearFit : msg
+    }
+
+
+fitFilters : FitOptions msg -> Element msg
+fitFilters { fit, clearFit } =
     let
         pathNames : LifeBlock -> String
         pathNames block =
@@ -82,16 +108,41 @@ fitFilters fits =
                 |> List.map .name
                 |> String.join " "
     in
-    case fits of
+    case fit of
         Nothing ->
             Element.none
 
-        -- TODO buttons for clearing the fit
-        Just ( LifeBlock.Before, block ) ->
-            text <| "filter: fits before " ++ pathNames block
+        Just f ->
+            viewFit clearFit f
 
-        Just ( LifeBlock.After, block ) ->
-            text <| "filter: fits after " ++ pathNames block
+
+viewFit : msg -> LifeBlock.Fit -> Element msg
+viewFit clearFit ( position, block ) =
+    let
+        label =
+            case position of
+                LifeBlock.Before ->
+                    "filter: fits before"
+
+                LifeBlock.After ->
+                    "filter: fits after"
+
+        pathNames : List String
+        pathNames =
+            block
+                |> LifeBlock.paths
+                |> NonEmpty.toList
+                |> List.map .name
+    in
+    row [ width fill, spacing 2 ]
+        [ Input.button [ width <| fillPortion 1 ]
+            { onPress = Just clearFit
+            , label = text "X"
+            }
+        , column [ width <| fillPortion 2 ] <|
+            text label
+                :: List.map text pathNames
+        ]
 
 
 searchInput : (String -> msg) -> String -> Element msg

@@ -1,5 +1,6 @@
 module Common exposing
     ( SplitResult
+    , isOk
     , keepIf
     , minimumBy
     , splitAt
@@ -9,6 +10,16 @@ module Common exposing
 import Element
 import Html.Attributes
 import List.NonEmpty exposing (NonEmpty)
+
+
+isOk : Result x a -> Bool
+isOk res =
+    case res of
+        Ok _ ->
+            True
+
+        Err _ ->
+            False
 
 
 {-| Splits a NonEmpty list at the given index.

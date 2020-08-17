@@ -2,14 +2,14 @@
   - [X] sequentially picking lifepaths
     - [X] get dnd working; able to drop first lifepath of a new block
     - [X] add validation to dnd
-  - [-] easy search for allowed next lifepaths [2/3]
+  - [-] easy search for allowed next lifepaths [3/4]
     - [X] move lifepath filtering/search into elm
           load all lps for the stock on launch
     - [X] come up with a better search ui
           any-field text search, and then other filters under 'advanced'
-    - [ ] add suggestions for before/after each lifeblock
-          for next lp - filter on both meet the requirements and have a lead
-          for previous lp - filter on has a lead, sort on meets a requirement
+    - [X] add filter for fits before/after each lifeblock
+    - [ ] allow clicking on a warning to filter to required by lifepath
+          mentioned in the requirement, really
   - [ ] unit tests for creation model & related modules
     - [ ] validation
     - [ ] workbench
