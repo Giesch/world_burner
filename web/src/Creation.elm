@@ -99,8 +99,11 @@ type Msg
     | DeleteBenchBlock BenchIndex
     | EnteredSearchText String
     | SearchTimePassed String
+      -- TODO these all need better names
     | SetFit LifeBlock.Fit
     | ClearFit
+    | SetFix (NonEmpty Validation.WarningReason)
+    | ClearFix
 
 
 {-| DragState.Transition as used by this page.
@@ -169,22 +172,20 @@ update msg model =
             )
 
         SetFit fit ->
-            let
-                searchFilter =
-                    LifepathFilter.withFit (Just fit) model.searchFilter
-            in
-            ( filterLifepaths { model | searchFilter = searchFilter }
-            , Cmd.none
-            )
+            filterImmediately model <|
+                LifepathFilter.withFit (Just fit) model.searchFilter
 
         ClearFit ->
-            let
-                searchFilter =
-                    LifepathFilter.withFit Nothing model.searchFilter
-            in
-            ( filterLifepaths { model | searchFilter = searchFilter }
-            , Cmd.none
-            )
+            filterImmediately model <|
+                LifepathFilter.withFit Nothing model.searchFilter
+
+        SetFix fix ->
+            filterImmediately model <|
+                LifepathFilter.withFix (Just fix) model.searchFilter
+
+        ClearFix ->
+            filterImmediately model <|
+                LifepathFilter.withFix Nothing model.searchFilter
 
         EnteredSearchText input ->
             let
@@ -260,13 +261,22 @@ pickupError err =
 drop : Model -> Result InvalidModel Model
 drop model =
     case model.dragState of
+        DragState.None ->
+            Err InvalidDragState
+
+        DragState.Hovered _ ->
+            Err InvalidDragState
+
+        DragState.Dragged _ ->
+            Ok <| letGo model
+
         DragState.Poised ( hoverState, ( cachedBench, cachedBlock ) ) ->
             let
-                location : BeaconId.DropBeaconLocation
-                location =
+                dropLocation : BeaconId.DropBeaconLocation
+                dropLocation =
                     BeaconId.dropLocation hoverState.hoveredDropBeacon
             in
-            case Workbench.drop cachedBench cachedBlock location of
+            case Workbench.drop cachedBench cachedBlock dropLocation of
                 Err (Workbench.CombinationError _) ->
                     Ok <| letGo model
 
@@ -279,14 +289,10 @@ drop model =
                 Ok workbench ->
                     Ok { model | workbench = workbench, dragState = DragState.None }
 
-        DragState.Dragged _ ->
-            Ok <| letGo model
 
-        DragState.Hovered _ ->
-            Err InvalidDragState
-
-        DragState.None ->
-            Err InvalidDragState
+filterImmediately : Model -> LifepathFilter -> ( Model, Cmd msg )
+filterImmediately model filter =
+    ( filterLifepaths { model | searchFilter = filter }, Cmd.none )
 
 
 searchTimePassed : Model -> String -> Model
@@ -337,6 +343,7 @@ view model =
                 { hover = hover
                 , deleteBenchBlock = DeleteBenchBlock
                 , filterPressed = SetFit
+                , setFix = SetFix
                 }
     in
     case model.dragState of
@@ -345,14 +352,13 @@ view model =
 
         DragState.Hovered id ->
             viewPage
-                { workbench = viewBench <| Workbench.Empty <| BeaconId.hoverLocation id
+                { workbench = viewBench <| Workbench.Hovered <| BeaconId.hoverLocation id
                 , draggedBlock = none
                 }
 
         DragState.Dragged ( draggedItem, ( _, cachedBlock ) ) ->
             viewPage
-                -- TODO this needs a new state
-                { workbench = viewBench <| Workbench.Carry cachedBlock
+                { workbench = viewBench <| Workbench.Dragged cachedBlock
                 , draggedBlock = viewDraggedBlock draggedItem cachedBlock Nothing
                 }
 
@@ -364,7 +370,7 @@ view model =
 
                 hover : Maybe Bool -> Workbench.Hover
                 hover dropHighlight =
-                    Workbench.Full
+                    Workbench.Poised
                         { hoveringBlock = cachedBlock
                         , dropLocation = BeaconId.dropLocation hoveredDropBeacon
                         , dropHighlight = dropHighlight
@@ -416,6 +422,7 @@ viewSidebar model =
         [ LifepathFilter.view
             { enteredSearchText = EnteredSearchText
             , clearFit = ClearFit
+            , clearFix = ClearFix
             }
             model.searchFilter
         , viewSidebarLifepaths model.sidebarLifepaths

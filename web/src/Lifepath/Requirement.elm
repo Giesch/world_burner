@@ -9,6 +9,7 @@ module Lifepath.Requirement exposing
 
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (required)
+import List.NonEmpty as NonEmpty exposing (NonEmpty)
 
 
 type alias Requirement =
@@ -21,8 +22,8 @@ type Predicate
     = SpecificLifepath LifepathPredicate
     | PreviousLifepaths PreviousLifepathsPredicate
     | Setting SettingPredicate
-    | Any (List Predicate)
-    | All (List Predicate)
+    | Any (NonEmpty Predicate)
+    | All (NonEmpty Predicate)
 
 
 type alias LifepathPredicate =
@@ -32,8 +33,7 @@ type alias LifepathPredicate =
 
 
 type alias PreviousLifepathsPredicate =
-    { count : Int
-    }
+    { count : Int }
 
 
 type alias SettingPredicate =
@@ -114,9 +114,9 @@ settingPredicateDecoder =
 
 anyDecoder : Decoder Predicate
 anyDecoder =
-    Decode.map Any <| Decode.list predicateDecoder
+    Decode.map Any <| NonEmpty.decodeList predicateDecoder
 
 
 allDecoder : Decoder Predicate
 allDecoder =
-    Decode.map All <| Decode.list predicateDecoder
+    Decode.map All <| NonEmpty.decodeList predicateDecoder

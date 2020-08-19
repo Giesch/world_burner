@@ -22,7 +22,6 @@ import Creation.BeaconId as BeaconId
         , DropBeaconLocation
         , HoverBeaconLocation
         )
-import Creation.LifepathFilter as LifepathFilter
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -158,18 +157,14 @@ putBenchBlock index maybeBlock bench =
     Workbench <| Array.set index maybeBlock bench
 
 
-
--- TODO rename these
-
-
 type Hover
-    = Full FullHover
-    | Carry LifeBlock
-    | Empty HoverBeaconLocation
-    | None
+    = None
+    | Hovered HoverBeaconLocation
+    | Dragged LifeBlock
+    | Poised Poise
 
 
-type alias FullHover =
+type alias Poise =
     { hoveringBlock : LifeBlock
     , dropLocation : DropBeaconLocation
     , dropHighlight : Maybe Bool
@@ -180,6 +175,7 @@ type alias WorkbenchOptions msg =
     { hover : Hover
     , deleteBenchBlock : BenchIndex -> msg
     , filterPressed : LifeBlock.Fit -> msg
+    , setFix : NonEmpty Validation.WarningReason -> msg
     }
 
 
@@ -189,31 +185,31 @@ view (Workbench slots) opts =
         blockHover : Int -> LifeBlock.Hover
         blockHover benchIndex =
             case opts.hover of
-                Empty (BeaconId.LifeBlockWarning i) ->
+                Hovered (BeaconId.LifeBlockWarning i) ->
                     if i == benchIndex then
                         LifeBlock.Warning
 
                     else
                         LifeBlock.None
 
-                Empty (BeaconId.HoverBefore i) ->
+                Hovered (BeaconId.HoverBefore i) ->
                     if i == benchIndex then
                         LifeBlock.FilterButton LifeBlock.Before
 
                     else
                         LifeBlock.None
 
-                Empty (BeaconId.HoverAfter i) ->
+                Hovered (BeaconId.HoverAfter i) ->
                     if i == benchIndex then
                         LifeBlock.FilterButton LifeBlock.After
 
                     else
                         LifeBlock.None
 
-                Carry lifeBlock ->
+                Dragged lifeBlock ->
                     LifeBlock.Carry Nothing
 
-                Full full ->
+                Poised full ->
                     convertHighlight benchIndex full
 
                 None ->
@@ -226,6 +222,7 @@ view (Workbench slots) opts =
                 , deleteBenchBlock = opts.deleteBenchBlock
                 , hover = blockHover benchIndex
                 , filterPressed = opts.filterPressed
+                , setFix = opts.setFix
                 }
 
         viewSlot : Int -> Maybe LifeBlock -> Element msg
@@ -245,30 +242,23 @@ view (Workbench slots) opts =
         (Array.toList <| Array.indexedMap viewSlot slots)
 
 
-convertHighlight : Int -> FullHover -> LifeBlock.Hover
+convertHighlight : Int -> Poise -> LifeBlock.Hover
 convertHighlight benchIndex { dropLocation, dropHighlight } =
     let
-        showHighlight : Int -> Bool -> LifeBlock.Position -> LifeBlock.Hover
-        showHighlight i success position =
+        checkIndex : Int -> LifeBlock.Position -> Bool -> LifeBlock.Hover
+        checkIndex i position successful =
             if i == benchIndex then
-                LifeBlock.Carry (Just ( position, success ))
+                LifeBlock.Carry (Just ( position, successful ))
 
             else
                 LifeBlock.Carry Nothing
     in
     case ( dropLocation, dropHighlight ) of
-        -- TODO refactor this
-        ( BeaconId.Before i, Just True ) ->
-            showHighlight i True LifeBlock.Before
+        ( BeaconId.Before i, Just successful ) ->
+            checkIndex i LifeBlock.Before successful
 
-        ( BeaconId.Before i, Just False ) ->
-            showHighlight i False LifeBlock.Before
-
-        ( BeaconId.After i, Just True ) ->
-            showHighlight i True LifeBlock.After
-
-        ( BeaconId.After i, Just False ) ->
-            showHighlight i False LifeBlock.After
+        ( BeaconId.After i, Just successful ) ->
+            checkIndex i LifeBlock.After successful
 
         _ ->
             LifeBlock.Carry Nothing
@@ -280,7 +270,7 @@ openSlot benchIndex { hover } =
         beingHovered : Bool
         beingHovered =
             case hover of
-                Full full ->
+                Poised full ->
                     full.dropLocation == BeaconId.Open benchIndex
 
                 _ ->
@@ -359,6 +349,7 @@ type alias LifeBlockOptions msg =
     , deleteBenchBlock : BenchIndex -> msg
     , filterPressed : LifeBlock.Fit -> msg
     , hover : LifeBlock.Hover
+    , setFix : NonEmpty Validation.WarningReason -> msg
     }
 
 
@@ -370,6 +361,7 @@ viewLifeBlock opts =
         , benchIndex = opts.benchIndex
         , hover = opts.hover
         , filterPressed = opts.filterPressed
+        , setFix = opts.setFix
         }
 
 

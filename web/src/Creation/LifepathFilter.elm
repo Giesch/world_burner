@@ -5,6 +5,7 @@ module Creation.LifepathFilter exposing
     , none
     , view
     , withFit
+    , withFix
     , withSearchTerm
     )
 
@@ -15,13 +16,15 @@ import Element exposing (..)
 import Element.Font as Font
 import Element.Input as Input
 import LifeBlock exposing (LifeBlock)
+import LifeBlock.Validation as Validation
 import Lifepath exposing (Lifepath)
-import List.NonEmpty as NonEmpty
+import List.NonEmpty as NonEmpty exposing (NonEmpty)
 
 
 type alias LifepathFilter =
     { searchTerm : String
     , fit : Maybe LifeBlock.Fit
+    , fix : Maybe (NonEmpty Validation.WarningReason)
     }
 
 
@@ -29,6 +32,7 @@ none : LifepathFilter
 none =
     { searchTerm = ""
     , fit = Nothing
+    , fix = Nothing
     }
 
 
@@ -42,6 +46,11 @@ withFit fit filter =
     { filter | fit = fit }
 
 
+withFix : Maybe (NonEmpty Validation.WarningReason) -> LifepathFilter -> LifepathFilter
+withFix fix filter =
+    { filter | fix = fix }
+
+
 apply : LifepathFilter -> Array Lifepath -> Array Lifepath
 apply filter lifepaths =
     Array.filter (include filter) lifepaths
@@ -49,7 +58,9 @@ apply filter lifepaths =
 
 include : LifepathFilter -> Lifepath -> Bool
 include filter lifepath =
-    includedByTerm filter lifepath && includedByFit filter lifepath
+    includedByTerm filter lifepath
+        && includedByFit filter lifepath
+        && includedByFix filter lifepath
 
 
 includedByTerm : LifepathFilter -> Lifepath -> Bool
@@ -79,18 +90,81 @@ includedByFit filter lifepath =
                 |> Common.isOk
 
 
+includedByFix : LifepathFilter -> Lifepath -> Bool
+includedByFix filter lifepath =
+    case filter.fix of
+        Nothing ->
+            True
+
+        Just reasons ->
+            NonEmpty.any
+                (\reason -> includedByWarningReason reason lifepath)
+                reasons
+
+
+includedByWarningReason : Validation.WarningReason -> Lifepath -> Bool
+includedByWarningReason reason lifepath =
+    case reason of
+        Validation.MissingBorn ->
+            lifepath.born
+
+        Validation.Unmet predicates ->
+            NonEmpty.any (Validation.includes lifepath) predicates
+
+
 type alias LifepathFilterOptions msg =
     { enteredSearchText : String -> msg
     , clearFit : msg
+    , clearFix : msg
     }
 
 
 view : LifepathFilterOptions msg -> LifepathFilter -> Element msg
-view { enteredSearchText, clearFit } { searchTerm, fit } =
+view { enteredSearchText, clearFit, clearFix } { searchTerm, fit, fix } =
     column [ alignRight, padding 40, width fill ]
         [ fitFilters { fit = fit, clearFit = clearFit }
+        , fixFilters { fix = fix, clearFix = clearFix }
         , searchInput enteredSearchText <| searchTerm
         ]
+
+
+type alias FixOptions msg =
+    { fix : Maybe (NonEmpty Validation.WarningReason)
+    , clearFix : msg
+    }
+
+
+fixFilters : FixOptions msg -> Element msg
+fixFilters { fix, clearFix } =
+    case fix of
+        Nothing ->
+            Element.none
+
+        Just reasons ->
+            let
+                labels : List String
+                labels =
+                    NonEmpty.toList <| NonEmpty.map label reasons
+
+                label : Validation.WarningReason -> String
+                label reason =
+                    -- TODO this sucks
+                    case reason of
+                        Validation.MissingBorn ->
+                            "filter: born lifepath"
+
+                        Validation.Unmet reqs ->
+                            if NonEmpty.length reqs == 1 then
+                                "filter: unmet requirement:"
+
+                            else
+                                "filter: unmet requirements:"
+            in
+            row [ width fill ]
+                [ Input.button [ width <| fillPortion 1 ]
+                    { onPress = Just clearFix, label = text "X" }
+                , column [ width <| fillPortion 2 ] <| List.map text labels
+                ]
 
 
 type alias FitOptions msg =

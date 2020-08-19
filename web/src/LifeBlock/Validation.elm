@@ -1,11 +1,14 @@
 module LifeBlock.Validation exposing
     ( Error(..)
     , Warning(..)
+    , WarningReason(..)
     , errors
+    , includes
     , warnings
     )
 
 import Array exposing (Array)
+import Common
 import Lifepath exposing (Lifepath)
 import Lifepath.Requirement as Requirement exposing (Requirement)
 import List.NonEmpty as NonEmpty exposing (NonEmpty)
@@ -23,29 +26,85 @@ type Error
 ie a missing born lifepath or an unsatisfied requirement
 -}
 type Warning
-    = Warning String
+    = Warning WarningData
+
+
+type alias WarningData =
+    { message : String
+    , reason : WarningReason
+    }
+
+
+{-| Reasons for a warning that can be used to filter lifepaths for a solution
+-}
+type WarningReason
+    = Unmet (NonEmpty Requirement.Predicate)
+    | MissingBorn
 
 
 {-| Takes a predicate and the PREVIOUS lifepaths of the character.
-Returns if the previous lifepaths satisfy the predicate.
+The failure result includes the predicates that could fix the failure.
 -}
-pass : Requirement.Predicate -> Array Lifepath -> Bool
+pass : Requirement.Predicate -> Array Lifepath -> Result (NonEmpty Requirement.Predicate) ()
 pass predicate previousPaths =
     case predicate of
         Requirement.SpecificLifepath { lifepathId, count } ->
-            atLeast count (\lp -> lp.id == lifepathId) previousPaths
+            if atLeast count (\lp -> lp.id == lifepathId) previousPaths then
+                Ok ()
+
+            else
+                Err <| NonEmpty.singleton predicate
 
         Requirement.Setting { settingId, count } ->
-            atLeast count (\lp -> lp.settingId == settingId) previousPaths
+            if atLeast count (\lp -> lp.settingId == settingId) previousPaths then
+                Ok ()
+
+            else
+                Err <| NonEmpty.singleton predicate
 
         Requirement.PreviousLifepaths { count } ->
-            Array.length previousPaths >= count
+            if Array.length previousPaths >= count then
+                Ok ()
+
+            else
+                Err <| NonEmpty.singleton predicate
 
         Requirement.Any predicates ->
-            List.any (\pred -> pass pred previousPaths) predicates
+            -- This should only check if one passed, but include all failures as possible fixes
+            if NonEmpty.any (\pred -> Common.isOk <| pass pred previousPaths) predicates then
+                Ok ()
+
+            else
+                Err predicates
 
         Requirement.All predicates ->
-            List.all (\pred -> pass pred previousPaths) predicates
+            -- This should check all predicates and include only the ones that failed as possible fixes
+            case NonEmpty.filter (\pred -> not <| Common.isOk <| pass pred previousPaths) predicates of
+                Nothing ->
+                    Ok ()
+
+                Just failures ->
+                    Err failures
+
+
+includes : Lifepath -> Requirement.Predicate -> Bool
+includes lifepath predicate =
+    case predicate of
+        Requirement.SpecificLifepath { lifepathId } ->
+            lifepath.id == lifepathId
+
+        Requirement.Setting { settingId } ->
+            lifepath.settingId == settingId
+
+        Requirement.PreviousLifepaths _ ->
+            True
+
+        Requirement.Any predicates ->
+            NonEmpty.any (includes lifepath) predicates
+
+        Requirement.All predicates ->
+            -- This depends on the predicates already having been filtered
+            NonEmpty.any (includes lifepath) predicates
 
 
 atLeast : Int -> (Lifepath -> Bool) -> Array Lifepath -> Bool
@@ -61,11 +120,16 @@ unmetReqs lifepaths =
     let
         check : Lifepath -> Array Lifepath -> Requirement -> Maybe Warning
         check lifepath pastLifepaths requirement =
-            if pass requirement.predicate pastLifepaths then
-                Nothing
+            case pass requirement.predicate pastLifepaths of
+                Ok () ->
+                    Nothing
 
-            else
-                Just <| Warning <| toTitleCase lifepath.name ++ " requires " ++ requirement.description
+                Err failure ->
+                    Just <|
+                        Warning
+                            { message = toTitleCase lifepath.name ++ " requires " ++ requirement.description
+                            , reason = Unmet failure
+                            }
 
         run : ( Array Lifepath, List Lifepath, List Warning ) -> List Warning
         run ( seen, unseen, warns ) =
@@ -90,7 +154,11 @@ gottaBeBorn ( first, _ ) =
         Nothing
 
     else
-        Just <| Warning "A character's first lifepath must be a 'born' lifepath"
+        Just <|
+            Warning
+                { message = "A character's first lifepath must be a 'born' lifepath"
+                , reason = MissingBorn
+                }
 
 
 bornFirst : NonEmpty Lifepath -> NonEmpty Lifepath -> Maybe Error
@@ -132,8 +200,8 @@ brokenReqs (( firstPath, _ ) as first) second =
 
 
 warningToError : Warning -> Error
-warningToError (Warning msg) =
-    Error msg
+warningToError (Warning { message }) =
+    Error message
 
 
 {-| Returns errors when combining two valid blocks

@@ -9,7 +9,7 @@ module Common exposing
 
 import Element
 import Html.Attributes
-import List.NonEmpty exposing (NonEmpty)
+import List.NonEmpty as NonEmpty exposing (NonEmpty)
 
 
 isOk : Result x a -> Bool

@@ -77,6 +77,7 @@ type alias ViewOptions msg =
     , benchIndex : Int
     , hover : Hover
     , filterPressed : Fit -> msg
+    , setFix : NonEmpty Validation.WarningReason -> msg
     }
 
 
@@ -122,23 +123,23 @@ view opts lifeBlock =
         ( before, after ) =
             case opts.hover of
                 Carry (Just ( Before, True )) ->
-                    ( dropZone <| CarriedOver ( beforeSlotDropId, Colors.successGlow )
+                    ( dropZone <| Poised ( beforeSlotDropId, Colors.successGlow )
                     , dropZone <| AwaitingCarry afterSlotDropId
                     )
 
                 Carry (Just ( Before, False )) ->
-                    ( dropZone <| CarriedOver ( beforeSlotDropId, Colors.failureGlow )
+                    ( dropZone <| Poised ( beforeSlotDropId, Colors.failureGlow )
                     , dropZone <| AwaitingCarry afterSlotDropId
                     )
 
                 Carry (Just ( After, True )) ->
                     ( dropZone <| AwaitingCarry beforeSlotDropId
-                    , dropZone <| CarriedOver ( afterSlotDropId, Colors.successGlow )
+                    , dropZone <| Poised ( afterSlotDropId, Colors.successGlow )
                     )
 
                 Carry (Just ( After, False )) ->
                     ( dropZone <| AwaitingCarry beforeSlotDropId
-                    , dropZone <| CarriedOver ( afterSlotDropId, Colors.failureGlow )
+                    , dropZone <| Poised ( afterSlotDropId, Colors.failureGlow )
                     )
 
                 Carry Nothing ->
@@ -151,13 +152,13 @@ view opts lifeBlock =
                         dropZone <| AwaitingHover beforeSlotHoverId
 
                       else
-                        dropZone <| HoveredOver ( beforeSlotHoverId, ( Before, lifeBlock ) )
+                        dropZone <| Hovered ( beforeSlotHoverId, ( Before, lifeBlock ) )
                     , dropZone <| AwaitingHover afterSlotHoverId
                     )
 
                 FilterButton After ->
                     ( dropZone <| AwaitingHover beforeSlotHoverId
-                    , dropZone <| HoveredOver ( afterSlotHoverId, ( After, lifeBlock ) )
+                    , dropZone <| Hovered ( afterSlotHoverId, ( After, lifeBlock ) )
                     )
 
                 _ ->
@@ -177,17 +178,19 @@ startsBorn (LifeBlock ( first, _ )) =
 
 {-| The states of a dropzone above or below a lifeblock
 
-  - AwaitingHover - a plus sign waiting to show filter button
-  - AwaitingCarry - a plus sign waiting to show success / failure highlight
-  - HoveredOver - filter button
-  - CarriedOver - success / failure hightlight
+TODO first two need better names
+
+  - AwaitingHover - waiting to show filter button
+  - AwaitingCarry - waiting to show success / failure highlight
+  - Hovered - filter button
+  - Poised - success / failure hightlight
 
 -}
 type DropZoneState msg
     = AwaitingHover HoverBeaconId
     | AwaitingCarry DropBeaconId
-    | HoveredOver ( HoverBeaconId, Fit )
-    | CarriedOver ( DropBeaconId, Attribute msg )
+    | Hovered ( HoverBeaconId, Fit )
+    | Poised ( DropBeaconId, Attribute msg )
 
 
 type alias DropZoneOpts msg =
@@ -204,7 +207,7 @@ viewDropZone { baseAttrs, state, filterPressed } =
             el (BeaconId.dropAttribute dropBeaconId :: baseAttrs)
                 (el [ centerX, centerY ] <| text "+")
 
-        CarriedOver ( dropBeaconId, highlight ) ->
+        Poised ( dropBeaconId, highlight ) ->
             el (BeaconId.dropAttribute dropBeaconId :: highlight :: baseAttrs)
                 (el [ centerX, centerY ] <| text "+")
 
@@ -212,7 +215,7 @@ viewDropZone { baseAttrs, state, filterPressed } =
             el (BeaconId.hoverAttribute hoverBeaconId :: baseAttrs)
                 (el [ centerX, centerY ] <| text "+")
 
-        HoveredOver ( hoverBeaconId, fit ) ->
+        Hovered ( hoverBeaconId, fit ) ->
             el (BeaconId.hoverAttribute hoverBeaconId :: baseAttrs) <|
                 el [ centerX, centerY ] <|
                     Input.button []
@@ -224,34 +227,10 @@ viewDropZone { baseAttrs, state, filterPressed } =
 middle : ViewOptions msg -> LifeBlock -> List (Element msg)
 middle opts (LifeBlock lifepaths) =
     let
-        warnAttr : Maybe (Attribute msg)
-        warnAttr =
-            Validation.warnings lifepaths
-                |> viewWarnings
-                |> Maybe.map Element.onRight
-
-        hoverAttr : Attribute msg
-        hoverAttr =
-            opts.benchIndex
-                |> BeaconId.warningHoverId
-                |> BeaconId.hoverAttribute
-
-        exclamation : Element msg
-        exclamation =
-            case ( warnAttr, opts.hover == Warning ) of
-                ( Just attr, True ) ->
-                    el [ attr, hoverAttr ] <| text "!"
-
-                ( Just _, False ) ->
-                    el [ hoverAttr ] <| text "!"
-
-                ( Nothing, _ ) ->
-                    none
-
         topRow : Element msg
         topRow =
             row [ width fill ] <|
-                [ exclamation
+                [ maybeWarningsIcon opts lifepaths
                 , Input.button
                     [ alignRight ]
                     { onPress = opts.onDelete
@@ -273,11 +252,56 @@ middle opts (LifeBlock lifepaths) =
             (NonEmpty.toList lifepaths)
 
 
-viewWarnings : List Validation.Warning -> Maybe (Element msg)
-viewWarnings warns =
+maybeWarningsIcon : ViewOptions msg -> NonEmpty Lifepath -> Element msg
+maybeWarningsIcon opts lifepaths =
+    lifepaths
+        |> Validation.warnings
+        |> NonEmpty.fromList
+        |> Maybe.map (warningsIcon opts)
+        |> Maybe.withDefault Element.none
+
+
+warningsIcon : ViewOptions msg -> NonEmpty Validation.Warning -> Element msg
+warningsIcon opts warnings =
     let
-        viewWarn (Validation.Warning msg) =
-            text msg
+        hoverAttr : Attribute msg
+        hoverAttr =
+            opts.benchIndex
+                |> BeaconId.warningHoverId
+                |> BeaconId.hoverAttribute
+
+        tooltip : Element msg
+        tooltip =
+            column [] <| List.map viewWarn <| NonEmpty.toList warnings
+
+        viewWarn (Validation.Warning { message }) =
+            text message
+
+        attrs : List (Attribute msg)
+        attrs =
+            if opts.hover == Warning then
+                [ Element.onRight tooltip, hoverAttr ]
+
+            else
+                [ hoverAttr ]
+
+        warningReason (Validation.Warning { reason }) =
+            reason
+
+        onPress =
+            opts.setFix <| NonEmpty.map warningReason warnings
+    in
+    Input.button attrs
+        { onPress = Just onPress
+        , label = text "!"
+        }
+
+
+oldviewWarnings : List Validation.Warning -> Maybe (Element msg)
+oldviewWarnings warns =
+    let
+        viewWarn (Validation.Warning { message, reason }) =
+            text message
     in
     case warns of
         [] ->
