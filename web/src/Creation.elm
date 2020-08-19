@@ -172,20 +172,26 @@ update msg model =
             )
 
         SetFit fit ->
-            filterImmediately model <|
-                LifepathFilter.withFit (Just fit) model.searchFilter
+            model.searchFilter
+                |> LifepathFilter.withFit (Just fit)
+                |> LifepathFilter.withSearchTerm ""
+                |> filterImmediately model
 
         ClearFit ->
-            filterImmediately model <|
-                LifepathFilter.withFit Nothing model.searchFilter
+            model.searchFilter
+                |> LifepathFilter.withFit Nothing
+                |> filterImmediately model
 
         SetFix fix ->
-            filterImmediately model <|
-                LifepathFilter.withFix (Just fix) model.searchFilter
+            model.searchFilter
+                |> LifepathFilter.withFix (Just fix)
+                |> LifepathFilter.withSearchTerm ""
+                |> filterImmediately model
 
         ClearFix ->
-            filterImmediately model <|
-                LifepathFilter.withFix Nothing model.searchFilter
+            model.searchFilter
+                |> LifepathFilter.withFix Nothing
+                |> filterImmediately model
 
         EnteredSearchText input ->
             let

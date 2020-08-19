@@ -108,7 +108,7 @@ includedByWarningReason reason lifepath =
         Validation.MissingBorn ->
             lifepath.born
 
-        Validation.Unmet predicates ->
+        Validation.Unmet { predicates } ->
             NonEmpty.any (Validation.includes lifepath) predicates
 
 
@@ -148,22 +148,17 @@ fixFilters { fix, clearFix } =
 
                 label : Validation.WarningReason -> String
                 label reason =
-                    -- TODO this sucks
                     case reason of
                         Validation.MissingBorn ->
-                            "filter: born lifepath"
+                            "born lifepath"
 
-                        Validation.Unmet reqs ->
-                            if NonEmpty.length reqs == 1 then
-                                "filter: unmet requirement:"
-
-                            else
-                                "filter: unmet requirements:"
+                        Validation.Unmet { lifepath } ->
+                            "required by " ++ lifepath.name
             in
             row [ width fill ]
                 [ Input.button [ width <| fillPortion 1 ]
                     { onPress = Just clearFix, label = text "X" }
-                , column [ width <| fillPortion 2 ] <| List.map text labels
+                , column [ width <| fillPortion 2 ] <| List.map text ("filtered:" :: labels)
                 ]
 
 

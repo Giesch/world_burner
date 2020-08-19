@@ -38,8 +38,14 @@ type alias WarningData =
 {-| Reasons for a warning that can be used to filter lifepaths for a solution
 -}
 type WarningReason
-    = Unmet (NonEmpty Requirement.Predicate)
+    = Unmet UnmetRequirements
     | MissingBorn
+
+
+type alias UnmetRequirements =
+    { predicates : NonEmpty Requirement.Predicate
+    , lifepath : Lifepath
+    }
 
 
 {-| Takes a predicate and the PREVIOUS lifepaths of the character.
@@ -124,12 +130,15 @@ unmetReqs lifepaths =
                 Ok () ->
                     Nothing
 
-                Err failure ->
-                    Just <|
-                        Warning
-                            { message = toTitleCase lifepath.name ++ " requires " ++ requirement.description
-                            , reason = Unmet failure
-                            }
+                Err predicates ->
+                    let
+                        message =
+                            toTitleCase lifepath.name ++ " requires " ++ requirement.description
+
+                        reason =
+                            Unmet { predicates = predicates, lifepath = lifepath }
+                    in
+                    Just <| Warning { message = message, reason = reason }
 
         run : ( Array Lifepath, List Lifepath, List Warning ) -> List Warning
         run ( seen, unseen, warns ) =
