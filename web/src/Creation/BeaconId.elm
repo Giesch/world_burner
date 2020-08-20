@@ -156,7 +156,7 @@ hover location =
 
 warningHoverId : WarningLocation -> HoverBeaconId
 warningHoverId { benchIndex, warningIndex } =
-    -- this uses the id range -61 through -90
+    -- this uses the id range -61 through -100
     HoverBeaconId (((benchIndex * 10 + warningIndex) + 61) * -1)
 
 
@@ -215,7 +215,7 @@ dropLocation (DropBeaconId id) =
 
 hoverLocation : HoverBeaconId -> HoverBeaconLocation
 hoverLocation (HoverBeaconId id) =
-    if id < -60 && id >= -90 then
+    if id < -60 && id >= -100 then
         LifeBlockWarning
             { benchIndex = tensPlace (id * -1 - 61)
             , warningIndex = modBy 10 (id * -1 - 61)
@@ -276,7 +276,7 @@ dropIdFromInt id =
 
 hoverIdFromInt : Int -> Maybe HoverBeaconId
 hoverIdFromInt id =
-    if id < -30 && id > -90 then
+    if id < -30 && id > -100 then
         Just <| HoverBeaconId id
 
     else

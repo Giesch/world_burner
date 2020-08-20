@@ -133,6 +133,8 @@ unmetReqs lifepaths =
                 Err predicates ->
                     let
                         message =
+                            -- TODO this message is wrong for previous lifepaths,
+                            -- and its weird if there's multiple requirements
                             toTitleCase lifepath.name ++ " requires " ++ requirement.description
 
                         reason =

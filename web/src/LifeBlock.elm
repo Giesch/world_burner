@@ -294,8 +294,16 @@ singleWarningIcon opts warnings warningIndex =
 
         attrs : List (Attribute msg)
         attrs =
+            let
+                position =
+                    if opts.benchIndex < 3 then
+                        Element.onRight
+
+                    else
+                        Element.onLeft
+            in
             if opts.hover == Warning warningIndex then
-                [ Element.onRight tooltip, hoverAttr ]
+                [ position tooltip, hoverAttr ]
 
             else
                 [ hoverAttr ]
