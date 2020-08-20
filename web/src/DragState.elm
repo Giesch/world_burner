@@ -5,17 +5,13 @@ port module DragState exposing
     , IdDecoders
     , PoisedState
     , Transition(..)
-    , attribute
     , subscriptions
     )
 
 import Common
-import Element
 import Geom exposing (Box, Point)
-import Html.Attributes
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional, required)
-import Json.Encode as Encode
 
 
 {-| The possible drag and hover states of the ui.
@@ -207,6 +203,9 @@ msgDecoder idDecoders =
 type alias BeaconJson =
     { eventType : EventType
     , cursor : Point
+
+    -- TODO replace this Int with something else
+    -- List Int?
     , beacons : List ( Int, Box )
     , startBeaconId : Maybe String
     , cursorOnDraggable : Maybe Point
@@ -254,6 +253,7 @@ beaconsDecoder =
 
 
 type alias IdDecoders dragId dropId hoverId =
+    -- TODO have these take json values directly
     { toDragId : Int -> Maybe dragId
     , toDropId : Int -> Maybe dropId
     , toHoverId : Int -> Maybe hoverId
@@ -358,10 +358,3 @@ nearestBeacon { cursor, beacons } =
             .box >> Geom.center >> Geom.distance cursor
     in
     Common.minimumBy distanceFromCursor beacons
-
-
-attribute : Int -> Element.Attribute msg
-attribute beaconId =
-    Element.htmlAttribute <|
-        Html.Attributes.attribute "data-beacon"
-            (Encode.encode 0 <| Encode.int beaconId)

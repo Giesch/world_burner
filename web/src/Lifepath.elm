@@ -215,8 +215,8 @@ lifepathWidth =
     Element.px 300
 
 
-view : { withBeacon : Maybe DragBeaconId } -> Lifepath -> Element msg
-view { withBeacon } lifepath =
+view : Maybe BeaconId.DragBeaconLocation -> Lifepath -> Element msg
+view beaconLocation lifepath =
     let
         defaultAttrs : List (Attribute msg)
         defaultAttrs =
@@ -232,9 +232,10 @@ view { withBeacon } lifepath =
                 ++ Common.userSelectNone
 
         attrs =
-            case withBeacon of
-                Just beaconId ->
-                    BeaconId.dragAttribute beaconId :: defaultAttrs
+            case beaconLocation of
+                Just location ->
+                    (BeaconId.attribute <| BeaconId.drag location)
+                        :: defaultAttrs
 
                 Nothing ->
                     defaultAttrs

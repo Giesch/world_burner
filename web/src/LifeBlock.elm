@@ -15,6 +15,7 @@ import Colors
 import Common
 import Creation.BeaconId as BeaconId exposing (DragBeaconId, DropBeaconId, HoverBeaconId)
 import Element exposing (..)
+import Element.Font as Font
 import Element.Input as Input
 import LifeBlock.Validation as Validation
 import Lifepath exposing (Lifepath)
@@ -82,7 +83,7 @@ type alias ViewOptions msg =
 
 
 type Hover
-    = Warning
+    = Warning Int
     | FilterButton Position
       -- Bool = success or failure
     | Carry (Maybe ( Position, Bool ))
@@ -108,63 +109,51 @@ view opts lifeBlock =
                 , state = state
                 }
 
-        beforeSlotDropId =
-            BeaconId.beforeSlotDropId opts.benchIndex
-
-        afterSlotDropId =
-            BeaconId.afterSlotDropId opts.benchIndex
-
-        beforeSlotHoverId =
-            BeaconId.beforeSlotHoverId opts.benchIndex
-
-        afterSlotHoverId =
-            BeaconId.afterSlotHoverId opts.benchIndex
-
         ( before, after ) =
             case opts.hover of
                 Carry (Just ( Before, True )) ->
-                    ( dropZone <| Poised ( beforeSlotDropId, Colors.successGlow )
-                    , dropZone <| AwaitingCarry afterSlotDropId
+                    ( dropZone <| Poised ( BeaconId.Before opts.benchIndex, Colors.successGlow )
+                    , dropZone <| AwaitingCarry <| BeaconId.After opts.benchIndex
                     )
 
                 Carry (Just ( Before, False )) ->
-                    ( dropZone <| Poised ( beforeSlotDropId, Colors.failureGlow )
-                    , dropZone <| AwaitingCarry afterSlotDropId
+                    ( dropZone <| Poised ( BeaconId.Before opts.benchIndex, Colors.failureGlow )
+                    , dropZone <| AwaitingCarry <| BeaconId.After opts.benchIndex
                     )
 
                 Carry (Just ( After, True )) ->
-                    ( dropZone <| AwaitingCarry beforeSlotDropId
-                    , dropZone <| Poised ( afterSlotDropId, Colors.successGlow )
+                    ( dropZone <| AwaitingCarry <| BeaconId.Before opts.benchIndex
+                    , dropZone <| Poised ( BeaconId.After opts.benchIndex, Colors.successGlow )
                     )
 
                 Carry (Just ( After, False )) ->
-                    ( dropZone <| AwaitingCarry beforeSlotDropId
-                    , dropZone <| Poised ( afterSlotDropId, Colors.failureGlow )
+                    ( dropZone <| AwaitingCarry <| BeaconId.Before opts.benchIndex
+                    , dropZone <| Poised ( BeaconId.After opts.benchIndex, Colors.failureGlow )
                     )
 
                 Carry Nothing ->
-                    ( dropZone <| AwaitingCarry beforeSlotDropId
-                    , dropZone <| AwaitingCarry afterSlotDropId
+                    ( dropZone <| AwaitingCarry <| BeaconId.Before opts.benchIndex
+                    , dropZone <| AwaitingCarry <| BeaconId.After opts.benchIndex
                     )
 
                 FilterButton Before ->
                     ( if startsBorn lifeBlock then
-                        dropZone <| AwaitingHover beforeSlotHoverId
+                        dropZone <| AwaitingHover <| BeaconId.HoverBefore opts.benchIndex
 
                       else
-                        dropZone <| Hovered ( beforeSlotHoverId, ( Before, lifeBlock ) )
-                    , dropZone <| AwaitingHover afterSlotHoverId
+                        dropZone <| Hovered ( BeaconId.HoverBefore opts.benchIndex, ( Before, lifeBlock ) )
+                    , dropZone <| AwaitingHover <| BeaconId.HoverAfter opts.benchIndex
                     )
 
                 FilterButton After ->
-                    ( dropZone <| AwaitingHover beforeSlotHoverId
-                    , dropZone <| Hovered ( afterSlotHoverId, ( After, lifeBlock ) )
+                    ( dropZone <| AwaitingHover <| BeaconId.HoverBefore opts.benchIndex
+                    , dropZone <| Hovered ( BeaconId.HoverAfter opts.benchIndex, ( After, lifeBlock ) )
                     )
 
                 _ ->
                     -- warning and none
-                    ( dropZone <| AwaitingHover <| beforeSlotHoverId
-                    , dropZone <| AwaitingHover <| afterSlotHoverId
+                    ( dropZone <| AwaitingHover <| BeaconId.HoverBefore opts.benchIndex
+                    , dropZone <| AwaitingHover <| BeaconId.HoverAfter opts.benchIndex
                     )
     in
     column opts.baseAttrs <|
@@ -187,10 +176,10 @@ TODO first two need better names
 
 -}
 type DropZoneState msg
-    = AwaitingHover HoverBeaconId
-    | AwaitingCarry DropBeaconId
-    | Hovered ( HoverBeaconId, Fit )
-    | Poised ( DropBeaconId, Attribute msg )
+    = AwaitingHover BeaconId.HoverBeaconLocation
+    | AwaitingCarry BeaconId.DropBeaconLocation
+    | Hovered ( BeaconId.HoverBeaconLocation, Fit )
+    | Poised ( BeaconId.DropBeaconLocation, Attribute msg )
 
 
 type alias DropZoneOpts msg =
@@ -203,20 +192,20 @@ type alias DropZoneOpts msg =
 viewDropZone : DropZoneOpts msg -> Element msg
 viewDropZone { baseAttrs, state, filterPressed } =
     case state of
-        AwaitingCarry dropBeaconId ->
-            el (BeaconId.dropAttribute dropBeaconId :: baseAttrs)
+        AwaitingCarry location ->
+            el ((BeaconId.attribute <| BeaconId.drop location) :: baseAttrs)
                 (el [ centerX, centerY ] <| text "+")
 
-        Poised ( dropBeaconId, highlight ) ->
-            el (BeaconId.dropAttribute dropBeaconId :: highlight :: baseAttrs)
+        Poised ( location, highlight ) ->
+            el ((BeaconId.attribute <| BeaconId.drop location) :: highlight :: baseAttrs)
                 (el [ centerX, centerY ] <| text "+")
 
-        AwaitingHover hoverBeaconId ->
-            el (BeaconId.hoverAttribute hoverBeaconId :: baseAttrs)
+        AwaitingHover location ->
+            el ((BeaconId.attribute <| BeaconId.hover location) :: baseAttrs)
                 (el [ centerX, centerY ] <| text "+")
 
-        Hovered ( hoverBeaconId, fit ) ->
-            el (BeaconId.hoverAttribute hoverBeaconId :: baseAttrs) <|
+        Hovered ( location, fit ) ->
+            el ((BeaconId.attribute <| BeaconId.hover location) :: baseAttrs) <|
                 el [ centerX, centerY ] <|
                     Input.button []
                         { onPress = Just <| filterPressed fit
@@ -238,17 +227,17 @@ middle opts (LifeBlock lifepaths) =
                     }
                 ]
 
-        withBeacon : Int -> Maybe DragBeaconId
+        withBeacon : Int -> Maybe BeaconId.DragBeaconLocation
         withBeacon blockIndex =
             Just <|
-                BeaconId.benchDragId
+                BeaconId.Bench
                     { benchIndex = opts.benchIndex
                     , blockIndex = blockIndex
                     }
     in
     topRow
         :: List.indexedMap
-            (\blockIndex path -> Lifepath.view { withBeacon = withBeacon blockIndex } path)
+            (\blockIndex path -> Lifepath.view (withBeacon blockIndex) path)
             (NonEmpty.toList lifepaths)
 
 
@@ -257,29 +246,55 @@ maybeWarningsIcon opts lifepaths =
     lifepaths
         |> Validation.warnings
         |> NonEmpty.fromList
-        |> Maybe.map (warningsIcon opts)
+        |> Maybe.map (warningsIcons opts)
         |> Maybe.withDefault Element.none
 
 
-warningsIcon : ViewOptions msg -> NonEmpty Validation.Warning -> Element msg
-warningsIcon opts warnings =
+warningsIcons : ViewOptions msg -> NonEmpty Validation.Warning -> Element msg
+warningsIcons opts warnings =
+    row [] <|
+        List.map (singleWarningIcon opts warnings) <|
+            List.range 0 (NonEmpty.length warnings - 1)
+
+
+singleWarningIcon : ViewOptions msg -> NonEmpty Validation.Warning -> Int -> Element msg
+singleWarningIcon opts warnings warningIndex =
     let
         hoverAttr : Attribute msg
         hoverAttr =
-            opts.benchIndex
-                |> BeaconId.warningHoverId
-                |> BeaconId.hoverAttribute
+            BeaconId.LifeBlockWarning
+                { benchIndex = opts.benchIndex
+                , warningIndex = warningIndex
+                }
+                |> BeaconId.hover
+                |> BeaconId.attribute
 
         tooltip : Element msg
         tooltip =
-            column [] <| List.map viewWarn <| NonEmpty.toList warnings
+            let
+                warns : NonEmpty (Element msg)
+                warns =
+                    NonEmpty.indexedMap
+                        (\index item ->
+                            if index == warningIndex then
+                                viewHighlightedWarn item
+
+                            else
+                                viewWarn item
+                        )
+                        warnings
+            in
+            column [] <| NonEmpty.toList warns
 
         viewWarn (Validation.Warning { message }) =
             text message
 
+        viewHighlightedWarn (Validation.Warning { message }) =
+            el [ Font.color Colors.red ] <| text message
+
         attrs : List (Attribute msg)
         attrs =
-            if opts.hover == Warning then
+            if opts.hover == Warning warningIndex then
                 [ Element.onRight tooltip, hoverAttr ]
 
             else
@@ -288,24 +303,16 @@ warningsIcon opts warnings =
         warningReason (Validation.Warning { reason }) =
             reason
 
+        onPress : Maybe msg
         onPress =
-            opts.setFix <| NonEmpty.map warningReason warnings
+            warnings
+                |> (\warns -> Maybe.map NonEmpty.head (NonEmpty.drop warningIndex warns))
+                |> Maybe.map warningReason
+                -- TODO with this change, setFix should take a single
+                |> Maybe.map NonEmpty.singleton
+                |> Maybe.map opts.setFix
     in
     Input.button attrs
-        { onPress = Just onPress
+        { onPress = onPress
         , label = text "!"
         }
-
-
-oldviewWarnings : List Validation.Warning -> Maybe (Element msg)
-oldviewWarnings warns =
-    let
-        viewWarn (Validation.Warning { message, reason }) =
-            text message
-    in
-    case warns of
-        [] ->
-            Nothing
-
-        nonEmpty ->
-            Just <| column [] <| List.map viewWarn nonEmpty

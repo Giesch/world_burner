@@ -1,5 +1,6 @@
 module Creation.BeaconId exposing
-    ( BenchIndex
+    ( Beacon(..)
+    , BenchIndex
     , BenchLocation
     , DragBeaconId
     , DragBeaconLocation(..)
@@ -7,28 +8,21 @@ module Creation.BeaconId exposing
     , DropBeaconLocation(..)
     , HoverBeaconId
     , HoverBeaconLocation(..)
-    , afterSlotDropId
-    , afterSlotHoverId
-    , beforeSlotDropId
-    , beforeSlotHoverId
-    , benchDragId
-    , dragAttribute
-    , dragIdFromInt
+    , attribute
+    , decoders
+    , drag
     , dragLocation
-    , dropAttribute
-    , dropIdFromInt
+    , drop
     , dropLocation
-    , hoverAttribute
-    , hoverIdFromInt
+    , encode
+    , hover
     , hoverLocation
-    , isDropBeaconId
-    , openSlotDropId
-    , sidebarDragId
-    , warningHoverId
     )
 
 import DragState
 import Element
+import Html.Attributes
+import Json.Encode as Encode
 
 
 type HoverBeaconId
@@ -36,9 +30,15 @@ type HoverBeaconId
 
 
 type HoverBeaconLocation
-    = LifeBlockWarning BenchIndex
+    = LifeBlockWarning WarningLocation
     | HoverBefore BenchIndex
     | HoverAfter BenchIndex
+
+
+type alias WarningLocation =
+    { benchIndex : BenchIndex
+    , warningIndex : Int
+    }
 
 
 {-| An opaque and deterministic location-based id for a draggable item
@@ -78,7 +78,9 @@ All indexes are 0 based and must be less than 10.
   - After - the drop area after/below the lifeblock at a given index
 
 -}
-type DropBeaconLocation
+type
+    DropBeaconLocation
+    -- TODO rename these variants
     = Open BenchIndex
     | Before BenchIndex
     | After BenchIndex
@@ -88,20 +90,27 @@ type alias BenchIndex =
     Int
 
 
-{-| Creates a deterministic id for the given bench location on the Creation page
--}
-benchDragId : BenchLocation -> DragBeaconId
-benchDragId { benchIndex, blockIndex } =
-    -- this uses the id range 0 through 99
-    DragBeaconId (benchIndex * 10 + blockIndex)
+drag : DragBeaconLocation -> Beacon
+drag location =
+    case location of
+        Bench loc ->
+            Drag <| benchDragId loc
+
+        Sidebar i ->
+            Drag <| sidebarDragId i
 
 
-{-| Creates a deterministic id for the given sidebar index on the Creation page
--}
-sidebarDragId : Int -> DragBeaconId
-sidebarDragId sidebarIndex =
-    -- this uses the id range 100+
-    DragBeaconId (100 + sidebarIndex)
+drop : DropBeaconLocation -> Beacon
+drop location =
+    case location of
+        Open benchIndex ->
+            Drop <| openSlotDropId benchIndex
+
+        Before benchIndex ->
+            Drop <| beforeSlotDropId benchIndex
+
+        After benchIndex ->
+            Drop <| afterSlotDropId benchIndex
 
 
 {-| Creates a deterministic id for an open slot on the Creation page
@@ -131,10 +140,24 @@ afterSlotDropId benchIndex =
     DropBeaconId ((benchIndex + 21) * -1)
 
 
-warningHoverId : Int -> HoverBeaconId
-warningHoverId benchIndex =
-    -- this uses the id range -31 through -40
-    HoverBeaconId ((benchIndex + 31) * -1)
+hover : HoverBeaconLocation -> Beacon
+hover location =
+    Hover <|
+        case location of
+            LifeBlockWarning warningLocation ->
+                warningHoverId warningLocation
+
+            HoverBefore benchIndex ->
+                beforeSlotHoverId benchIndex
+
+            HoverAfter benchIndex ->
+                afterSlotHoverId benchIndex
+
+
+warningHoverId : WarningLocation -> HoverBeaconId
+warningHoverId { benchIndex, warningIndex } =
+    -- this uses the id range -61 through -90
+    HoverBeaconId (((benchIndex * 10 + warningIndex) + 61) * -1)
 
 
 beforeSlotHoverId : Int -> HoverBeaconId
@@ -147,6 +170,22 @@ afterSlotHoverId : Int -> HoverBeaconId
 afterSlotHoverId benchIndex =
     -- this uses the id range -51 through -60
     HoverBeaconId ((benchIndex + 51) * -1)
+
+
+{-| Creates a deterministic id for the given bench location on the Creation page
+-}
+benchDragId : BenchLocation -> DragBeaconId
+benchDragId { benchIndex, blockIndex } =
+    -- this uses the id range 0 through 99
+    DragBeaconId (benchIndex * 10 + blockIndex)
+
+
+{-| Creates a deterministic id for the given sidebar index on the Creation page
+-}
+sidebarDragId : Int -> DragBeaconId
+sidebarDragId sidebarIndex =
+    -- this uses the id range 100+
+    DragBeaconId (100 + sidebarIndex)
 
 
 dragLocation : DragBeaconId -> DragBeaconLocation
@@ -176,8 +215,11 @@ dropLocation (DropBeaconId id) =
 
 hoverLocation : HoverBeaconId -> HoverBeaconLocation
 hoverLocation (HoverBeaconId id) =
-    if id < -30 && id >= -40 then
-        LifeBlockWarning ((id * -1) - 31)
+    if id < -60 && id >= -90 then
+        LifeBlockWarning
+            { benchIndex = tensPlace (id * -1 - 61)
+            , warningIndex = modBy 10 (id * -1 - 61)
+            }
 
     else if id < -40 && id >= -50 then
         HoverBefore ((id * -1) - 41)
@@ -186,6 +228,10 @@ hoverLocation (HoverBeaconId id) =
         HoverAfter ((id * -1) - 51)
 
     else
+        -- TODO it is time to fix this mess
+        -- reread what this is currently doing in a full serialization loop
+        -- move the id decoders/encoders to this module
+        -- come up with a nice structured way to handle encoding/decoding the ids
         Debug.todo "fix this module, this is a bad way to do things"
 
 
@@ -198,24 +244,16 @@ tensPlace n =
         -1 * tensPlace -n
 
 
-dragAttribute : DragBeaconId -> Element.Attribute msg
-dragAttribute (DragBeaconId id) =
-    DragState.attribute id
+
+-- DECODE
 
 
-dropAttribute : DropBeaconId -> Element.Attribute msg
-dropAttribute (DropBeaconId id) =
-    DragState.attribute id
-
-
-hoverAttribute : HoverBeaconId -> Element.Attribute msg
-hoverAttribute (HoverBeaconId id) =
-    DragState.attribute id
-
-
-isDropBeaconId : Int -> Bool
-isDropBeaconId n =
-    n < 0
+decoders : DragState.IdDecoders DragBeaconId DropBeaconId HoverBeaconId
+decoders =
+    { toDragId = dragIdFromInt
+    , toDropId = dropIdFromInt
+    , toHoverId = hoverIdFromInt
+    }
 
 
 dragIdFromInt : Int -> Maybe DragBeaconId
@@ -238,8 +276,39 @@ dropIdFromInt id =
 
 hoverIdFromInt : Int -> Maybe HoverBeaconId
 hoverIdFromInt id =
-    if id < -30 && id > -60 then
+    if id < -30 && id > -90 then
         Just <| HoverBeaconId id
 
     else
         Nothing
+
+
+
+-- ENCODE
+
+
+type Beacon
+    = Drag DragBeaconId
+    | Drop DropBeaconId
+    | Hover HoverBeaconId
+
+
+encode : Beacon -> Encode.Value
+encode beacon =
+    case beacon of
+        Drag (DragBeaconId id) ->
+            Encode.int id
+
+        Drop (DropBeaconId id) ->
+            Encode.int id
+
+        Hover (HoverBeaconId id) ->
+            Encode.int id
+
+
+attribute : Beacon -> Element.Attribute msg
+attribute beacon =
+    Element.htmlAttribute <|
+        -- NOTE this must match the attribute in draggable.js
+        Html.Attributes.attribute "data-beacon"
+            (Encode.encode 0 <| encode beacon)

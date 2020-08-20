@@ -396,10 +396,6 @@ view model =
                         }
 
                 Err err ->
-                    let
-                        _ =
-                            Debug.log "error during hypothetical drop" err
-                    in
                     viewPage
                         { workbench = viewBench <| hover Nothing
                         , draggedBlock = viewDraggedBlock draggedItem cachedBlock Nothing
@@ -440,7 +436,7 @@ viewSidebarLifepaths sidebarLifepaths =
     let
         viewPath : Int -> Lifepath -> Element Msg
         viewPath index =
-            Lifepath.view { withBeacon = Just <| BeaconId.sidebarDragId index }
+            Lifepath.view <| Just <| BeaconId.Sidebar index
     in
     case sidebarLifepaths of
         Status.Loading ->
@@ -462,9 +458,5 @@ viewSidebarLifepaths sidebarLifepaths =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     model.dragState
-        |> DragState.subscriptions
-            { toDragId = BeaconId.dragIdFromInt
-            , toDropId = BeaconId.dropIdFromInt
-            , toHoverId = BeaconId.hoverIdFromInt
-            }
+        |> DragState.subscriptions BeaconId.decoders
         |> Sub.map DragMsg

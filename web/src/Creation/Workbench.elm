@@ -185,9 +185,9 @@ view (Workbench slots) opts =
         blockHover : Int -> LifeBlock.Hover
         blockHover benchIndex =
             case opts.hover of
-                Hovered (BeaconId.LifeBlockWarning i) ->
-                    if i == benchIndex then
-                        LifeBlock.Warning
+                Hovered (BeaconId.LifeBlockWarning loc) ->
+                    if loc.benchIndex == benchIndex then
+                        LifeBlock.Warning loc.warningIndex
 
                     else
                         LifeBlock.None
@@ -278,7 +278,7 @@ openSlot benchIndex { hover } =
     in
     if beingHovered then
         el
-            (BeaconId.dropAttribute (BeaconId.openSlotDropId benchIndex)
+            ((BeaconId.attribute <| BeaconId.drop (BeaconId.Open benchIndex))
                 :: Colors.successGlow
                 :: slotAttrs
             )
@@ -286,7 +286,7 @@ openSlot benchIndex { hover } =
 
     else
         el
-            (BeaconId.dropAttribute (BeaconId.openSlotDropId benchIndex)
+            ((BeaconId.attribute <| BeaconId.drop (BeaconId.Open benchIndex))
                 :: Border.width 1
                 :: slotAttrs
             )
@@ -314,25 +314,25 @@ viewDraggedBlock lifeBlock { top, left, errors } =
             Maybe.map viewErrors errors
                 |> Maybe.withDefault none
                 |> Element.onLeft
+
+        attrs : List (Attribute msg)
+        attrs =
+            [ htmlAttribute <| Html.Attributes.style "position" "fixed"
+            , htmlAttribute <| position "top" top
+            , htmlAttribute <| position "left" left
+            , htmlAttribute <| Html.Attributes.style "list-style" "none"
+            , htmlAttribute <| Html.Attributes.style "padding" "0"
+            , htmlAttribute <| Html.Attributes.style "margin" "0"
+            , width Lifepath.lifepathWidth
+            , errsAttr
+            , spacing 20
+            , padding 12
+            ]
+                ++ Common.userSelectNone
     in
-    column
-        ([ htmlAttribute <| Html.Attributes.style "position" "fixed"
-         , htmlAttribute <| position "top" top
-         , htmlAttribute <| position "left" left
-         , htmlAttribute <| Html.Attributes.style "list-style" "none"
-         , htmlAttribute <| Html.Attributes.style "padding" "0"
-         , htmlAttribute <| Html.Attributes.style "margin" "0"
-         , width Lifepath.lifepathWidth
-         , errsAttr
-         , spacing 20
-         , padding 12
-         ]
-            ++ Common.userSelectNone
-        )
-        (List.map
-            (Lifepath.view { withBeacon = Nothing })
+    column attrs <|
+        List.map (Lifepath.view Nothing) <|
             (NonEmpty.toList <| LifeBlock.paths lifeBlock)
-        )
 
 
 viewErrors : NonEmpty Validation.Error -> Element msg
