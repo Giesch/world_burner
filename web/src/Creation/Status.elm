@@ -3,8 +3,6 @@ module Creation.Status exposing
     , map
     )
 
-import Creation.BeaconId exposing (dropLocation)
-
 
 type Status a
     = Loading

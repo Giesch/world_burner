@@ -15,7 +15,7 @@ module Creation.Workbench exposing
 import Array exposing (Array)
 import Colors
 import Common
-import Creation.BeaconId as BeaconId
+import Creation.Beacon as Beacon
     exposing
         ( BenchIndex
         , BenchLocation
@@ -77,13 +77,13 @@ pickup (Workbench bench) { benchIndex, blockIndex } =
 dropBenchIndex : DropBeaconLocation -> BenchIndex
 dropBenchIndex location =
     case location of
-        BeaconId.Open loc ->
+        Beacon.OpenSlot loc ->
             loc
 
-        BeaconId.Before loc ->
+        Beacon.BeforeSlot loc ->
             loc
 
-        BeaconId.After loc ->
+        Beacon.AfterSlot loc ->
             loc
 
 
@@ -123,13 +123,13 @@ drop (Workbench bench) droppedBlock location =
                             Err <| CombinationError err
     in
     case location of
-        BeaconId.Open _ ->
+        Beacon.OpenSlot _ ->
             dropFinal droppedBlock
 
-        BeaconId.Before _ ->
+        Beacon.BeforeSlot _ ->
             combineAndDrop <| \benchBlock -> LifeBlock.combine droppedBlock benchBlock
 
-        BeaconId.After _ ->
+        Beacon.AfterSlot _ ->
             combineAndDrop <| \benchBlock -> LifeBlock.combine benchBlock droppedBlock
 
 
@@ -185,21 +185,21 @@ view (Workbench slots) opts =
         blockHover : Int -> LifeBlock.Hover
         blockHover benchIndex =
             case opts.hover of
-                Hovered (BeaconId.LifeBlockWarning loc) ->
+                Hovered (Beacon.LifeBlockWarning loc) ->
                     if loc.benchIndex == benchIndex then
                         LifeBlock.Warning loc.warningIndex
 
                     else
                         LifeBlock.None
 
-                Hovered (BeaconId.HoverBefore i) ->
+                Hovered (Beacon.HoverBefore i) ->
                     if i == benchIndex then
                         LifeBlock.FilterButton LifeBlock.Before
 
                     else
                         LifeBlock.None
 
-                Hovered (BeaconId.HoverAfter i) ->
+                Hovered (Beacon.HoverAfter i) ->
                     if i == benchIndex then
                         LifeBlock.FilterButton LifeBlock.After
 
@@ -254,10 +254,10 @@ convertHighlight benchIndex { dropLocation, dropHighlight } =
                 LifeBlock.Carry Nothing
     in
     case ( dropLocation, dropHighlight ) of
-        ( BeaconId.Before i, Just successful ) ->
+        ( Beacon.BeforeSlot i, Just successful ) ->
             checkIndex i LifeBlock.Before successful
 
-        ( BeaconId.After i, Just successful ) ->
+        ( Beacon.AfterSlot i, Just successful ) ->
             checkIndex i LifeBlock.After successful
 
         _ ->
@@ -271,14 +271,14 @@ openSlot benchIndex { hover } =
         beingHovered =
             case hover of
                 Poised full ->
-                    full.dropLocation == BeaconId.Open benchIndex
+                    full.dropLocation == Beacon.OpenSlot benchIndex
 
                 _ ->
                     False
     in
     if beingHovered then
         el
-            ((BeaconId.attribute <| BeaconId.drop (BeaconId.Open benchIndex))
+            (Beacon.dropBeacon (Beacon.OpenSlot benchIndex)
                 :: Colors.successGlow
                 :: slotAttrs
             )
@@ -286,7 +286,7 @@ openSlot benchIndex { hover } =
 
     else
         el
-            ((BeaconId.attribute <| BeaconId.drop (BeaconId.Open benchIndex))
+            (Beacon.dropBeacon (Beacon.OpenSlot benchIndex)
                 :: Border.width 1
                 :: slotAttrs
             )

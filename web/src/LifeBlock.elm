@@ -13,7 +13,7 @@ module LifeBlock exposing
 
 import Colors
 import Common
-import Creation.BeaconId as BeaconId exposing (DragBeaconId, DropBeaconId, HoverBeaconId)
+import Creation.Beacon as Beacon
 import Element exposing (..)
 import Element.Font as Font
 import Element.Input as Input
@@ -112,48 +112,48 @@ view opts lifeBlock =
         ( before, after ) =
             case opts.hover of
                 Carry (Just ( Before, True )) ->
-                    ( dropZone <| Poised ( BeaconId.Before opts.benchIndex, Colors.successGlow )
-                    , dropZone <| AwaitingCarry <| BeaconId.After opts.benchIndex
+                    ( dropZone <| Poised ( Beacon.BeforeSlot opts.benchIndex, Colors.successGlow )
+                    , dropZone <| AwaitingCarry <| Beacon.AfterSlot opts.benchIndex
                     )
 
                 Carry (Just ( Before, False )) ->
-                    ( dropZone <| Poised ( BeaconId.Before opts.benchIndex, Colors.failureGlow )
-                    , dropZone <| AwaitingCarry <| BeaconId.After opts.benchIndex
+                    ( dropZone <| Poised ( Beacon.BeforeSlot opts.benchIndex, Colors.failureGlow )
+                    , dropZone <| AwaitingCarry <| Beacon.AfterSlot opts.benchIndex
                     )
 
                 Carry (Just ( After, True )) ->
-                    ( dropZone <| AwaitingCarry <| BeaconId.Before opts.benchIndex
-                    , dropZone <| Poised ( BeaconId.After opts.benchIndex, Colors.successGlow )
+                    ( dropZone <| AwaitingCarry <| Beacon.BeforeSlot opts.benchIndex
+                    , dropZone <| Poised ( Beacon.AfterSlot opts.benchIndex, Colors.successGlow )
                     )
 
                 Carry (Just ( After, False )) ->
-                    ( dropZone <| AwaitingCarry <| BeaconId.Before opts.benchIndex
-                    , dropZone <| Poised ( BeaconId.After opts.benchIndex, Colors.failureGlow )
+                    ( dropZone <| AwaitingCarry <| Beacon.BeforeSlot opts.benchIndex
+                    , dropZone <| Poised ( Beacon.AfterSlot opts.benchIndex, Colors.failureGlow )
                     )
 
                 Carry Nothing ->
-                    ( dropZone <| AwaitingCarry <| BeaconId.Before opts.benchIndex
-                    , dropZone <| AwaitingCarry <| BeaconId.After opts.benchIndex
+                    ( dropZone <| AwaitingCarry <| Beacon.BeforeSlot opts.benchIndex
+                    , dropZone <| AwaitingCarry <| Beacon.AfterSlot opts.benchIndex
                     )
 
                 FilterButton Before ->
                     ( if startsBorn lifeBlock then
-                        dropZone <| AwaitingHover <| BeaconId.HoverBefore opts.benchIndex
+                        dropZone <| AwaitingHover <| Beacon.HoverBefore opts.benchIndex
 
                       else
-                        dropZone <| Hovered ( BeaconId.HoverBefore opts.benchIndex, ( Before, lifeBlock ) )
-                    , dropZone <| AwaitingHover <| BeaconId.HoverAfter opts.benchIndex
+                        dropZone <| Hovered ( Beacon.HoverBefore opts.benchIndex, ( Before, lifeBlock ) )
+                    , dropZone <| AwaitingHover <| Beacon.HoverAfter opts.benchIndex
                     )
 
                 FilterButton After ->
-                    ( dropZone <| AwaitingHover <| BeaconId.HoverBefore opts.benchIndex
-                    , dropZone <| Hovered ( BeaconId.HoverAfter opts.benchIndex, ( After, lifeBlock ) )
+                    ( dropZone <| AwaitingHover <| Beacon.HoverBefore opts.benchIndex
+                    , dropZone <| Hovered ( Beacon.HoverAfter opts.benchIndex, ( After, lifeBlock ) )
                     )
 
                 _ ->
                     -- warning and none
-                    ( dropZone <| AwaitingHover <| BeaconId.HoverBefore opts.benchIndex
-                    , dropZone <| AwaitingHover <| BeaconId.HoverAfter opts.benchIndex
+                    ( dropZone <| AwaitingHover <| Beacon.HoverBefore opts.benchIndex
+                    , dropZone <| AwaitingHover <| Beacon.HoverAfter opts.benchIndex
                     )
     in
     column opts.baseAttrs <|
@@ -176,10 +176,10 @@ TODO first two need better names
 
 -}
 type DropZoneState msg
-    = AwaitingHover BeaconId.HoverBeaconLocation
-    | AwaitingCarry BeaconId.DropBeaconLocation
-    | Hovered ( BeaconId.HoverBeaconLocation, Fit )
-    | Poised ( BeaconId.DropBeaconLocation, Attribute msg )
+    = AwaitingHover Beacon.HoverBeaconLocation
+    | AwaitingCarry Beacon.DropBeaconLocation
+    | Hovered ( Beacon.HoverBeaconLocation, Fit )
+    | Poised ( Beacon.DropBeaconLocation, Attribute msg )
 
 
 type alias DropZoneOpts msg =
@@ -193,19 +193,19 @@ viewDropZone : DropZoneOpts msg -> Element msg
 viewDropZone { baseAttrs, state, filterPressed } =
     case state of
         AwaitingCarry location ->
-            el ((BeaconId.attribute <| BeaconId.drop location) :: baseAttrs)
+            el (Beacon.dropBeacon location :: baseAttrs)
                 (el [ centerX, centerY ] <| text "+")
 
         Poised ( location, highlight ) ->
-            el ((BeaconId.attribute <| BeaconId.drop location) :: highlight :: baseAttrs)
+            el (Beacon.dropBeacon location :: highlight :: baseAttrs)
                 (el [ centerX, centerY ] <| text "+")
 
         AwaitingHover location ->
-            el ((BeaconId.attribute <| BeaconId.hover location) :: baseAttrs)
+            el (Beacon.hoverBeacon location :: baseAttrs)
                 (el [ centerX, centerY ] <| text "+")
 
         Hovered ( location, fit ) ->
-            el ((BeaconId.attribute <| BeaconId.hover location) :: baseAttrs) <|
+            el (Beacon.hoverBeacon location :: baseAttrs) <|
                 el [ centerX, centerY ] <|
                     Input.button []
                         { onPress = Just <| filterPressed fit
@@ -227,10 +227,10 @@ middle opts (LifeBlock lifepaths) =
                     }
                 ]
 
-        withBeacon : Int -> Maybe BeaconId.DragBeaconLocation
+        withBeacon : Int -> Maybe Beacon.DragBeaconLocation
         withBeacon blockIndex =
             Just <|
-                BeaconId.Bench
+                Beacon.Bench
                     { benchIndex = opts.benchIndex
                     , blockIndex = blockIndex
                     }
@@ -262,12 +262,11 @@ singleWarningIcon opts warnings warningIndex =
     let
         hoverAttr : Attribute msg
         hoverAttr =
-            BeaconId.LifeBlockWarning
-                { benchIndex = opts.benchIndex
-                , warningIndex = warningIndex
-                }
-                |> BeaconId.hover
-                |> BeaconId.attribute
+            Beacon.hoverBeacon <|
+                Beacon.LifeBlockWarning
+                    { benchIndex = opts.benchIndex
+                    , warningIndex = warningIndex
+                    }
 
         tooltip : Element msg
         tooltip =

@@ -1,6 +1,10 @@
 window.setupDraggable = function setupDraggable(sendEvent) {
-  const BEACON_ATTRIBUTE = "data-beacon";
   const MINIMUM_DRAG_DISTANCE_PX = 10;
+
+  // html attributes
+  const DRAG_BEACON_ATTRIBUTE = "drag-beacon";
+  const DROP_BEACON_ATTRIBUTE = "drop-beacon";
+  const HOVER_BEACON_ATTRIBUTE = "hover-beacon";
 
   // browser events
   const POINTER_DOWN = "pointerdown";
@@ -19,9 +23,11 @@ window.setupDraggable = function setupDraggable(sendEvent) {
   function awaitDragStart(startEvent) {
     let startBeaconId = null;
     let cursorOnDraggable = null;
-    const startBeaconElem = startEvent.target.closest(`[${BEACON_ATTRIBUTE}]`);
+    const startBeaconElem = startEvent.target.closest(
+      `[${DRAG_BEACON_ATTRIBUTE}]`
+    );
     if (startBeaconElem) {
-      startBeaconId = startBeaconElem.getAttribute(BEACON_ATTRIBUTE);
+      startBeaconId = startBeaconElem.getAttribute(DRAG_BEACON_ATTRIBUTE);
       const { left, top } = startBeaconElem.getBoundingClientRect();
       cursorOnDraggable = {
         x: startEvent.clientX - left,
@@ -29,11 +35,11 @@ window.setupDraggable = function setupDraggable(sendEvent) {
       };
     }
 
-    changeMoveListener(hover, maybeDragMove);
+    changeMoveListener(sendHoverEvent, maybeDragMove);
     document.addEventListener(POINTER_UP, stopAwaitingDrag);
 
     function stopAwaitingDrag() {
-      changeMoveListener(maybeDragMove, hover);
+      changeMoveListener(maybeDragMove, sendHoverEvent);
       document.removeEventListener(POINTER_UP, stopAwaitingDrag);
     }
 
@@ -41,9 +47,9 @@ window.setupDraggable = function setupDraggable(sendEvent) {
       const dragDistance = distance(coords(startEvent), coords(moveEvent));
       if (dragDistance >= MINIMUM_DRAG_DISTANCE_PX) {
         sendStartEvent(startEvent, startBeaconId, cursorOnDraggable);
-        sendDragEvent(MOVE, moveEvent);
+        sendMoveEvent(moveEvent);
 
-        changeMoveListener(maybeDragMove, dragMove);
+        changeMoveListener(maybeDragMove, sendMoveEvent);
         document.removeEventListener(POINTER_UP, stopAwaitingDrag);
         document.addEventListener(POINTER_UP, dragEnd);
       }
@@ -51,34 +57,46 @@ window.setupDraggable = function setupDraggable(sendEvent) {
   }
 
   function dragEnd(event) {
-    sendDragEvent(STOP, event);
-    changeMoveListener(dragMove, hover);
+    sendStopEvent(event);
+    changeMoveListener(sendMoveEvent, sendHoverEvent);
     document.removeEventListener(POINTER_UP, dragEnd);
   }
 
-  function dragMove(event) {
-    sendDragEvent(MOVE, event);
-  }
-
-  function hover(moveEvent) {
-    sendDragEvent(HOVER, moveEvent);
-  }
-
+  // START should include only DRAG beacons
   function sendStartEvent(event, startBeaconId, cursorOnDraggable) {
     sendEvent({
       type: START,
       cursor: coords(event),
-      beacons: beaconPositions(),
+      beacons: beaconPositions(DRAG_BEACON_ATTRIBUTE),
       startBeaconId,
       cursorOnDraggable,
     });
   }
 
-  function sendDragEvent(type, event) {
+  // STOP should include only DROP beacons
+  function sendStopEvent(event) {
     sendEvent({
-      type: type,
+      type: STOP,
       cursor: coords(event),
-      beacons: beaconPositions(),
+      beacons: beaconPositions(DROP_BEACON_ATTRIBUTE),
+    });
+  }
+
+  // MOVE should include only DROP beacons
+  function sendMoveEvent(event) {
+    sendEvent({
+      type: MOVE,
+      cursor: coords(event),
+      beacons: beaconPositions(DROP_BEACON_ATTRIBUTE),
+    });
+  }
+
+  // HOVER should include only HOVER beacons
+  function sendHoverEvent(event) {
+    sendEvent({
+      type: HOVER,
+      cursor: coords(event),
+      beacons: beaconPositions(HOVER_BEACON_ATTRIBUTE),
     });
   }
 
@@ -87,14 +105,14 @@ window.setupDraggable = function setupDraggable(sendEvent) {
     document.addEventListener(POINTER_MOVE, to);
   }
 
-  function beaconPositions() {
-    const beaconElements = document.querySelectorAll(`[${BEACON_ATTRIBUTE}]`);
-    return Array.from(beaconElements).map(beaconData);
+  function beaconPositions(attr) {
+    const beaconElements = document.querySelectorAll(`[${attr}]`);
+    return Array.from(beaconElements).map((elem) => beaconData(elem, attr));
   }
 
-  function beaconData(elem) {
+  function beaconData(elem, attr) {
     const boundingRect = elem.getBoundingClientRect();
-    const beaconId = elem.getAttribute(BEACON_ATTRIBUTE);
+    const beaconId = elem.getAttribute(attr);
     return {
       id: tryParse(beaconId),
       x: boundingRect.x,

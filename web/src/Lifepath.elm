@@ -11,7 +11,7 @@ module Lifepath exposing
 
 import Colors exposing (..)
 import Common
-import Creation.BeaconId as BeaconId exposing (DragBeaconId)
+import Creation.Beacon as Beacon
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -215,7 +215,7 @@ lifepathWidth =
     Element.px 300
 
 
-view : Maybe BeaconId.DragBeaconLocation -> Lifepath -> Element msg
+view : Maybe Beacon.DragBeaconLocation -> Lifepath -> Element msg
 view beaconLocation lifepath =
     let
         defaultAttrs : List (Attribute msg)
@@ -234,8 +234,7 @@ view beaconLocation lifepath =
         attrs =
             case beaconLocation of
                 Just location ->
-                    (BeaconId.attribute <| BeaconId.drag location)
-                        :: defaultAttrs
+                    Beacon.dragBeacon location :: defaultAttrs
 
                 Nothing ->
                     defaultAttrs

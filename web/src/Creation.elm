@@ -10,13 +10,12 @@ module Creation exposing
 import Api
 import Array exposing (Array)
 import Colors
-import Creation.BeaconId as BeaconId
+import Creation.Beacon as Beacon
     exposing
         ( BenchIndex
         , DragBeaconId
         , DropBeaconId
         , HoverBeaconId
-        , dragLocation
         )
 import Creation.LifepathFilter as LifepathFilter exposing (LifepathFilter)
 import Creation.Status as Status exposing (Status)
@@ -238,12 +237,12 @@ pickup model draggedItem =
 
 pickupDragBeacon : Model -> DragBeaconId -> Result InvalidModel DragCache
 pickupDragBeacon { workbench, sidebarLifepaths } dragId =
-    case BeaconId.dragLocation dragId of
-        BeaconId.Bench location ->
+    case Beacon.dragLocation dragId of
+        Beacon.Bench location ->
             Workbench.pickup workbench location
                 |> Result.mapError pickupError
 
-        BeaconId.Sidebar sidebarIndex ->
+        Beacon.Sidebar sidebarIndex ->
             case sidebarLifepaths of
                 Status.Loaded { sidebar } ->
                     Array.get sidebarIndex sidebar
@@ -278,9 +277,9 @@ drop model =
 
         DragState.Poised ( hoverState, ( cachedBench, cachedBlock ) ) ->
             let
-                dropLocation : BeaconId.DropBeaconLocation
+                dropLocation : Beacon.DropBeaconLocation
                 dropLocation =
-                    BeaconId.dropLocation hoverState.hoveredDropBeacon
+                    Beacon.dropLocation hoverState.hoveredDropBeacon
             in
             case Workbench.drop cachedBench cachedBlock dropLocation of
                 Err (Workbench.CombinationError _) ->
@@ -358,7 +357,7 @@ view model =
 
         DragState.Hovered id ->
             viewPage
-                { workbench = viewBench <| Workbench.Hovered <| BeaconId.hoverLocation id
+                { workbench = viewBench <| Workbench.Hovered <| Beacon.hoverLocation id
                 , draggedBlock = none
                 }
 
@@ -372,13 +371,13 @@ view model =
             let
                 dropAttempt : Result Workbench.DropError Workbench
                 dropAttempt =
-                    Workbench.drop cachedBench cachedBlock <| BeaconId.dropLocation hoveredDropBeacon
+                    Workbench.drop cachedBench cachedBlock <| Beacon.dropLocation hoveredDropBeacon
 
                 hover : Maybe Bool -> Workbench.Hover
                 hover dropHighlight =
                     Workbench.Poised
                         { hoveringBlock = cachedBlock
-                        , dropLocation = BeaconId.dropLocation hoveredDropBeacon
+                        , dropLocation = Beacon.dropLocation hoveredDropBeacon
                         , dropHighlight = dropHighlight
                         }
             in
@@ -436,7 +435,7 @@ viewSidebarLifepaths sidebarLifepaths =
     let
         viewPath : Int -> Lifepath -> Element Msg
         viewPath index =
-            Lifepath.view <| Just <| BeaconId.Sidebar index
+            Lifepath.view <| Just <| Beacon.Sidebar index
     in
     case sidebarLifepaths of
         Status.Loading ->
@@ -458,5 +457,5 @@ viewSidebarLifepaths sidebarLifepaths =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     model.dragState
-        |> DragState.subscriptions BeaconId.decoders
+        |> DragState.subscriptions Beacon.decoders
         |> Sub.map DragMsg
