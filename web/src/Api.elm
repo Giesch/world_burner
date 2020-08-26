@@ -1,4 +1,7 @@
-module Api exposing (dwarves)
+module Api exposing
+    ( dwarves
+    , lifepathsDecoder
+    )
 
 import Http
 import Json.Decode as Decode exposing (Decoder)
