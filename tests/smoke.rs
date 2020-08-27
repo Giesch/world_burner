@@ -7,11 +7,16 @@ mod common;
 fn born_clansman() {
     let db = common::test_connection();
 
-    use lifepaths::*;
-
-    let tup: (i32, Option<i32>, Option<i32>, Option<i32>, i32, i32) = table
-        .select((page, years, res, gen_skill_pts, skill_pts, trait_pts))
-        .filter(name.eq("born clansman"))
+    let tup: (i32, Option<i32>, Option<i32>, Option<i32>, i32, i32) = lifepaths::table
+        .select((
+            lifepaths::page,
+            lifepaths::years,
+            lifepaths::res,
+            lifepaths::gen_skill_pts,
+            lifepaths::skill_pts,
+            lifepaths::trait_pts,
+        ))
+        .filter(lifepaths::name.eq("born clansman"))
         .first(&db)
         .expect("born clansman should exist");
 

@@ -5,30 +5,26 @@ use std::collections::HashSet;
 use world_burner::routes::lifepaths::LifepathsResponse;
 
 #[test]
-fn born_lifepaths() {
+fn dwarf_lifepaths() {
     let rocket = world_burner::test_app();
     let client = Client::new(rocket).expect("Rocket client");
 
-    let json = r#"{
-        "born": true
-    }"#;
-
     let mut response = client
-        .post("/api/lifepaths/search")
+        .get("/api/lifepaths/dwarves")
         .header(ContentType::JSON)
-        .body(json)
         .dispatch();
 
     assert_eq!(response.status(), Status::Ok);
 
     let body = response.body().expect("response body");
     let json_body: Value = from_reader(body.into_inner()).expect("can't parse value");
+
     let response: LifepathsResponse =
         serde_json::from_value(json_body).expect("deserialize lifepaths response");
 
     let names: HashSet<_> = response.lifepaths.into_iter().map(|lp| lp.name).collect();
 
-    let expected_names: HashSet<_> = vec![
+    let born_lp_names: HashSet<_> = vec![
         "born clansman",
         "born guilder",
         "born artificer",
@@ -38,5 +34,5 @@ fn born_lifepaths() {
     .map(|s| s.to_string())
     .collect();
 
-    assert_eq!(names, expected_names);
+    assert!(names.is_superset(&born_lp_names))
 }

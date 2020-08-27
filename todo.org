@@ -1,22 +1,21 @@
-* TODO get a minimal version of the app running [1/6]
+* TODO get a minimal version of the app running [3/6]
   - [X] sequentially picking lifepaths
     - [X] get dnd working; able to drop first lifepath of a new block
     - [X] add validation to dnd
-  - [-] easy search for allowed next lifepaths [3/4]
+  - [X] easy search for allowed next lifepaths [4/4]
     - [X] move lifepath filtering/search into elm
           load all lps for the stock on launch
     - [X] come up with a better search ui
           any-field text search, and then other filters under 'advanced'
     - [X] add filter for fits before/after each lifeblock
-    - [ ] allow clicking on a warning to filter to required by lifepath
-          mentioned in the requirement, really
-  - [ ] unit tests for creation model & related modules
+    - [X] allow clicking on a warning to filter by
+          'mentioned in the requirement'
+  - [-] unit tests for creation model & related modules
     - [ ] validation
     - [ ] workbench
     - [ ] dragstate
-  - [ ] unit tests for json decoders
-  - [ ] unit tests for validation
-        maybe just dump the dwarf json to a file?
+    - [X] attribute ids
+  - [X] unit tests for json decoders
   - [ ] unit tests for lifepaths service (ie the joins)
 
 * TODO visual redesign
@@ -154,3 +153,4 @@ the whole point was to not do dropzones
 ** TODO add prod frontend error logging with rollbar or whatever
 ** TODO make the app compile to a binary in release mode
 *** spa routes should depend on a flag; only use NamedFile in dev
+** TODO more data integrity tests for the book lifepaths (eg for traits, too)

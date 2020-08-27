@@ -4,6 +4,7 @@ module LifeBlock.Validation exposing
     , WarningReason(..)
     , errors
     , includes
+    , reason
     , warnings
     )
 
@@ -46,6 +47,11 @@ type alias UnmetRequirements =
     { predicates : NonEmpty Requirement.Predicate
     , lifepath : Lifepath
     }
+
+
+reason : Warning -> WarningReason
+reason (Warning data) =
+    data.reason
 
 
 {-| Takes a predicate and the PREVIOUS lifepaths of the character.
@@ -137,10 +143,10 @@ unmetReqs lifepaths =
                             -- and its weird if there's multiple requirements
                             toTitleCase lifepath.name ++ " requires " ++ requirement.description
 
-                        reason =
+                        unmet =
                             Unmet { predicates = predicates, lifepath = lifepath }
                     in
-                    Just <| Warning { message = message, reason = reason }
+                    Just <| Warning { message = message, reason = unmet }
 
         run : ( Array Lifepath, List Lifepath, List Warning ) -> List Warning
         run ( seen, unseen, warns ) =
