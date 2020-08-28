@@ -42,6 +42,25 @@ bornTests =
         ]
 
 
+requirementsTest : Test
+requirementsTest =
+    test "unmet requirements with a born lifepath is an error" <|
+        \_ ->
+            withLifepaths ( "prince", "born noble" ) <|
+                \( prince, bornNoble ) ->
+                    let
+                        actual : List Validation.Error
+                        actual =
+                            Validation.errors
+                                (NonEmpty.singleton bornNoble)
+                                (NonEmpty.singleton prince)
+                    in
+                    Expect.equal actual
+                        [ Validation.Error
+                            "Prince requires Born Noble and Noble Axe Bearer"
+                        ]
+
+
 withLifepath : String -> (Lifepath -> Expectation) -> Expectation
 withLifepath =
     testWith getPath

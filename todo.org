@@ -1,4 +1,4 @@
-* TODO get a minimal version of the app running [3/6]
+* TODO get a minimal version of the app running [3/5]
   - [X] sequentially picking lifepaths
     - [X] get dnd working; able to drop first lifepath of a new block
     - [X] add validation to dnd
@@ -10,9 +10,8 @@
     - [X] add filter for fits before/after each lifeblock
     - [X] allow clicking on a warning to filter by
           'mentioned in the requirement'
-  - [-] unit tests for creation model & related modules
-    - [ ] validation
-    - [ ] workbench
+  - [-] unit tests for pure elm modules
+    - [X] validation
     - [ ] dragstate
     - [X] attribute ids
   - [X] unit tests for json decoders
