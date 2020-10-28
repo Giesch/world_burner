@@ -7,6 +7,7 @@ module Creation.Beacon exposing
     , DropBeaconLocation(..)
     , HoverBeaconId
     , HoverBeaconLocation(..)
+    , OpenSlotPosition(..)
     , WarningLocation
     , decoders
     , dragBeacon
@@ -113,9 +114,24 @@ TODO consider replacing this with a pair, or something
 
 -}
 type DropBeaconLocation
-    = OpenSlot BenchIndex
+    = OpenSlot OpenSlotPosition
     | BeforeSlot BenchIndex
     | AfterSlot BenchIndex
+
+
+type OpenSlotPosition
+    = BeforeBench
+    | AfterBench
+
+
+slotPosId : OpenSlotPosition -> Int
+slotPosId pos =
+    case pos of
+        BeforeBench ->
+            0
+
+        AfterBench ->
+            1
 
 
 dropBeacon : DropBeaconLocation -> Element.Attribute msg
@@ -131,8 +147,8 @@ dropLocation (DropBeaconId id) =
 toDropId : DropBeaconLocation -> Int
 toDropId location =
     case location of
-        OpenSlot benchIndex ->
-            (benchIndex + 1) * -1
+        OpenSlot pos ->
+            (slotPosId pos + 1) * -1
 
         BeforeSlot benchIndex ->
             (benchIndex + 11) * -1
@@ -143,8 +159,11 @@ toDropId location =
 
 fromDropId : Int -> DropBeaconLocation
 fromDropId id =
-    if id < 0 && id >= -10 then
-        OpenSlot <| -id - 1
+    if id == -1 then
+        OpenSlot BeforeBench
+
+    else if id == -2 then
+        OpenSlot AfterBench
 
     else if id < -10 && id >= -20 then
         BeforeSlot <| -id - 11

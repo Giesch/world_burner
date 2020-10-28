@@ -35,17 +35,25 @@ import List.NonEmpty as NonEmpty exposing (NonEmpty)
 
 
 type Workbench
-    = Workbench (Array (Maybe LifeBlock))
+    = Workbench (Array LifeBlock)
+
+
+maxLength : Int
+maxLength =
+    4
 
 
 default : Workbench
 default =
-    Workbench <| Array.repeat 4 Nothing
+    Workbench <| Array.empty
 
 
 deleteBlock : Workbench -> BenchIndex -> Workbench
 deleteBlock (Workbench bench) benchIndex =
-    putBenchBlock benchIndex Nothing bench
+    Workbench <|
+        Array.append
+            (Array.slice 0 benchIndex bench)
+            (Array.slice (benchIndex + 1) (maxLength + 1) bench)
 
 
 type PickupError
@@ -53,38 +61,25 @@ type PickupError
     | NoLifeBlock
 
 
+{-| Returns the workbench with the the picked up block removed, and the picked up block.
+However, this is not applied immediately; only once the user releases the drop.
+-}
 pickup : Workbench -> BenchLocation -> Result PickupError ( Workbench, LifeBlock )
 pickup (Workbench bench) { benchIndex, blockIndex } =
-    case getBenchBlock benchIndex bench of
-        OutOfBounds ->
+    case Array.get benchIndex bench of
+        Nothing ->
             Err PickupBoundsError
 
-        GotNothing ->
-            Err NoLifeBlock
-
-        GotBlock block ->
+        Just block ->
             case LifeBlock.splitAt blockIndex block of
                 Whole pickedup ->
-                    Ok ( putBenchBlock benchIndex Nothing bench, pickedup )
+                    Ok ( deleteBlock (Workbench bench) benchIndex, pickedup )
 
                 Split ( left, right ) ->
-                    Ok ( putBenchBlock benchIndex (Just left) bench, right )
+                    Ok ( putBenchBlock benchIndex left bench, right )
 
                 BoundsError ->
                     Err PickupBoundsError
-
-
-dropBenchIndex : DropBeaconLocation -> BenchIndex
-dropBenchIndex location =
-    case location of
-        Beacon.OpenSlot loc ->
-            loc
-
-        Beacon.BeforeSlot loc ->
-            loc
-
-        Beacon.AfterSlot loc ->
-            loc
 
 
 type DropError
@@ -96,63 +91,51 @@ type DropError
 drop : Workbench -> LifeBlock -> DropBeaconLocation -> Result DropError Workbench
 drop (Workbench bench) droppedBlock location =
     let
-        benchIndex =
-            dropBenchIndex location
-
-        dropFinal : LifeBlock -> Result DropError Workbench
-        dropFinal finalBlock =
-            Ok <| putBenchBlock benchIndex (Just finalBlock) bench
+        dropFinal : LifeBlock -> BenchIndex -> Result DropError Workbench
+        dropFinal finalBlock benchIndex =
+            Ok <| putBenchBlock benchIndex finalBlock bench
 
         combineAndDrop :
-            (LifeBlock -> Result (NonEmpty Validation.Error) LifeBlock)
+            Int
+            -> (LifeBlock -> Result (NonEmpty Validation.Error) LifeBlock)
             -> Result DropError Workbench
-        combineAndDrop combineWithBenchBlock =
-            case getBenchBlock benchIndex bench of
-                OutOfBounds ->
+        combineAndDrop benchIndex combineWithBenchBlock =
+            case Array.get benchIndex bench of
+                Nothing ->
                     Err DropBoundsError
 
-                GotNothing ->
-                    Err InvalidDropLocation
-
-                GotBlock benchBlock ->
+                Just benchBlock ->
                     case combineWithBenchBlock benchBlock of
                         Ok combined ->
-                            dropFinal combined
+                            dropFinal combined benchIndex
 
                         Err err ->
                             Err <| CombinationError err
     in
     case location of
-        Beacon.OpenSlot _ ->
-            dropFinal droppedBlock
+        Beacon.OpenSlot pos ->
+            case pos of
+                Beacon.BeforeBench ->
+                    let
+                        newBench : Array LifeBlock
+                        newBench =
+                            Array.append (Array.fromList [ droppedBlock ]) bench
+                    in
+                    Ok <| Workbench <| newBench
 
-        Beacon.BeforeSlot _ ->
-            combineAndDrop <| \benchBlock -> LifeBlock.combine droppedBlock benchBlock
+                Beacon.AfterBench ->
+                    Ok <| Workbench <| Array.push droppedBlock bench
 
-        Beacon.AfterSlot _ ->
-            combineAndDrop <| \benchBlock -> LifeBlock.combine benchBlock droppedBlock
+        Beacon.BeforeSlot idx ->
+            combineAndDrop idx <|
+                \benchBlock -> LifeBlock.combine droppedBlock benchBlock
 
-
-type GetResult
-    = OutOfBounds
-    | GotNothing
-    | GotBlock LifeBlock
-
-
-getBenchBlock : BenchIndex -> Array (Maybe LifeBlock) -> GetResult
-getBenchBlock index bench =
-    case Array.get index bench of
-        Nothing ->
-            OutOfBounds
-
-        Just Nothing ->
-            GotNothing
-
-        Just (Just block) ->
-            GotBlock block
+        Beacon.AfterSlot idx ->
+            combineAndDrop idx <|
+                \benchBlock -> LifeBlock.combine benchBlock droppedBlock
 
 
-putBenchBlock : BenchIndex -> Maybe LifeBlock -> Array (Maybe LifeBlock) -> Workbench
+putBenchBlock : BenchIndex -> LifeBlock -> Array LifeBlock -> Workbench
 putBenchBlock index maybeBlock bench =
     Workbench <| Array.set index maybeBlock bench
 
@@ -225,11 +208,12 @@ view (Workbench slots) opts =
                 , setFix = opts.setFix
                 }
 
-        viewSlot : Int -> Maybe LifeBlock -> Element msg
+        viewSlot : Int -> LifeBlock -> Element msg
         viewSlot benchIndex block =
-            block
-                |> Maybe.map (viewBlock benchIndex)
-                |> Maybe.withDefault (openSlot benchIndex opts)
+            block |> viewBlock benchIndex
+
+        fullSlots =
+            Array.indexedMap viewSlot slots
     in
     row
         [ spacing 20
@@ -239,7 +223,21 @@ view (Workbench slots) opts =
         , height <| px 500
         , width fill
         ]
-        (Array.toList <| Array.indexedMap viewSlot slots)
+    <|
+        if Array.isEmpty fullSlots then
+            [ openSlot Beacon.AfterBench opts ]
+
+        else if Array.length fullSlots == maxLength then
+            Array.toList fullSlots
+
+        else if Array.length fullSlots == maxLength - 1 then
+            Array.toList <| Array.push (openSlot Beacon.AfterBench opts) fullSlots
+
+        else
+            openSlot Beacon.BeforeBench opts
+                :: (Array.toList <|
+                        Array.push (openSlot Beacon.AfterBench opts) fullSlots
+                   )
 
 
 convertHighlight : Int -> Poise -> LifeBlock.Hover
@@ -264,21 +262,21 @@ convertHighlight benchIndex { dropLocation, dropHighlight } =
             LifeBlock.Carry Nothing
 
 
-openSlot : Int -> WorkbenchOptions msg -> Element msg
-openSlot benchIndex { hover } =
+openSlot : Beacon.OpenSlotPosition -> WorkbenchOptions msg -> Element msg
+openSlot position { hover } =
     let
         beingHovered : Bool
         beingHovered =
             case hover of
                 Poised full ->
-                    full.dropLocation == Beacon.OpenSlot benchIndex
+                    full.dropLocation == Beacon.OpenSlot position
 
                 _ ->
                     False
     in
     if beingHovered then
         el
-            (Beacon.dropBeacon (Beacon.OpenSlot benchIndex)
+            (Beacon.dropBeacon (Beacon.OpenSlot position)
                 :: Colors.successGlow
                 :: slotAttrs
             )
@@ -286,7 +284,7 @@ openSlot benchIndex { hover } =
 
     else
         el
-            (Beacon.dropBeacon (Beacon.OpenSlot benchIndex)
+            (Beacon.dropBeacon (Beacon.OpenSlot position)
                 :: Border.width 1
                 :: slotAttrs
             )
