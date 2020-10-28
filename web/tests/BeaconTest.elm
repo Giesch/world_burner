@@ -78,9 +78,17 @@ benchLocation =
 dropLocation : Fuzzer Beacon.DropBeaconLocation
 dropLocation =
     Fuzz.oneOf
-        [ Fuzz.map Beacon.OpenSlot singleDigit
+        [ Fuzz.map Beacon.OpenSlot beaconPosition
         , Fuzz.map Beacon.BeforeSlot singleDigit
         , Fuzz.map Beacon.AfterSlot singleDigit
+        ]
+
+
+beaconPosition : Fuzzer Beacon.OpenSlotPosition
+beaconPosition =
+    Fuzz.oneOf
+        [ Fuzz.constant Beacon.BeforeBench
+        , Fuzz.constant Beacon.AfterBench
         ]
 
 

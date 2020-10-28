@@ -88,6 +88,10 @@ type DropError
     | CombinationError (NonEmpty Validation.Error)
 
 
+type alias CombinationResult =
+    Result (NonEmpty Validation.Error) LifeBlock
+
+
 drop : Workbench -> LifeBlock -> DropBeaconLocation -> Result DropError Workbench
 drop (Workbench bench) droppedBlock location =
     let
@@ -95,10 +99,7 @@ drop (Workbench bench) droppedBlock location =
         dropFinal finalBlock benchIndex =
             Ok <| putBenchBlock benchIndex finalBlock bench
 
-        combineAndDrop :
-            Int
-            -> (LifeBlock -> Result (NonEmpty Validation.Error) LifeBlock)
-            -> Result DropError Workbench
+        combineAndDrop : Int -> (LifeBlock -> CombinationResult) -> Result DropError Workbench
         combineAndDrop benchIndex combineWithBenchBlock =
             case Array.get benchIndex bench of
                 Nothing ->

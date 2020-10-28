@@ -371,7 +371,8 @@ view model =
             let
                 dropAttempt : Result Workbench.DropError Workbench
                 dropAttempt =
-                    Workbench.drop cachedBench cachedBlock <| Beacon.dropLocation hoveredDropBeacon
+                    Workbench.drop cachedBench cachedBlock <|
+                        Beacon.dropLocation hoveredDropBeacon
 
                 hover : Maybe Bool -> Workbench.Hover
                 hover dropHighlight =
