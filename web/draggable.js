@@ -18,7 +18,7 @@ window.setupDraggable = function setupDraggable(sendEvent) {
   const HOVER = "hover";
 
   document.addEventListener(POINTER_DOWN, awaitDragStart);
-  document.addEventListener(POINTER_MOVE, hover);
+  document.addEventListener(POINTER_MOVE, sendHoverEvent);
 
   function awaitDragStart(startEvent) {
     let startBeaconId = null;
