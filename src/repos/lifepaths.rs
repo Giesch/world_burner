@@ -1,4 +1,3 @@
-use crate::db::DbConn;
 use crate::routes::lifepaths::LifepathFilters;
 use crate::schema;
 use crate::schema::StatMod;
@@ -20,7 +19,7 @@ pub trait LifepathRepo {
 
 const MIN_SEARCH_TERM: usize = 2;
 
-impl LifepathRepo for DbConn {
+impl LifepathRepo for &PgConnection {
     fn lifepaths(&self, filters: &LifepathFilters) -> LifepathRepoResult<Vec<LifepathRow>> {
         use schema::lifepath_settings as settings;
         use schema::lifepaths;

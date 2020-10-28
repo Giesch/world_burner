@@ -1,11 +1,12 @@
 use super::errors::*;
 use crate::db::DbConn;
+use crate::diesel::Connection;
 use crate::services::lifepaths::*;
 use rocket_contrib::json::Json;
 
 #[get("/api/lifepaths/dwarves", format = "json")]
 pub fn dwarves(db: DbConn) -> RouteResult<Json<LifepathsResponse>> {
-    let lifepaths = Lifepaths::list(db, &ALL_LIFEPATHS)?;
+    let lifepaths = (&*db).transaction(|| Lifepaths::list(&*db, &ALL_LIFEPATHS))?;
     Ok(Json(LifepathsResponse { lifepaths }))
 }
 
@@ -39,5 +40,11 @@ impl From<LifepathsError> for RouteError {
             LifepathsError::MissingValue(_msg) => RouteError::useless(),
             LifepathsError::InvalidJson => RouteError::useless(),
         }
+    }
+}
+
+impl From<diesel::result::Error> for LifepathsError {
+    fn from(_error: diesel::result::Error) -> Self {
+        LifepathsError::Useless
     }
 }
