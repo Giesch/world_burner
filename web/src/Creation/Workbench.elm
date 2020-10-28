@@ -206,7 +206,7 @@ view (Workbench slots) opts =
                     else
                         LifeBlock.None
 
-                Dragged lifeBlock ->
+                Dragged _ ->
                     LifeBlock.Carry Nothing
 
                 Poised full ->
