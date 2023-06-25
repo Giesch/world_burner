@@ -1,6 +1,8 @@
 # world burner
 
-This was a learning project I used for getting more familiarity with Rust and Elm. It implements the character creation rules for a tabletop RPG called Burning Wheel (players use 'burn' as a synonym for 'create'). I only ever got around to adding the Dwarf lifepaths. If you're not an RPG person, the main interesting thing would be that it involves serializable predicates (ie, 'Job A depends on either Job B or Jobs C and D being complete', but that's an editable rule in the database).
+This was a learning project I used for getting more familiarity with Rust and Elm. It implements the character creation rules for a tabletop RPG called Burning Wheel (players use 'burn' as a synonym for 'create'). I only ever got around to adding the Dwarf lifepaths.
+
+If you're not an RPG person, the main interesting thing would be that it involves serializable predicates (ie, 'Job A depends on either Job B or Jobs C and D being complete', but that's an editable rule in the database). On the Elm side, it includes a custom implementation of drag-and-drop inspired by NoRedInk's blog post encouraging that.
 
 Because this depends on Rocket 4 and removed nightly features, getting it to build again would problably mean moving to a different web framework. Lesson learned there.
 
