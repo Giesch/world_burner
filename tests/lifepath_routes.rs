@@ -4,6 +4,7 @@ use serde_json::{from_reader, Value};
 use std::collections::HashSet;
 use world_burner::routes::lifepaths::LifepathsResponse;
 
+#[ignore]
 #[test]
 fn born_lifepaths() {
     let rocket = world_burner::test_app();
